@@ -63,6 +63,33 @@ the paper sheet (Karigar, Other, Loader, Bhatthi, Handling, Kachu, Repair,
 Glazing, Pressure, Sorting). Rename them from the Reasons screen to match your
 own sheet — seeding only ever happens on an empty table.
 
+### Demo data
+
+To see the app with a register behind it rather than empty screens:
+
+```bash
+cd server
+cargo run -- seed
+```
+
+That writes 4 product series, 24 workers and roughly 700–800 waste entries
+spread from the **first of last month to today**, so the date filters, the
+"Last month" preset and the PDF export all have a full sheet to show. Sundays
+are left clear, entries land inside shift hours, and the reasons are weighted
+— handling and the loader break the most pieces, glazing faults are rare — so
+the report's breakdown has a realistic shape rather than being flat noise.
+
+It refuses to touch a database that already has workers in it. Pass `--force`
+to clear the waste log, workers and series first and start over:
+
+```bash
+cargo run -- seed --force
+```
+
+Reasons survive a `--force` reseed, since by then you may have renamed them to
+match your own register. The generator is deterministic, so a fresh database
+always seeds the same demo.
+
 ### Configuration
 
 | Variable | Default | Meaning |
@@ -70,6 +97,8 @@ own sheet — seeding only ever happens on an empty table.
 | `WORKER_LOG_DB` | `worker-log.db` | SQLite file path |
 | `WORKER_LOG_PORT` | `8080` | API port |
 | `WORKER_LOG_LOG` | `worker_log=info` | `tracing` filter |
+
+Run `cargo run -- --help` for the command list.
 
 Timestamps are stored in the server's **local** time, because the floor files
 the sheet by its own calendar day — an entry logged at 9pm has to land on that
