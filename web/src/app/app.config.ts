@@ -4,11 +4,10 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { pendingRequestsInterceptor$ } from 'ng-http-loader';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 
@@ -23,7 +22,9 @@ export const appConfig: ApplicationConfig = {
     // of events per tap and one detection pass for the burst is enough.
     provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([pendingRequestsInterceptor$])),
+    // Only the translation loader speaks HTTP now; the register itself goes
+    // over Tauri's IPC.
+    provideHttpClient(),
     provideRouter(
       routes,
       withComponentInputBinding(),

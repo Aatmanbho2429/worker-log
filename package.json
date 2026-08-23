@@ -1,17 +1,16 @@
 {
-  "name": "ceramic-waste-log-monorepo",
+  "name": "ceramic-waste-log",
   "private": true,
-  "description": "Runs the Rust API and the Angular front end together for local development.",
+  "description": "Desktop waste log for a ceramic sanitaryware line (Tauri + Angular).",
   "scripts": {
     "setup": "npm --prefix web install",
-    "dev": "concurrently -n API,WEB -c \"blue.bold,green.bold\" --kill-others \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "cd server && cargo run",
-    "dev:web": "cd web && npm start",
-    "seed": "cd server && cargo run -- seed",
-    "seed:force": "cd server && cargo run -- seed --force",
-    "build": "npm --prefix web run build && cd server && cargo build --release"
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "web:start": "npm --prefix web start",
+    "web:build": "npm --prefix web run build"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "@tauri-apps/cli": "^2.11.4"
   }
 }

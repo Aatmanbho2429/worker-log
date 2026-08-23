@@ -1,6 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
+import { ExportFormat, ExportService } from '../../core/export.service';
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
 import { Dashboard, RangeFilter, SeriesOfProduct, workerFullName } from '../../models';
@@ -20,12 +22,15 @@ import { RangeFilterBar } from '../../shared/range-filter/range-filter';
 })
 export class Sheet {
   private readonly api = inject(WasteLogService);
+  private readonly exporter = inject(ExportService);
   private readonly notify = inject(NotifyService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly series = signal<SeriesOfProduct[]>([]);
   protected readonly loading = signal(true);
+  protected readonly exporting = signal(false);
 
   protected readonly reasons = computed(() => this.dashboard()?.reasons ?? []);
   protected readonly rows = computed(() => this.dashboard()?.rows ?? []);
@@ -36,20 +41,28 @@ export class Sheet {
   );
 
   constructor() {
-    this.api.listSeries().subscribe({
-      next: (series) => this.series.set(series),
-      error: (error) => this.notify.fromHttp(error, 'Could not load the product series.'),
+    void this.loadSeries();
+    void this.load();
+
+    // A read-only mirror, so anything that moves the register moves this.
+    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.loadSeries();
+      void this.load();
     });
-    this.load();
   }
 
   protected onFilterChange(filter: RangeFilter): void {
     this.filter.set(filter);
-    this.load();
+    void this.load();
   }
 
-  protected download(format: 'pdf' | 'csv'): void {
-    window.open(this.api.reportUrl(this.filter(), format), '_blank');
+  protected async download(format: ExportFormat): Promise<void> {
+    this.exporting.set(true);
+    try {
+      await this.exporter.export(this.filter(), format);
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   /** Blank rather than `0`, the way an unused box on the paper sheet is. */
@@ -59,17 +72,22 @@ export class Sheet {
 
   protected readonly workerFullName = workerFullName;
 
-  private load(): void {
+  private async loadSeries(): Promise<void> {
+    try {
+      this.series.set(await this.api.listSeries());
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the product series.');
+    }
+  }
+
+  private async load(): Promise<void> {
     this.loading.set(true);
-    this.api.dashboard(this.filter()).subscribe({
-      next: (dashboard) => {
-        this.dashboard.set(dashboard);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.loading.set(false);
-        this.notify.fromHttp(error, 'Could not load the month sheet.');
-      },
-    });
+    try {
+      this.dashboard.set(await this.api.dashboard(this.filter()));
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the month sheet.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 }

@@ -1,5 +1,6 @@
 {
   "lblError": "Error",
   "lblSuccess": "Saved",
-  "lblWarn": "Check this"
+  "lblWarn": "Check this",
+  "lblInfo": "Note"
 }

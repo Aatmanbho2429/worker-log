@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
+
+import { isCommandError } from './tauri.service';
 
 @Injectable({ providedIn: 'root' })
 export class NotifyService {
@@ -15,6 +16,16 @@ export class NotifyService {
       summary: this.translate.instant('lblSuccess'),
       detail,
       life: 2500,
+    });
+  }
+
+  info(detail: string): void {
+    this.messages.clear();
+    this.messages.add({
+      severity: 'info',
+      summary: this.translate.instant('lblInfo'),
+      detail,
+      life: 3000,
     });
   }
 
@@ -39,41 +50,25 @@ export class NotifyService {
   }
 
   /**
-   * Surfaces the API's own message where there is one.
+   * Surfaces the message a rejected command carried.
    *
-   * A validation failure the operator can act on ("Last name is required.")
-   * arrives as 400/404/409 and is shown as a warning; anything else is a
-   * genuine fault and is shown as an error.
+   * A validation problem the operator can act on ("Last name is required.")
+   * comes back tagged `badRequest`, `notFound` or `conflict` and is shown as a
+   * warning; anything else is a genuine fault and is shown as an error.
    */
-  fromHttp(error: unknown, fallback: string): void {
-    if (!(error instanceof HttpErrorResponse)) {
-      this.error(fallback);
+  fromCommand(error: unknown, fallback: string): void {
+    if (isCommandError(error)) {
+      if (error.kind === 'internal') {
+        this.error(error.message || fallback);
+      } else {
+        this.warn(error.message || fallback);
+      }
       return;
     }
 
-    if (error.status === 0) {
-      this.error('Cannot reach the waste-log service. Check that it is running.');
-      return;
-    }
-
-    const detail = extractMessage(error) ?? fallback;
-    if (error.status >= 400 && error.status < 500) {
-      this.warn(detail);
-    } else {
-      this.error(detail);
-    }
+    // A rejection that never reached Rust — a missing command, a permission
+    // the capability file does not grant, or a bug in the bridge.
+    console.error(error);
+    this.error(typeof error === 'string' && error.trim() ? error : fallback);
   }
-}
-
-/** The API answers with `{ "error": "..." }`; extractors fall back to text. */
-function extractMessage(error: HttpErrorResponse): string | null {
-  const body = error.error;
-
-  if (typeof body === 'string' && body.trim()) {
-    return body.trim();
-  }
-  if (body && typeof body === 'object' && typeof body.error === 'string') {
-    return body.error;
-  }
-  return null;
 }

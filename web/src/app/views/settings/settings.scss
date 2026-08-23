@@ -1,0 +1,57 @@
+@use 'base/tokens' as *;
+
+.settings__heading {
+  margin-bottom: $space-md;
+}
+
+.settings__facts {
+  display: grid;
+  gap: $space-sm $space-lg;
+  grid-template-columns: max-content 1fr;
+  margin-bottom: $space-md;
+
+  dt {
+    color: $text-muted;
+    font-size: $fs-xs;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    color: $text-primary;
+  }
+}
+
+.settings__path {
+  font-family: $font-mono;
+  font-size: $fs-sm;
+  overflow-wrap: anywhere;
+}
+
+.settings__note {
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-bottom: $space-lg;
+  max-width: 70ch;
+}
+
+.settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.settings__warning {
+  align-items: flex-start;
+  color: $amber-400;
+  display: flex;
+  font-size: $fs-sm;
+  gap: $space-sm;
+  margin-top: $space-lg;
+  max-width: 70ch;
+
+  i {
+    margin-top: 0.2rem;
+  }
+}

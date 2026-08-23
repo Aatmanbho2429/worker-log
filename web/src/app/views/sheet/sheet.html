@@ -11,13 +11,14 @@
         label="CSV"
         severity="secondary"
         [outlined]="true"
-        [disabled]="loading()"
+        [disabled]="loading() || exporting()"
         (onClick)="download('csv')"
       />
       <p-button
         icon="pi pi-file-pdf"
         label="Export PDF"
-        [disabled]="loading()"
+        [disabled]="loading() || exporting()"
+        [loading]="exporting()"
         (onClick)="download('pdf')"
       />
     </div>

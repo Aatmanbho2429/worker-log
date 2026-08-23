@@ -1,5 +1,5 @@
 # Rust
-/server/target/
+/src-tauri/target/
 **/*.rs.bk
 
 # Local database files
@@ -18,3 +18,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .idea/
+
+# Tauri
+/src-tauri/gen/

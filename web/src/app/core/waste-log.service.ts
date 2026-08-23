@@ -1,4 +1,3 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -15,120 +14,133 @@ import {
   WorkerLog,
   WorkerPayload,
 } from '../models';
+import { DATA_CHANGED, DataChanged } from '../models/events';
+import { TauriService } from './tauri.service';
 
-const API = '/api';
+export interface AppInfo {
+  version: string;
+  databasePath: string;
+}
 
+/**
+ * Every call the front end can make into the Rust side.
+ *
+ * The range travels with each request as a plain `{ from, to, seriesId }`
+ * object, matching `RangeQuery` in Rust.
+ */
 @Injectable({ providedIn: 'root' })
 export class WasteLogService {
-  private readonly http = inject(HttpClient);
+  private readonly tauri = inject(TauriService);
+
+  /** Fires whenever the backend changes something. */
+  readonly changes: Observable<DataChanged> = this.tauri.on<DataChanged>(DATA_CHANGED);
+
+  appInfo(): Promise<AppInfo> {
+    return this.tauri.call<AppInfo>('app_info');
+  }
 
   // ------------------------------------------------------------- series ---
 
-  listSeries(): Observable<SeriesOfProduct[]> {
-    return this.http.get<SeriesOfProduct[]>(`${API}/series`);
+  listSeries(): Promise<SeriesOfProduct[]> {
+    return this.tauri.call<SeriesOfProduct[]>('list_series');
   }
 
-  createSeries(payload: SeriesPayload): Observable<SeriesOfProduct> {
-    return this.http.post<SeriesOfProduct>(`${API}/series`, payload);
+  createSeries(payload: SeriesPayload): Promise<SeriesOfProduct> {
+    return this.tauri.call<SeriesOfProduct>('create_series', { payload });
   }
 
-  updateSeries(id: number, payload: SeriesPayload): Observable<SeriesOfProduct> {
-    return this.http.put<SeriesOfProduct>(`${API}/series/${id}`, payload);
+  updateSeries(id: number, payload: SeriesPayload): Promise<SeriesOfProduct> {
+    return this.tauri.call<SeriesOfProduct>('update_series', { id, payload });
   }
 
-  deleteSeries(id: number): Observable<void> {
-    return this.http.delete<void>(`${API}/series/${id}`);
+  deleteSeries(id: number): Promise<void> {
+    return this.tauri.call<void>('delete_series', { id });
   }
 
   // ------------------------------------------------------------ reasons ---
 
-  listReasons(): Observable<Reason[]> {
-    return this.http.get<Reason[]>(`${API}/reasons`);
+  listReasons(): Promise<Reason[]> {
+    return this.tauri.call<Reason[]>('list_reasons');
   }
 
-  createReason(payload: ReasonPayload): Observable<Reason> {
-    return this.http.post<Reason>(`${API}/reasons`, payload);
+  createReason(payload: ReasonPayload): Promise<Reason> {
+    return this.tauri.call<Reason>('create_reason', { payload });
   }
 
-  updateReason(id: number, payload: ReasonPayload): Observable<Reason> {
-    return this.http.put<Reason>(`${API}/reasons/${id}`, payload);
+  updateReason(id: number, payload: ReasonPayload): Promise<Reason> {
+    return this.tauri.call<Reason>('update_reason', { id, payload });
   }
 
-  deleteReason(id: number): Observable<void> {
-    return this.http.delete<void>(`${API}/reasons/${id}`);
+  deleteReason(id: number): Promise<void> {
+    return this.tauri.call<void>('delete_reason', { id });
   }
 
   // ------------------------------------------------------------ workers ---
 
-  listWorkers(seriesId?: number | null): Observable<Worker[]> {
-    let params = new HttpParams();
-    if (seriesId) {
-      params = params.set('seriesId', seriesId);
-    }
-    return this.http.get<Worker[]>(`${API}/workers`, { params });
+  listWorkers(seriesId?: number | null): Promise<Worker[]> {
+    return this.tauri.call<Worker[]>('list_workers', { seriesId: seriesId ?? null });
   }
 
-  createWorker(payload: WorkerPayload): Observable<Worker> {
-    return this.http.post<Worker>(`${API}/workers`, payload);
+  createWorker(payload: WorkerPayload): Promise<Worker> {
+    return this.tauri.call<Worker>('create_worker', { payload });
   }
 
-  updateWorker(id: number, payload: WorkerPayload): Observable<Worker> {
-    return this.http.put<Worker>(`${API}/workers/${id}`, payload);
+  updateWorker(id: number, payload: WorkerPayload): Promise<Worker> {
+    return this.tauri.call<Worker>('update_worker', { id, payload });
   }
 
   /** How much history a delete would take with it. */
-  workerDeleteImpact(id: number): Observable<WorkerDeleteImpact> {
-    return this.http.get<WorkerDeleteImpact>(`${API}/workers/${id}/impact`);
+  workerDeleteImpact(id: number): Promise<WorkerDeleteImpact> {
+    return this.tauri.call<WorkerDeleteImpact>('worker_delete_impact', { id });
   }
 
-  deleteWorker(id: number): Observable<void> {
-    return this.http.delete<void>(`${API}/workers/${id}`);
+  deleteWorker(id: number): Promise<void> {
+    return this.tauri.call<void>('delete_worker', { id });
   }
 
   // -------------------------------------------------------------- waste ---
 
-  dashboard(filter: RangeFilter): Observable<Dashboard> {
-    return this.http.get<Dashboard>(`${API}/waste/dashboard`, {
-      params: rangeParams(filter),
-    });
+  dashboard(filter: RangeFilter): Promise<Dashboard> {
+    return this.tauri.call<Dashboard>('waste_dashboard', { range: filter });
   }
 
-  logs(filter: RangeFilter, workerId?: number | null): Observable<WorkerLog[]> {
-    let params = rangeParams(filter);
-    if (workerId) {
-      params = params.set('workerId', workerId);
-    }
-    return this.http.get<WorkerLog[]>(`${API}/waste/logs`, { params });
+  logs(filter: RangeFilter, workerId?: number | null): Promise<WorkerLog[]> {
+    return this.tauri.call<WorkerLog[]>('waste_logs', {
+      range: filter,
+      workerId: workerId ?? null,
+    });
   }
 
   /** One tap of a grade button. */
-  addEntry(payload: LogEntryPayload): Observable<WorkerLog> {
-    return this.http.post<WorkerLog>(`${API}/waste/logs`, payload);
+  addEntry(payload: LogEntryPayload): Promise<WorkerLog> {
+    return this.tauri.call<WorkerLog>('add_waste_entry', { entry: payload });
   }
 
   /**
-   * Undoes the most recent matching tap. The range travels with the request so
-   * the server only ever removes an entry from the period on screen.
+   * Undoes the most recent matching tap. The range travels with the call so
+   * the backend only ever removes an entry from the period on screen.
    */
-  undoEntry(payload: LogEntryPayload, filter: RangeFilter): Observable<WorkerLog> {
-    return this.http.post<WorkerLog>(`${API}/waste/logs/undo`, {
-      ...payload,
-      from: filter.from,
-      to: filter.to,
+  undoEntry(payload: LogEntryPayload, filter: RangeFilter): Promise<WorkerLog> {
+    return this.tauri.call<WorkerLog>('undo_waste_entry', {
+      entry: payload,
+      range: filter,
     });
   }
 
-  // ------------------------------------------------------------ reports ---
+  // ------------------------------------------------------------ exports ---
 
-  reportUrl(filter: RangeFilter, format: 'pdf' | 'csv'): string {
-    return `${API}/reports/waste-log.${format}?${rangeParams(filter).toString()}`;
+  /** Writes the sheet to `path`; the caller supplies it from the save dialog. */
+  exportPdf(filter: RangeFilter, path: string): Promise<string> {
+    return this.tauri.call<string>('export_waste_pdf', { range: filter, path });
   }
-}
 
-function rangeParams(filter: RangeFilter): HttpParams {
-  let params = new HttpParams().set('from', filter.from).set('to', filter.to);
-  if (filter.seriesId) {
-    params = params.set('seriesId', filter.seriesId);
+  exportCsv(filter: RangeFilter, path: string): Promise<string> {
+    return this.tauri.call<string>('export_waste_csv', { range: filter, path });
   }
-  return params;
+
+  // --------------------------------------------------------------- demo ---
+
+  seedDemoData(force: boolean): Promise<string> {
+    return this.tauri.call<string>('seed_demo_data', { force });
+  }
 }

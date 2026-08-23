@@ -34,6 +34,11 @@ export const routes: Routes = [
         loadComponent: () => import('./views/series/series').then((m) => m.Series),
       },
       {
+        path: 'settings',
+        title: 'Settings — Ceramic Waste Log',
+        loadComponent: () => import('./views/settings/settings').then((m) => m.Settings),
+      },
+      {
         path: 'reasons',
         title: 'Reasons — Ceramic Waste Log',
         loadComponent: () => import('./views/reasons/reasons').then((m) => m.Reasons),

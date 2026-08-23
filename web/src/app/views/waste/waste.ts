@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
@@ -13,6 +14,7 @@ import {
   SeriesOfProduct,
   workerFullName,
 } from '../../models';
+import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { RangeFilterBar } from '../../shared/range-filter/range-filter';
 
@@ -20,8 +22,8 @@ import { RangeFilterBar } from '../../shared/range-filter/range-filter';
  * The shop-floor screen: pick the reason a piece was lost to, then tap grade 3
  * or grade 4 against the worker it belongs to.
  *
- * Taps apply to the local grid first and are rolled back if the API rejects
- * them, so a burst of entries never waits on the network.
+ * Taps apply to the local grid first and are rolled back if the command
+ * rejects them, so a burst of entries never waits on the backend.
  */
 @Component({
   selector: 'app-waste',
@@ -32,6 +34,7 @@ import { RangeFilterBar } from '../../shared/range-filter/range-filter';
 export class Waste {
   private readonly api = inject(WasteLogService);
   private readonly notify = inject(NotifyService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
@@ -40,7 +43,7 @@ export class Waste {
   protected readonly search = signal('');
   protected readonly activeReasonId = signal<number | null>(null);
 
-  /** Cells with a request in flight, keyed `workerId:reasonId:grade`. */
+  /** Cells with a command in flight, keyed `workerId:reasonId:grade`. */
   private readonly inFlight = signal<ReadonlySet<string>>(new Set());
 
   protected readonly reasons = computed(() => this.dashboard()?.reasons ?? []);
@@ -81,16 +84,24 @@ export class Waste {
   protected readonly rangeLabel = computed(() => formatRange(this.filter()));
 
   constructor() {
-    this.api.listSeries().subscribe({
-      next: (series) => this.series.set(series),
-      error: (error) => this.notify.fromHttp(error, 'Could not load the product series.'),
+    void this.loadSeries();
+    void this.load();
+
+    // Reload when the master data behind the grid moves — a worker added, a
+    // reason renamed, demo data loaded. Deliberately *not* on `waste`: this
+    // screen's own taps are the only source of those, its optimistic state is
+    // already correct, and reloading mid-burst would fight the operator.
+    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+      if (affects(change, 'workers', 'series', 'reasons')) {
+        void this.loadSeries();
+        void this.load();
+      }
     });
-    this.load();
   }
 
   protected onFilterChange(filter: RangeFilter): void {
     this.filter.set(filter);
-    this.load();
+    void this.load();
   }
 
   protected selectReason(reason: Reason): void {
@@ -119,7 +130,7 @@ export class Waste {
 
   // ------------------------------------------------------------------------
 
-  protected add(row: DashboardRow, grade: Grade): void {
+  protected async add(row: DashboardRow, grade: Grade): Promise<void> {
     const reason = this.activeReason();
     if (!reason) {
       return;
@@ -129,17 +140,17 @@ export class Waste {
     this.adjust(row.worker.id, reason.id, grade, +1);
     this.markInFlight(payload, true);
 
-    this.api.addEntry(payload).subscribe({
-      next: () => this.markInFlight(payload, false),
-      error: (error) => {
-        this.adjust(row.worker.id, reason.id, grade, -1);
-        this.markInFlight(payload, false);
-        this.notify.fromHttp(error, 'Could not record that entry.');
-      },
-    });
+    try {
+      await this.api.addEntry(payload);
+    } catch (error) {
+      this.adjust(row.worker.id, reason.id, grade, -1);
+      this.notify.fromCommand(error, 'Could not record that entry.');
+    } finally {
+      this.markInFlight(payload, false);
+    }
   }
 
-  protected undo(row: DashboardRow, grade: Grade): void {
+  protected async undo(row: DashboardRow, grade: Grade): Promise<void> {
     const reason = this.activeReason();
     if (!reason || this.countFor(row, grade) <= 0) {
       return;
@@ -149,41 +160,47 @@ export class Waste {
     this.adjust(row.worker.id, reason.id, grade, -1);
     this.markInFlight(payload, true);
 
-    this.api.undoEntry(payload, this.filter()).subscribe({
-      next: () => this.markInFlight(payload, false),
-      error: (error) => {
-        this.adjust(row.worker.id, reason.id, grade, +1);
-        this.markInFlight(payload, false);
-        this.notify.fromHttp(error, 'Could not remove that entry.');
-      },
-    });
+    try {
+      await this.api.undoEntry(payload, this.filter());
+    } catch (error) {
+      this.adjust(row.worker.id, reason.id, grade, +1);
+      this.notify.fromCommand(error, 'Could not remove that entry.');
+    } finally {
+      this.markInFlight(payload, false);
+    }
   }
 
   protected reload(): void {
-    this.load();
+    void this.load();
   }
 
   // ------------------------------------------------------------------------
 
-  private load(): void {
+  private async loadSeries(): Promise<void> {
+    try {
+      this.series.set(await this.api.listSeries());
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the product series.');
+    }
+  }
+
+  private async load(): Promise<void> {
     this.loading.set(true);
 
-    this.api.dashboard(this.filter()).subscribe({
-      next: (dashboard) => {
-        this.dashboard.set(dashboard);
-        this.loading.set(false);
+    try {
+      const dashboard = await this.api.dashboard(this.filter());
+      this.dashboard.set(dashboard);
 
-        // Keep the operator on the same reason across a reload where we can.
-        const stillThere = dashboard.reasons.some((reason) => reason.id === this.activeReasonId());
-        if (!stillThere) {
-          this.activeReasonId.set(dashboard.reasons[0]?.id ?? null);
-        }
-      },
-      error: (error) => {
-        this.loading.set(false);
-        this.notify.fromHttp(error, 'Could not load the waste dashboard.');
-      },
-    });
+      // Keep the operator on the same reason across a reload where we can.
+      const stillThere = dashboard.reasons.some((reason) => reason.id === this.activeReasonId());
+      if (!stillThere) {
+        this.activeReasonId.set(dashboard.reasons[0]?.id ?? null);
+      }
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the waste dashboard.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   /**

@@ -1,10 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
 import { SeriesOfProduct, Worker, WorkerPayload, workerFullName } from '../../models';
+import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 interface FormState {
@@ -26,6 +28,7 @@ export class Workers {
   private readonly api = inject(WasteLogService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly items = signal<Worker[]>([]);
   protected readonly series = signal<SeriesOfProduct[]>([]);
@@ -75,7 +78,13 @@ export class Workers {
   );
 
   constructor() {
-    this.load();
+    void this.load();
+
+    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+      if (affects(change, 'workers', 'series')) {
+        void this.load();
+      }
+    });
   }
 
   protected openNew(): void {
@@ -105,7 +114,7 @@ export class Workers {
     this.form.update((current) => ({ ...current, [field]: value }));
   }
 
-  protected save(): void {
+  protected async save(): Promise<void> {
     this.submitted.set(true);
     const form = this.form();
 
@@ -122,79 +131,85 @@ export class Workers {
 
     this.saving.set(true);
     const editing = this.editing();
-    const request = editing
-      ? this.api.updateWorker(editing.id, payload)
-      : this.api.createWorker(payload);
 
-    request.subscribe({
-      next: (worker) => {
-        this.saving.set(false);
-        this.dialogOpen.set(false);
-        this.notify.success(
-          editing ? `Updated ${workerFullName(worker)}.` : `Added ${workerFullName(worker)}.`,
-        );
-        this.load();
-      },
-      error: (error) => {
-        this.saving.set(false);
-        this.notify.fromHttp(error, 'Could not save the worker.');
-      },
-    });
+    try {
+      const worker = editing
+        ? await this.api.updateWorker(editing.id, payload)
+        : await this.api.createWorker(payload);
+
+      this.notify.success(
+        editing ? `Updated ${workerFullName(worker)}.` : `Added ${workerFullName(worker)}.`,
+      );
+      this.dialogOpen.set(false);
+      await this.load();
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not save the worker.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   /**
    * Deleting a worker takes their waste entries with them, so the count is
    * fetched first and spelled out in the confirmation.
    */
-  protected remove(worker: Worker): void {
-    this.api.workerDeleteImpact(worker.id).subscribe({
-      next: ({ loggedEntries }) => {
-        const name = workerFullName(worker);
-        const warning = loggedEntries
-          ? ` This also deletes ${loggedEntries} logged waste entr${loggedEntries === 1 ? 'y' : 'ies'}, which will change past reports.`
-          : '';
+  protected async remove(worker: Worker): Promise<void> {
+    let loggedEntries: number;
+    try {
+      ({ loggedEntries } = await this.api.workerDeleteImpact(worker.id));
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not check the worker before deleting.');
+      return;
+    }
 
-        this.confirm.confirm({
-          header: 'Delete worker',
-          message: `Delete ${name}?${warning} This cannot be undone.`,
-          icon: 'pi pi-exclamation-triangle',
-          acceptLabel: 'Delete',
-          rejectLabel: 'Cancel',
-          acceptButtonStyleClass: 'p-button-danger',
-          rejectButtonStyleClass: 'p-button-text',
-          accept: () =>
-            this.api.deleteWorker(worker.id).subscribe({
-              next: () => {
-                this.notify.success(`Deleted ${name}.`);
-                this.load();
-              },
-              error: (error) => this.notify.fromHttp(error, 'Could not delete the worker.'),
-            }),
-        });
+    const name = workerFullName(worker);
+    const warning = loggedEntries
+      ? ` This also deletes ${loggedEntries} logged waste ` +
+        `entr${loggedEntries === 1 ? 'y' : 'ies'}, which will change past reports.`
+      : '';
+
+    this.confirm.confirm({
+      header: 'Delete worker',
+      message: `Delete ${name}?${warning} This cannot be undone.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Delete',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger',
+      rejectButtonStyleClass: 'p-button-text',
+      accept: async () => {
+        try {
+          await this.api.deleteWorker(worker.id);
+          this.notify.success(`Deleted ${name}.`);
+          await this.load();
+        } catch (error) {
+          this.notify.fromCommand(error, 'Could not delete the worker.');
+        }
       },
-      error: (error) => this.notify.fromHttp(error, 'Could not check the worker before deleting.'),
     });
   }
 
   protected readonly workerFullName = workerFullName;
 
-  private load(): void {
+  private async load(): Promise<void> {
     this.loading.set(true);
 
-    this.api.listSeries().subscribe({
-      next: (series) => this.series.set(series),
-      error: (error) => this.notify.fromHttp(error, 'Could not load the product series.'),
-    });
+    const [series, workers] = await Promise.allSettled([
+      this.api.listSeries(),
+      this.api.listWorkers(),
+    ]);
 
-    this.api.listWorkers().subscribe({
-      next: (workers) => {
-        this.items.set(workers);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.loading.set(false);
-        this.notify.fromHttp(error, 'Could not load the workers.');
-      },
-    });
+    if (series.status === 'fulfilled') {
+      this.series.set(series.value);
+    } else {
+      this.notify.fromCommand(series.reason, 'Could not load the product series.');
+    }
+
+    if (workers.status === 'fulfilled') {
+      this.items.set(workers.value);
+    } else {
+      this.notify.fromCommand(workers.reason, 'Could not load the workers.');
+    }
+
+    this.loading.set(false);
   }
 }

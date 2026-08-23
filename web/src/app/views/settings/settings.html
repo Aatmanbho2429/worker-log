@@ -1,0 +1,58 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Settings</h1>
+      <p class="page__subtitle">Where the register is kept, and demo data for trying things out.</p>
+    </div>
+  </header>
+
+  <div class="card card--pad">
+    <h2 class="card__title settings__heading">Application</h2>
+
+    <dl class="settings__facts">
+      <dt>Version</dt>
+      <dd class="tabular">{{ info()?.version ?? '—' }}</dd>
+
+      <dt>Database file</dt>
+      <dd class="settings__path">{{ info()?.databasePath ?? '—' }}</dd>
+    </dl>
+
+    <p class="settings__note">
+      Everything is stored in that one file. Copy it to back the register up, or to move it to
+      another machine.
+    </p>
+  </div>
+
+  <div class="card card--pad">
+    <h2 class="card__title settings__heading">Demo data</h2>
+
+    <p class="settings__note">
+      Loads 4 product series, 24 workers and roughly 750 waste entries running from the first of
+      last month to today, so the date filters and the exports have a full sheet to show.
+    </p>
+
+    <div class="settings__actions">
+      <p-button
+        icon="pi pi-database"
+        label="Load demo data"
+        [loading]="seeding()"
+        [disabled]="seeding()"
+        (onClick)="seed()"
+      />
+      <p-button
+        icon="pi pi-refresh"
+        label="Replace everything with demo data"
+        severity="danger"
+        [outlined]="true"
+        [disabled]="seeding()"
+        (onClick)="reseed()"
+      />
+    </div>
+
+    <p class="settings__warning">
+      <i class="pi pi-exclamation-triangle"></i>
+      Loading only works on an empty register. Replacing deletes every worker, series and logged
+      entry first — your reason columns are kept.
+    </p>
+  </div>
+</section>

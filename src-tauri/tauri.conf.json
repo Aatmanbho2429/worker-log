@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ceramic Waste Log",
+  "version": "0.1.0",
+  "identifier": "com.aatman.ceramicwastelog",
+  "build": {
+    "beforeDevCommand": "npm --prefix web run start",
+    "devUrl": "http://localhost:4200",
+    "beforeBuildCommand": "npm --prefix web run build",
+    "frontendDist": "../web/dist/CeramicWasteLog/browser"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Ceramic Waste Log",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "resizable": true,
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#05090f"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "deb",
+      "appimage",
+      "msi",
+      "nsis",
+      "dmg"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Business",
+    "shortDescription": "Ceramic sanitaryware waste log",
+    "longDescription": "Records grade 3 and grade 4 waste per worker and per reason, and prints the monthly sheet."
+  }
+}

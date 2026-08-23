@@ -1,6 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
+import { ExportFormat, ExportService } from '../../core/export.service';
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
 import { Dashboard, RangeFilter, SeriesOfProduct, WorkerLog, workerFullName } from '../../models';
@@ -28,13 +30,16 @@ interface ReasonBreakdown {
 })
 export class Reports {
   private readonly api = inject(WasteLogService);
+  private readonly exporter = inject(ExportService);
   private readonly notify = inject(NotifyService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly entries = signal<WorkerLog[]>([]);
   protected readonly series = signal<SeriesOfProduct[]>([]);
   protected readonly loading = signal(true);
+  protected readonly exporting = signal(false);
 
   protected readonly rangeLabel = computed(() => formatRange(this.filter()));
 
@@ -84,24 +89,32 @@ export class Reports {
   );
 
   constructor() {
-    this.api.listSeries().subscribe({
-      next: (series) => this.series.set(series),
-      error: (error) => this.notify.fromHttp(error, 'Could not load the product series.'),
+    void this.loadSeries();
+    void this.load();
+
+    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.loadSeries();
+      void this.load();
     });
-    this.load();
   }
 
   protected onFilterChange(filter: RangeFilter): void {
     this.filter.set(filter);
-    this.load();
+    void this.load();
   }
 
-  protected download(format: 'pdf' | 'csv'): void {
+  protected async download(format: ExportFormat): Promise<void> {
     if (!this.dashboard()?.rows.length) {
       this.notify.warn('There is nothing to export for this period.');
       return;
     }
-    window.open(this.api.reportUrl(this.filter(), format), '_blank');
+
+    this.exporting.set(true);
+    try {
+      await this.exporter.export(this.filter(), format);
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   protected rowTotal(row: { total: { grade3: number; grade4: number } }): number {
@@ -110,23 +123,34 @@ export class Reports {
 
   protected readonly workerFullName = workerFullName;
 
-  private load(): void {
+  private async loadSeries(): Promise<void> {
+    try {
+      this.series.set(await this.api.listSeries());
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the product series.');
+    }
+  }
+
+  private async load(): Promise<void> {
     this.loading.set(true);
 
-    this.api.dashboard(this.filter()).subscribe({
-      next: (dashboard) => {
-        this.dashboard.set(dashboard);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.loading.set(false);
-        this.notify.fromHttp(error, 'Could not load the report.');
-      },
-    });
+    const [dashboard, entries] = await Promise.allSettled([
+      this.api.dashboard(this.filter()),
+      this.api.logs(this.filter()),
+    ]);
 
-    this.api.logs(this.filter()).subscribe({
-      next: (entries) => this.entries.set(entries),
-      error: (error) => this.notify.fromHttp(error, 'Could not load the entry history.'),
-    });
+    if (dashboard.status === 'fulfilled') {
+      this.dashboard.set(dashboard.value);
+    } else {
+      this.notify.fromCommand(dashboard.reason, 'Could not load the report.');
+    }
+
+    if (entries.status === 'fulfilled') {
+      this.entries.set(entries.value);
+    } else {
+      this.notify.fromCommand(entries.reason, 'Could not load the entry history.');
+    }
+
+    this.loading.set(false);
   }
 }

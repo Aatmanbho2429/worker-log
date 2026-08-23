@@ -1,10 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
 import { SeriesOfProduct } from '../../models';
+import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 @Component({
@@ -17,6 +19,7 @@ export class Series {
   private readonly api = inject(WasteLogService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly items = signal<SeriesOfProduct[]>([]);
   protected readonly loading = signal(true);
@@ -38,7 +41,14 @@ export class Series {
   protected readonly nameInvalid = computed(() => this.submitted() && !this.name().trim());
 
   constructor() {
-    this.load();
+    void this.load();
+
+    // The worker count per series moves when workers change, not just series.
+    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+      if (affects(change, 'series', 'workers')) {
+        void this.load();
+      }
+    });
   }
 
   protected openNew(): void {
@@ -55,7 +65,7 @@ export class Series {
     this.dialogOpen.set(true);
   }
 
-  protected save(): void {
+  protected async save(): Promise<void> {
     this.submitted.set(true);
     const name = this.name().trim();
     if (!name) {
@@ -64,26 +74,27 @@ export class Series {
 
     this.saving.set(true);
     const editing = this.editing();
-    const request = editing
-      ? this.api.updateSeries(editing.id, { name })
-      : this.api.createSeries({ name });
 
-    request.subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.dialogOpen.set(false);
-        this.notify.success(editing ? `Renamed to "${name}".` : `Added "${name}".`);
-        this.load();
-      },
-      error: (error) => {
-        this.saving.set(false);
-        this.notify.fromHttp(error, 'Could not save the series.');
-      },
-    });
+    try {
+      if (editing) {
+        await this.api.updateSeries(editing.id, { name });
+        this.notify.success(`Renamed to "${name}".`);
+      } else {
+        await this.api.createSeries({ name });
+        this.notify.success(`Added "${name}".`);
+      }
+      this.dialogOpen.set(false);
+      await this.load();
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not save the series.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected remove(item: SeriesOfProduct): void {
-    // The API refuses this too; catching it here explains why without a trip.
+    // The backend refuses this too; catching it here explains why without a
+    // round trip that would only come back as an error toast.
     if (item.workerCount > 0) {
       this.notify.warn(
         `"${item.name}" still has ${item.workerCount} worker(s) assigned. ` +
@@ -100,28 +111,26 @@ export class Series {
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
-      accept: () =>
-        this.api.deleteSeries(item.id).subscribe({
-          next: () => {
-            this.notify.success(`Deleted "${item.name}".`);
-            this.load();
-          },
-          error: (error) => this.notify.fromHttp(error, 'Could not delete the series.'),
-        }),
+      accept: async () => {
+        try {
+          await this.api.deleteSeries(item.id);
+          this.notify.success(`Deleted "${item.name}".`);
+          await this.load();
+        } catch (error) {
+          this.notify.fromCommand(error, 'Could not delete the series.');
+        }
+      },
     });
   }
 
-  private load(): void {
+  private async load(): Promise<void> {
     this.loading.set(true);
-    this.api.listSeries().subscribe({
-      next: (items) => {
-        this.items.set(items);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.loading.set(false);
-        this.notify.fromHttp(error, 'Could not load the product series.');
-      },
-    });
+    try {
+      this.items.set(await this.api.listSeries());
+    } catch (error) {
+      this.notify.fromCommand(error, 'Could not load the product series.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 }
