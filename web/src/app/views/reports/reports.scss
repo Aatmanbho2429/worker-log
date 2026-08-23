@@ -1,0 +1,185 @@
+@use 'base/tokens' as *;
+
+.card__hint {
+  color: $text-faint;
+  font-size: $fs-sm;
+}
+
+.stats {
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.stat {
+  background: linear-gradient(150deg, $surface-raised, $surface-card);
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  border-top: 0.3rem solid $navy-400;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-lg;
+
+  &--grade3 {
+    border-top-color: $navy-300;
+  }
+
+  &--grade4 {
+    border-top-color: $red-500;
+  }
+
+  &--muted {
+    border-top-color: $border-strong;
+  }
+}
+
+.stat__label {
+  color: $text-muted;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.stat__value {
+  font-family: $font-display;
+  font-size: $fs-2xl;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.split {
+  display: grid;
+  gap: $space-lg;
+  grid-template-columns: 1.4fr 1fr;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ---------------------------------------------------------------- breakdown --
+
+.breakdown {
+  list-style: none;
+  padding: $space-sm 0;
+}
+
+.breakdown__row {
+  align-items: center;
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: 1fr auto 4rem 4.5rem;
+  padding: $space-sm $space-lg;
+  position: relative;
+}
+
+// The bar sits behind the numbers rather than beside them, so the row stays
+// scannable at a glance without a chart library.
+.breakdown__bar {
+  background: linear-gradient(90deg, rgba(112, 152, 203, 0.22), rgba(112, 152, 203, 0.04));
+  border-radius: 0 $radius-sm $radius-sm 0;
+  bottom: 0.4rem;
+  left: 0;
+  position: absolute;
+  top: 0.4rem;
+  z-index: 0;
+}
+
+.breakdown__name,
+.breakdown__grades,
+.breakdown__total,
+.breakdown__share {
+  position: relative;
+  z-index: 1;
+}
+
+.breakdown__name {
+  font-family: $font-display;
+  font-size: $fs-base;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.breakdown__sep {
+  color: $text-faint;
+  margin: 0 0.3rem;
+}
+
+.breakdown__g3 {
+  color: $navy-200;
+}
+
+.breakdown__g4 {
+  color: $red-400;
+  font-weight: 600;
+}
+
+.breakdown__total {
+  font-weight: 700;
+  text-align: right;
+}
+
+.breakdown__share {
+  color: $text-muted;
+  font-size: $fs-sm;
+  text-align: right;
+}
+
+// --------------------------------------------------------------- top workers --
+
+.top {
+  list-style: none;
+  padding: $space-sm 0;
+}
+
+.top__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: 2.4rem 1fr auto 3.5rem;
+  padding: $space-sm $space-lg;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.top__rank {
+  color: $text-faint;
+  font-family: $font-display;
+  font-size: $fs-md;
+}
+
+.top__ident {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.top__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top__series {
+  color: $text-muted;
+  font-size: $fs-xs;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.top__total {
+  font-family: $font-display;
+  font-size: $fs-md;
+  font-weight: 600;
+  text-align: right;
+}
+
+.numeric {
+  text-align: right;
+}

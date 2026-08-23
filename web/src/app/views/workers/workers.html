@@ -1,0 +1,205 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Workers</h1>
+      <p class="page__subtitle">Everyone waste can be logged against.</p>
+    </div>
+    <div class="page__actions">
+      <p-button icon="pi pi-plus" label="Add worker" (onClick)="openNew()" />
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card__head">
+      <div class="master__toolbar">
+        <div class="master__filters">
+          <p-iconfield>
+            <p-inputicon class="pi pi-search" />
+            <input
+              pInputText
+              type="search"
+              placeholder="Search name or phone"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+            />
+          </p-iconfield>
+
+          <p-select
+            [options]="seriesFilterOptions()"
+            [ngModel]="seriesFilter()"
+            (ngModelChange)="seriesFilter.set($event)"
+            optionLabel="label"
+            optionValue="value"
+            appendTo="body"
+          />
+        </div>
+        <span class="master__count">{{ filtered().length }} of {{ items().length }}</span>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2, 3, 4, 5]; track row) {
+          <p-skeleton height="3.6rem" borderRadius="4px" />
+        }
+      </div>
+    } @else if (!filtered().length) {
+      <div class="empty">
+        <i class="pi pi-users"></i>
+        <span class="empty__title">
+          {{ search() || seriesFilter() ? 'No match' : 'No workers yet' }}
+        </span>
+        <p>
+          {{
+            search() || seriesFilter()
+              ? 'Nothing matches the current filters.'
+              : 'Add the people on the line to start logging waste.'
+          }}
+        </p>
+        @if (!search() && !seriesFilter()) {
+          <p-button icon="pi pi-plus" label="Add worker" (onClick)="openNew()" />
+        }
+      </div>
+    } @else {
+      <p-table
+        [value]="filtered()"
+        [paginator]="filtered().length > 15"
+        [rows]="15"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template #header>
+          <tr>
+            <th class="master__sr">Sr</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Series of product</th>
+            <th style="width: 10rem"></th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-worker let-i="rowIndex">
+          <tr>
+            <td class="master__sr tabular">{{ i + 1 }}</td>
+            <td class="master__name">{{ workerFullName(worker) }}</td>
+            <td class="worker__phone">
+              @if (worker.phone) {
+                {{ worker.phone }}
+              } @else {
+                <span class="master__na">not given</span>
+              }
+            </td>
+            <td><p-tag [value]="worker.seriesName" severity="secondary" /></td>
+            <td>
+              <div class="master__actions">
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  [text]="true"
+                  pTooltip="Edit"
+                  tooltipPosition="top"
+                  (onClick)="openEdit(worker)"
+                />
+                <p-button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  pTooltip="Delete"
+                  tooltipPosition="top"
+                  (onClick)="remove(worker)"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</section>
+
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="dialogOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '40rem' }"
+  [header]="editing() ? 'Edit worker' : 'Add worker'"
+>
+  <div class="form__grid">
+    <div class="field">
+      <label class="field__label" for="first-name">First name</label>
+      <input
+        pInputText
+        id="first-name"
+        autocomplete="off"
+        [ngModel]="form().firstName"
+        (ngModelChange)="patch('firstName', $event)"
+      />
+      @if (firstNameInvalid()) {
+        <span class="field__error">A first name is required.</span>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="last-name">Last name</label>
+      <input
+        pInputText
+        id="last-name"
+        autocomplete="off"
+        [ngModel]="form().lastName"
+        (ngModelChange)="patch('lastName', $event)"
+      />
+      @if (lastNameInvalid()) {
+        <span class="field__error">A last name is required.</span>
+      }
+    </div>
+
+    <div class="field form__span">
+      <label class="field__label" for="phone">Phone</label>
+      <input
+        pInputText
+        id="phone"
+        autocomplete="off"
+        inputmode="tel"
+        placeholder="Optional"
+        [ngModel]="form().phone"
+        (ngModelChange)="patch('phone', $event)"
+      />
+      <span class="field__hint">Digits, spaces and + - ( ) only.</span>
+    </div>
+
+    <div class="field form__span">
+      <label class="field__label" for="worker-series">Series of product</label>
+      <p-select
+        inputId="worker-series"
+        [options]="seriesOptions()"
+        [ngModel]="form().seriesOfProductId"
+        (ngModelChange)="patch('seriesOfProductId', $event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a series"
+        appendTo="body"
+      />
+      @if (seriesInvalid()) {
+        <span class="field__error">Pick the series this worker is on.</span>
+      }
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <div class="dialog__footer">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="saving()"
+        (onClick)="dialogOpen.set(false)"
+      />
+      <p-button
+        [label]="editing() ? 'Save' : 'Add'"
+        icon="pi pi-check"
+        [loading]="saving()"
+        (onClick)="save()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>

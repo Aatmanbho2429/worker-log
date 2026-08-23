@@ -1,0 +1,141 @@
+@use 'base/tokens' as *;
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}
+
+:host ::ng-deep .sheet__notice {
+  margin: $space-lg $space-lg 0;
+}
+
+.sheet__scroll {
+  overflow: auto;
+  padding: $space-lg;
+}
+
+.sheet {
+  border-collapse: collapse;
+  font-size: $fs-sm;
+  width: 100%;
+
+  th,
+  td {
+    border: 1px solid $border-default;
+    padding: 0.5rem 0.7rem;
+    white-space: nowrap;
+  }
+
+  thead th {
+    background: $navy-900;
+    color: #ffffff;
+    font-family: $font-display;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    position: sticky;
+    text-transform: uppercase;
+    top: 0;
+    z-index: 2;
+  }
+
+  // The two identity columns stay put while the reason columns scroll past.
+  .sheet__sr,
+  .sheet__worker {
+    left: 0;
+    position: sticky;
+    z-index: 1;
+  }
+
+  .sheet__sr {
+    background: $surface-card;
+    color: $text-faint;
+    text-align: center;
+    width: 4rem;
+  }
+
+  .sheet__worker {
+    background: $surface-card;
+    left: 4rem;
+    min-width: 16rem;
+  }
+
+  thead .sheet__sr,
+  thead .sheet__worker {
+    background: $navy-900;
+    z-index: 3;
+  }
+}
+
+.sheet__group {
+  background: $navy-800 !important;
+  font-size: $fs-xs;
+  text-align: center;
+
+  &--total {
+    background: $navy-700 !important;
+  }
+}
+
+.sheet__sub {
+  background: $navy-900 !important;
+  color: $text-secondary !important;
+  font-size: $fs-xs;
+  font-weight: 500 !important;
+  text-align: center;
+  width: 3.6rem;
+
+  &--total {
+    color: #ffffff !important;
+  }
+
+  &--edge {
+    border-right: 1px solid $border-strong;
+  }
+}
+
+.sheet__series {
+  color: $text-muted;
+  min-width: 11rem;
+}
+
+.sheet__box {
+  text-align: center;
+  width: 3.6rem;
+
+  &--edge {
+    border-right: 1px solid $border-strong;
+  }
+
+  &--total {
+    background: rgba(112, 152, 203, 0.08);
+    font-weight: 600;
+  }
+}
+
+tbody tr:nth-child(even) {
+  td {
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .sheet__sr,
+  .sheet__worker {
+    background: #0d1828;
+  }
+}
+
+tbody tr:hover td {
+  background: rgba(112, 152, 203, 0.07);
+}
+
+tfoot td {
+  background: $navy-800 !important;
+  font-family: $font-display;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  position: sticky;
+  bottom: 0;
+  text-transform: uppercase;
+  z-index: 2;
+}

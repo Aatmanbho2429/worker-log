@@ -1,0 +1,137 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Reasons</h1>
+      <p class="page__subtitle">
+        The columns of the sheet — where a piece was lost. Their order here is the order they appear
+        on the month sheet and the PDF.
+      </p>
+    </div>
+    <div class="page__actions">
+      <p-button icon="pi pi-plus" label="Add reason" (onClick)="openNew()" />
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card__head">
+      <h2 class="card__title">Column order</h2>
+      <span class="master__count">{{ items().length }} reason(s)</span>
+    </div>
+
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2, 3, 4, 5]; track row) {
+          <p-skeleton height="3.6rem" borderRadius="4px" />
+        }
+      </div>
+    } @else if (!items().length) {
+      <div class="empty">
+        <i class="pi pi-tags"></i>
+        <span class="empty__title">No reasons yet</span>
+        <p>Add a column for each place a piece can break.</p>
+        <p-button icon="pi pi-plus" label="Add reason" (onClick)="openNew()" />
+      </div>
+    } @else {
+      <ul class="reasons-list">
+        @for (
+          reason of items();
+          track reason.id;
+          let i = $index;
+          let first = $first;
+          let last = $last
+        ) {
+          <li class="reasons-list__row">
+            <span class="reasons-list__pos tabular">{{ i + 1 }}</span>
+            <span class="reasons-list__name">{{ reason.name }}</span>
+
+            <div class="reasons-list__order">
+              <p-button
+                icon="pi pi-chevron-up"
+                severity="secondary"
+                [text]="true"
+                [disabled]="first || reordering()"
+                pTooltip="Move left on the sheet"
+                tooltipPosition="top"
+                (onClick)="move(i, -1)"
+              />
+              <p-button
+                icon="pi pi-chevron-down"
+                severity="secondary"
+                [text]="true"
+                [disabled]="last || reordering()"
+                pTooltip="Move right on the sheet"
+                tooltipPosition="top"
+                (onClick)="move(i, 1)"
+              />
+            </div>
+
+            <div class="master__actions">
+              <p-button
+                icon="pi pi-pencil"
+                severity="secondary"
+                [text]="true"
+                pTooltip="Rename"
+                tooltipPosition="top"
+                (onClick)="openEdit(reason)"
+              />
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                pTooltip="Delete"
+                tooltipPosition="top"
+                (onClick)="remove(reason)"
+              />
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
+
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="dialogOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '32rem' }"
+  [header]="editing() ? 'Rename reason' : 'Add reason'"
+>
+  <div class="field">
+    <label class="field__label" for="reason-name">Name</label>
+    <input
+      pInputText
+      id="reason-name"
+      autocomplete="off"
+      placeholder="e.g. Loader"
+      [ngModel]="name()"
+      (ngModelChange)="name.set($event)"
+      (keyup.enter)="save()"
+    />
+    @if (nameInvalid()) {
+      <span class="field__error">A name is required.</span>
+    }
+    <span class="field__hint">
+      Keep it short — it has to fit a narrow column on the printed sheet.
+    </span>
+  </div>
+
+  <ng-template #footer>
+    <div class="dialog__footer">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="saving()"
+        (onClick)="dialogOpen.set(false)"
+      />
+      <p-button
+        [label]="editing() ? 'Save' : 'Add'"
+        icon="pi pi-check"
+        [loading]="saving()"
+        (onClick)="save()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>

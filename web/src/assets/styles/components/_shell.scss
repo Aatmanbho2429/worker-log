@@ -1,0 +1,191 @@
+@use 'base/tokens' as *;
+
+.shell {
+  display: grid;
+  grid-template-areas: 'brand topbar' 'nav main';
+  grid-template-columns: $shell-sidebar-width 1fr;
+  grid-template-rows: $shell-topbar-height 1fr;
+  height: 100vh;
+}
+
+.shell__brand {
+  align-items: center;
+  background: $surface-header;
+  border-bottom: 1px solid $border-default;
+  border-right: 1px solid $border-default;
+  display: flex;
+  gap: $space-md;
+  grid-area: brand;
+  padding: 0 $space-lg;
+}
+
+.shell__mark {
+  align-items: center;
+  background: linear-gradient(140deg, $navy-500, $navy-700);
+  border: 1px solid $navy-400;
+  border-radius: $radius-md;
+  display: flex;
+  height: 3.8rem;
+  justify-content: center;
+  width: 3.8rem;
+
+  i {
+    color: $navy-100;
+    font-size: 1.9rem;
+  }
+}
+
+.shell__wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+.shell__name {
+  font-family: $font-display;
+  font-size: $fs-md;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.shell__tagline {
+  color: $text-faint;
+  font-size: $fs-xs;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.shell__topbar {
+  align-items: center;
+  background: $surface-header;
+  border-bottom: 1px solid $border-default;
+  display: flex;
+  gap: $space-lg;
+  grid-area: topbar;
+  justify-content: space-between;
+  padding: 0 $space-xl;
+}
+
+.shell__context {
+  align-items: center;
+  color: $text-muted;
+  display: flex;
+  font-size: $fs-sm;
+  gap: $space-sm;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shell__clock {
+  color: $text-secondary;
+  font-size: $fs-sm;
+  letter-spacing: 0.06em;
+}
+
+.shell__nav {
+  background: $surface-sunken;
+  border-right: 1px solid $border-default;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  grid-area: nav;
+  overflow-y: auto;
+  padding: $space-lg $space-md;
+}
+
+.shell__section {
+  color: $text-faint;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin: $space-lg 0 $space-xs $space-md;
+  text-transform: uppercase;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.shell__link {
+  align-items: center;
+  border-left: 0.3rem solid transparent;
+  border-radius: $radius-md;
+  color: $text-secondary;
+  cursor: pointer;
+  display: flex;
+  font-size: $fs-base;
+  font-weight: 500;
+  gap: $space-md;
+  padding: $space-md;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+
+  i {
+    font-size: 1.6rem;
+    width: 1.8rem;
+  }
+
+  &:hover {
+    background: $surface-raised;
+    color: $text-primary;
+  }
+
+  &--active {
+    background: $surface-hover;
+    border-left-color: $navy-300;
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.shell__main {
+  grid-area: main;
+  min-height: 0;
+  overflow-y: auto;
+  padding: $space-xl;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-areas: 'brand' 'nav' 'main';
+    grid-template-columns: 1fr;
+    grid-template-rows: $shell-topbar-height auto 1fr;
+  }
+
+  .shell__topbar {
+    display: none;
+  }
+
+  .shell__nav {
+    border-right: none;
+    border-bottom: 1px solid $border-default;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: $space-sm;
+  }
+
+  .shell__section {
+    display: none;
+  }
+
+  .shell__link {
+    border-left: none;
+    border-bottom: 0.3rem solid transparent;
+    white-space: nowrap;
+
+    &--active {
+      border-bottom-color: $navy-300;
+    }
+  }
+
+  .shell__main {
+    padding: $space-lg;
+  }
+}

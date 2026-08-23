@@ -1,0 +1,320 @@
+@use 'base/tokens' as *;
+
+.card__hint {
+  color: $text-faint;
+  font-family: $font-body;
+  font-size: $fs-sm;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// ------------------------------------------------------------- tally strip --
+
+.tally {
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+}
+
+.tally__item {
+  background: linear-gradient(150deg, $surface-raised, $surface-card);
+  border: 1px solid $border-default;
+  border-left: 0.4rem solid $navy-400;
+  border-radius: $radius-md;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-md $space-lg;
+
+  &--danger {
+    border-left-color: $red-500;
+  }
+
+  &--muted {
+    border-left-color: $border-strong;
+  }
+}
+
+.tally__label {
+  color: $text-muted;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tally__value {
+  font-family: $font-display;
+  font-size: $fs-2xl;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tally__slash {
+  color: $text-faint;
+  font-size: $fs-lg;
+}
+
+// ------------------------------------------------------------ reason chips --
+
+.reasons {
+  display: flex;
+  gap: $space-sm;
+  overflow-x: auto;
+  padding-bottom: $space-xs;
+}
+
+.reasons__chip {
+  align-items: center;
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  cursor: pointer;
+  display: flex;
+  gap: $space-sm;
+  padding: 0.7rem 1.4rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+
+  &--active {
+    background: $navy-500;
+    border-color: $navy-300;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(112, 152, 203, 0.2);
+  }
+}
+
+.reasons__name {
+  font-family: $font-display;
+  font-size: $fs-base;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reasons__count {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  font-size: $fs-xs;
+  padding: 0.1rem 0.7rem;
+
+  .reasons__chip--active & {
+    background: rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+  }
+}
+
+// ------------------------------------------------------------- worker rows --
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}
+
+.tapper {
+  list-style: none;
+  overflow-y: auto;
+}
+
+.tapper__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-lg;
+  grid-template-columns: minmax(20rem, 1fr) auto auto 8rem;
+  padding: $space-md $space-lg;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.tapper__who {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+  min-width: 0;
+}
+
+.tapper__sr {
+  color: $text-faint;
+  font-family: $font-display;
+  font-size: $fs-md;
+}
+
+.tapper__ident {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tapper__name {
+  font-size: $fs-md;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tapper__series {
+  color: $text-muted;
+  font-size: $fs-xs;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tapper__total {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.tapper__total-label {
+  color: $text-faint;
+  font-size: $fs-xs;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tapper__total-value {
+  font-family: $font-display;
+  font-size: $fs-lg;
+  font-weight: 600;
+}
+
+// ------------------------------------------------------------ grade blocks --
+
+.grade {
+  align-items: stretch;
+  background: $surface-sunken;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  display: flex;
+  overflow: hidden;
+
+  &--empty .grade__count {
+    color: $text-faint;
+  }
+}
+
+.grade__undo {
+  background: transparent;
+  border: none;
+  border-right: 1px solid $border-default;
+  color: $text-muted;
+  cursor: pointer;
+  padding: 0 1.1rem;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(224, 49, 49, 0.16);
+    color: $red-300;
+  }
+
+  &:disabled {
+    color: $border-strong;
+    cursor: not-allowed;
+  }
+}
+
+.grade__count {
+  align-items: center;
+  display: flex;
+  font-family: $font-display;
+  font-size: $fs-lg;
+  font-weight: 600;
+  justify-content: center;
+  min-width: 5rem;
+  padding: 0 $space-sm;
+}
+
+// The primary target: sized for a gloved tap, not a mouse.
+.grade__add {
+  align-items: center;
+  background: $navy-500;
+  border: none;
+  border-left: 1px solid $navy-400;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  font-weight: 600;
+  gap: $space-sm;
+  letter-spacing: 0.1em;
+  min-height: 4.4rem;
+  padding: 0 1.6rem;
+  text-transform: uppercase;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: $navy-400;
+  }
+
+  &:active:not(:disabled) {
+    background: $navy-600;
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.6;
+  }
+
+  i {
+    font-size: 1.2rem;
+  }
+}
+
+// Grade 4 is the scrap grade — red so it reads differently at a glance.
+.grade--four {
+  .grade__add {
+    background: $red-600;
+    border-left-color: $red-500;
+
+    &:hover:not(:disabled) {
+      background: $red-500;
+    }
+
+    &:active:not(:disabled) {
+      background: $red-700;
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .tapper__row {
+    grid-template-columns: 1fr 1fr;
+    row-gap: $space-md;
+  }
+
+  .tapper__who {
+    grid-column: 1 / -1;
+  }
+
+  .tapper__total {
+    align-items: flex-start;
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: $space-sm;
+  }
+
+  .grade__label {
+    display: none;
+  }
+}

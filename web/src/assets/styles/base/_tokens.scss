@@ -1,0 +1,79 @@
+// Dark navy through to near-black, with red reserved for warnings and for
+// grade 4 — the scrap grade the floor is meant to notice.
+
+$navy-50: #eef3fa;
+$navy-100: #d3e0f0;
+$navy-200: #a8c0e0;
+$navy-300: #7098cb;
+$navy-400: #3f6fa8;
+$navy-500: #1e4e86;
+$navy-600: #173d6b;
+$navy-700: #122e52;
+$navy-800: #0e2440;
+$navy-900: #0a1a2f;
+$navy-950: #060f1c;
+
+$red-300: #ff8787;
+$red-400: #ff6b6b;
+$red-500: #e03131;
+$red-600: #c92a2a;
+$red-700: #a51111;
+
+$amber-400: #ffc078;
+$amber-500: #f59f00;
+
+$green-400: #51cf66;
+$green-500: #2f9e44;
+
+// Surfaces run from the page's near-black up to the raised cards.
+$surface-page: #05090f;
+$surface-sunken: #070d17;
+$surface-card: #0b1524;
+$surface-raised: #10203a;
+$surface-hover: #16294a;
+$surface-header: #0a1728;
+
+$border-subtle: #14243c;
+$border-default: #1b2e4a;
+$border-strong: #26426b;
+
+$text-primary: #ffffff;
+$text-secondary: #c3cede;
+$text-muted: #8296ae;
+$text-faint: #5b6d84;
+
+$font-display: 'Oswald', 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+$font-body:
+  'Inter',
+  'Segoe UI',
+  Roboto,
+  system-ui,
+  -apple-system,
+  sans-serif;
+$font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+$fs-xs: 1.1rem;
+$fs-sm: 1.25rem;
+$fs-base: 1.4rem;
+$fs-md: 1.6rem;
+$fs-lg: 1.9rem;
+$fs-xl: 2.4rem;
+$fs-2xl: 3.2rem;
+
+$space-xs: 0.4rem;
+$space-sm: 0.8rem;
+$space-md: 1.2rem;
+$space-lg: 1.6rem;
+$space-xl: 2.4rem;
+$space-2xl: 3.2rem;
+
+$radius-sm: 0.3rem;
+$radius-md: 0.6rem;
+$radius-lg: 1rem;
+$radius-pill: 9999px;
+
+$shadow-card: 0 0.2rem 1.2rem rgba(0, 0, 0, 0.45);
+$shadow-raised: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.55);
+
+$shell-sidebar-width: 24rem;
+$shell-topbar-height: 6.4rem;

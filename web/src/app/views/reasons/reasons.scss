@@ -1,0 +1,47 @@
+@use 'base/tokens' as *;
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}
+
+.reasons-list {
+  list-style: none;
+}
+
+.reasons-list__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: 3rem 1fr auto auto;
+  padding: $space-sm $space-lg;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+.reasons-list__pos {
+  color: $text-faint;
+  font-family: $font-display;
+  font-size: $fs-md;
+}
+
+.reasons-list__name {
+  font-family: $font-display;
+  font-size: $fs-md;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reasons-list__order {
+  display: flex;
+}

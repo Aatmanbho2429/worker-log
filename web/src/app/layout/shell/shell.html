@@ -1,0 +1,38 @@
+<div class="shell">
+  <header class="shell__brand">
+    <div class="shell__mark"><i class="pi pi-shield"></i></div>
+    <div class="shell__wordmark">
+      <span class="shell__name">Waste Log</span>
+      <span class="shell__tagline">Sanitaryware</span>
+    </div>
+  </header>
+
+  <div class="shell__topbar">
+    <div class="shell__context">
+      <i class="pi pi-building"></i>
+      <span>Production waste register</span>
+    </div>
+    <div class="shell__clock tabular">{{ clock() }}</div>
+  </div>
+
+  <nav class="shell__nav">
+    @for (section of sections; track section.label) {
+      <span class="shell__section">{{ section.label }}</span>
+      @for (item of section.items; track item.route) {
+        <a
+          class="shell__link"
+          [routerLink]="item.route"
+          routerLinkActive="shell__link--active"
+          [routerLinkActiveOptions]="{ exact: false }"
+        >
+          <i [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+  </nav>
+
+  <main class="shell__main">
+    <router-outlet></router-outlet>
+  </main>
+</div>

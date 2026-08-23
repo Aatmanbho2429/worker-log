@@ -1,0 +1,26 @@
+@use 'base/tokens' as *;
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}
+
+.worker__phone {
+  font-variant-numeric: tabular-nums;
+}
+
+.form__grid {
+  display: grid;
+  gap: 0 $space-md;
+  grid-template-columns: 1fr 1fr;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form__span {
+  grid-column: 1 / -1;
+}

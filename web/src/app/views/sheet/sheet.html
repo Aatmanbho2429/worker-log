@@ -1,0 +1,118 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Month sheet</h1>
+      <p class="page__subtitle">Every worker against every reason — {{ rangeLabel() }}</p>
+    </div>
+
+    <div class="page__actions">
+      <p-button
+        icon="pi pi-file-excel"
+        label="CSV"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="loading()"
+        (onClick)="download('csv')"
+      />
+      <p-button
+        icon="pi pi-file-pdf"
+        label="Export PDF"
+        [disabled]="loading()"
+        (onClick)="download('pdf')"
+      />
+    </div>
+  </header>
+
+  <div class="card card--pad">
+    <app-range-filter
+      [value]="filter()"
+      [series]="series()"
+      [busy]="loading()"
+      (changed)="onFilterChange($event)"
+    />
+  </div>
+
+  <div class="card">
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2, 3, 4, 5, 6, 7, 8]; track row) {
+          <p-skeleton height="3.2rem" borderRadius="4px" />
+        }
+      </div>
+    } @else if (!rows().length) {
+      <div class="empty">
+        <i class="pi pi-table"></i>
+        <span class="empty__title">Nothing to show</span>
+        <p>No workers match this period and series.</p>
+      </div>
+    } @else {
+      @if (!hasData()) {
+        <p-message
+          severity="info"
+          text="No waste has been logged for this period yet — the sheet below is empty."
+          styleClass="sheet__notice"
+        />
+      }
+
+      <div class="sheet__scroll">
+        <table class="sheet">
+          <thead>
+            <tr>
+              <th class="sheet__sr" rowspan="2">Sr</th>
+              <th class="sheet__worker" rowspan="2">Worker</th>
+              <th class="sheet__series" rowspan="2">Item / Series</th>
+              @for (reason of reasons(); track reason.id) {
+                <th class="sheet__group" colspan="2">{{ reason.name }}</th>
+              }
+              <th class="sheet__group sheet__group--total" colspan="2">Total</th>
+            </tr>
+            <tr>
+              @for (reason of reasons(); track reason.id) {
+                <th class="sheet__sub">3rd</th>
+                <th class="sheet__sub sheet__sub--edge">4th</th>
+              }
+              <th class="sheet__sub sheet__sub--total">3rd</th>
+              <th class="sheet__sub sheet__sub--total sheet__sub--edge">4th</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of rows(); track row.worker.id; let i = $index) {
+              <tr>
+                <td class="sheet__sr tabular">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</td>
+                <td class="sheet__worker">{{ workerFullName(row.worker) }}</td>
+                <td class="sheet__series">{{ row.worker.seriesName }}</td>
+                @for (cell of row.cells; track cell.reasonId) {
+                  <td class="sheet__box tabular">{{ box(cell.grade3) }}</td>
+                  <td class="sheet__box sheet__box--edge tabular">{{ box(cell.grade4) }}</td>
+                }
+                <td class="sheet__box sheet__box--total tabular">{{ box(row.total.grade3) }}</td>
+                <td class="sheet__box sheet__box--total sheet__box--edge tabular">
+                  {{ box(row.total.grade4) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+
+          <tfoot>
+            <tr>
+              <td class="sheet__sr"></td>
+              <td class="sheet__worker">Total</td>
+              <td class="sheet__series"></td>
+              @for (total of dashboard()?.reasonTotals ?? []; track total.reasonId) {
+                <td class="sheet__box tabular">{{ box(total.grade3) }}</td>
+                <td class="sheet__box sheet__box--edge tabular">{{ box(total.grade4) }}</td>
+              }
+              <td class="sheet__box sheet__box--total tabular">
+                {{ box(dashboard()!.grandTotal.grade3) }}
+              </td>
+              <td class="sheet__box sheet__box--total sheet__box--edge tabular">
+                {{ box(dashboard()!.grandTotal.grade4) }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </div>
+</section>

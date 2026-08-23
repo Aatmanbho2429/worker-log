@@ -1,0 +1,173 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Waste log</h1>
+      <p class="page__subtitle">
+        Pick the reason, then tap the grade against the worker. {{ rangeLabel() }}
+      </p>
+    </div>
+
+    <div class="page__actions">
+      <p-button
+        icon="pi pi-refresh"
+        label="Refresh"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="loading()"
+        (onClick)="reload()"
+      />
+    </div>
+  </header>
+
+  <div class="card card--pad">
+    <app-range-filter
+      [value]="filter()"
+      [series]="series()"
+      [busy]="loading()"
+      (changed)="onFilterChange($event)"
+    />
+  </div>
+
+  <div class="tally">
+    <div class="tally__item">
+      <span class="tally__label">Grade 3 · this reason</span>
+      <span class="tally__value tabular">{{ reasonTally().grade3 }}</span>
+    </div>
+    <div class="tally__item tally__item--danger">
+      <span class="tally__label">Grade 4 · this reason</span>
+      <span class="tally__value tabular">{{ reasonTally().grade4 }}</span>
+    </div>
+    <div class="tally__item tally__item--muted">
+      <span class="tally__label">All reasons · grade 3 / 4</span>
+      <span class="tally__value tabular">
+        {{ grandTotal().grade3 }} <span class="tally__slash">/</span> {{ grandTotal().grade4 }}
+      </span>
+    </div>
+  </div>
+
+  @if (reasons().length) {
+    <nav class="reasons" aria-label="Waste reasons">
+      @for (reason of reasons(); track reason.id; let i = $index) {
+        <button
+          type="button"
+          class="reasons__chip"
+          [class.reasons__chip--active]="activeReason()?.id === reason.id"
+          (click)="selectReason(reason)"
+        >
+          <span class="reasons__name">{{ reason.name }}</span>
+          <span class="reasons__count tabular">
+            {{ dashboard()?.reasonTotals?.[i]?.grade3 ?? 0 }}/{{
+              dashboard()?.reasonTotals?.[i]?.grade4 ?? 0
+            }}
+          </span>
+        </button>
+      }
+    </nav>
+  }
+
+  <div class="card">
+    <div class="card__head">
+      <h2 class="card__title">
+        {{ activeReason()?.name ?? 'No reason selected' }}
+        <span class="card__hint">— {{ rows().length }} worker(s)</span>
+      </h2>
+
+      <p-iconfield>
+        <p-inputicon class="pi pi-search" />
+        <input
+          pInputText
+          type="search"
+          placeholder="Find a worker"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+      </p-iconfield>
+    </div>
+
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2, 3, 4, 5, 6]; track row) {
+          <p-skeleton height="5.6rem" borderRadius="6px" />
+        }
+      </div>
+    } @else if (!reasons().length) {
+      <div class="empty">
+        <i class="pi pi-tags"></i>
+        <span class="empty__title">No reasons set up</span>
+        <p>Add the reason columns from the sheet before logging waste.</p>
+        <p-button label="Go to reasons" icon="pi pi-arrow-right" routerLink="/reasons" />
+      </div>
+    } @else if (!rows().length) {
+      <div class="empty">
+        <i class="pi pi-users"></i>
+        <span class="empty__title">{{ search() ? 'No match' : 'No workers yet' }}</span>
+        <p>
+          {{
+            search()
+              ? 'No worker matches that search in the selected series.'
+              : 'Add workers before you can log waste against them.'
+          }}
+        </p>
+        @if (!search()) {
+          <p-button label="Go to workers" icon="pi pi-arrow-right" routerLink="/workers" />
+        }
+      </div>
+    } @else {
+      <ul class="tapper">
+        @for (row of rows(); track trackRow($index, row); let i = $index) {
+          <li class="tapper__row">
+            <div class="tapper__who">
+              <span class="tapper__sr tabular">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+              <div class="tapper__ident">
+                <span class="tapper__name">{{ workerFullName(row.worker) }}</span>
+                <span class="tapper__series">{{ row.worker.seriesName }}</span>
+              </div>
+            </div>
+
+            @for (grade of [3, 4]; track grade) {
+              <div
+                class="grade"
+                [class.grade--four]="grade === 4"
+                [class.grade--empty]="countFor(row, $any(grade)) === 0"
+              >
+                <button
+                  type="button"
+                  class="grade__undo"
+                  [disabled]="countFor(row, $any(grade)) === 0 || isBusy(row, $any(grade))"
+                  [pTooltip]="'Remove one grade ' + grade + ' entry'"
+                  tooltipPosition="top"
+                  (click)="undo(row, $any(grade))"
+                  [attr.aria-label]="
+                    'Remove one grade ' + grade + ' entry for ' + workerFullName(row.worker)
+                  "
+                >
+                  <i class="pi pi-minus"></i>
+                </button>
+
+                <span class="grade__count tabular">{{ countFor(row, $any(grade)) }}</span>
+
+                <button
+                  type="button"
+                  class="grade__add"
+                  [disabled]="isBusy(row, $any(grade))"
+                  (click)="add(row, $any(grade))"
+                  [attr.aria-label]="
+                    'Add one grade ' + grade + ' entry for ' + workerFullName(row.worker)
+                  "
+                >
+                  <span class="grade__label">Grade {{ grade }}</span>
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            }
+
+            <div class="tapper__total">
+              <span class="tapper__total-label">Row</span>
+              <span class="tapper__total-value tabular">{{ rowTotalFor(row) }}</span>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>

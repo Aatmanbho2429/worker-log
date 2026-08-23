@@ -1,0 +1,64 @@
+<div class="filter">
+  <div class="filter__presets">
+    @for (
+      preset of [
+        { key: 'today', label: 'Today' },
+        { key: 'thisMonth', label: 'This month' },
+        { key: 'lastMonth', label: 'Last month' },
+      ];
+      track preset.key
+    ) {
+      <button
+        type="button"
+        class="filter__preset"
+        [class.filter__preset--active]="isPreset($any(preset.key))"
+        [disabled]="busy()"
+        (click)="applyPreset($any(preset.key))"
+      >
+        {{ preset.label }}
+      </button>
+    }
+  </div>
+
+  <div class="filter__dates">
+    <label class="filter__field">
+      <span class="filter__label">From</span>
+      <p-datepicker
+        [ngModel]="fromDate()"
+        (ngModelChange)="setFrom($event)"
+        dateFormat="dd M yy"
+        [showIcon]="true"
+        [disabled]="busy()"
+        appendTo="body"
+        inputStyleClass="filter__input"
+      />
+    </label>
+
+    <label class="filter__field">
+      <span class="filter__label">To</span>
+      <p-datepicker
+        [ngModel]="toDate()"
+        (ngModelChange)="setTo($event)"
+        dateFormat="dd M yy"
+        [showIcon]="true"
+        [disabled]="busy()"
+        appendTo="body"
+        inputStyleClass="filter__input"
+      />
+    </label>
+
+    <label class="filter__field">
+      <span class="filter__label">Series</span>
+      <p-select
+        [options]="seriesOptions()"
+        [ngModel]="value().seriesId"
+        (ngModelChange)="setSeries($event)"
+        optionLabel="label"
+        optionValue="value"
+        [disabled]="busy()"
+        appendTo="body"
+        styleClass="filter__select"
+      />
+    </label>
+  </div>
+</div>

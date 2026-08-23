@@ -1,0 +1,130 @@
+@use 'base/tokens' as *;
+
+// Shared chrome for every screen: the page header and the card the content
+// sits on. Kept global because all five views wear the same frame.
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  min-height: 100%;
+
+  // The shell's main region is what scrolls; nothing on the page may be
+  // squeezed to make a tall screen fit.
+  > * {
+    flex: 0 0 auto;
+  }
+}
+
+.page__head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-lg;
+  justify-content: space-between;
+}
+
+.page__title {
+  font-size: $fs-xl;
+  text-transform: uppercase;
+}
+
+.page__subtitle {
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-top: $space-xs;
+}
+
+.page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.card {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.card--pad {
+  padding: $space-lg;
+}
+
+.card__head {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  justify-content: space-between;
+  padding: $space-md $space-lg;
+}
+
+.card__title {
+  font-size: $fs-md;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.empty {
+  align-items: center;
+  color: $text-muted;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  justify-content: center;
+  padding: $space-2xl;
+  text-align: center;
+
+  i {
+    color: $border-strong;
+    font-size: 4rem;
+  }
+}
+
+.empty__title {
+  color: $text-secondary;
+  font-family: $font-display;
+  font-size: $fs-md;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+// Form layout shared by the three master dialogs.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  margin-bottom: $space-lg;
+}
+
+.field__label {
+  color: $text-secondary;
+  font-size: $fs-sm;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.field__hint {
+  color: $text-faint;
+  font-size: $fs-xs;
+}
+
+.field__error {
+  color: $red-400;
+  font-size: $fs-xs;
+  font-weight: 500;
+}
+
+.dialog__footer {
+  display: flex;
+  gap: $space-sm;
+  justify-content: flex-end;
+}

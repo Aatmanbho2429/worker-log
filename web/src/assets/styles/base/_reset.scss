@@ -1,0 +1,63 @@
+@use 'base/tokens' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+// 1rem == 10px, so the token scale above reads in whole pixels.
+html {
+  font-size: 62.5%;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: $surface-page;
+  color: $text-primary;
+  font-family: $font-body;
+  font-size: $fs-base;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: $font-display;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+// Counts sit in columns, so their digits have to line up.
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 1rem;
+  height: 1rem;
+}
+
+::-webkit-scrollbar-track {
+  background: $surface-sunken;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $border-strong;
+  border: 0.2rem solid $surface-sunken;
+  border-radius: $radius-pill;
+
+  &:hover {
+    background: $navy-400;
+  }
+}

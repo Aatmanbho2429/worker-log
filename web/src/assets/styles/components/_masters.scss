@@ -1,0 +1,54 @@
+@use 'base/tokens' as *;
+
+// Shared chrome for the three master screens, which wear the same toolbar,
+// table and row-action treatment.
+
+.master__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.master__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.master__count {
+  color: $text-faint;
+  font-size: $fs-sm;
+}
+
+.master__name {
+  font-weight: 600;
+}
+
+.master__meta {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.master__sr {
+  color: $text-faint;
+  width: 5rem;
+}
+
+.master__actions {
+  display: flex;
+  gap: $space-xs;
+  justify-content: flex-end;
+}
+
+.master__na {
+  color: $text-faint;
+  font-style: italic;
+}
+
+th.numeric,
+td.numeric {
+  text-align: right;
+}

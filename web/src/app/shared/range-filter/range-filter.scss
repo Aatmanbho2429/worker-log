@@ -1,0 +1,84 @@
+@use 'base/tokens' as *;
+
+.filter {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-lg;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.filter__presets {
+  display: flex;
+  gap: 0;
+}
+
+.filter__preset {
+  background: $surface-raised;
+  border: 1px solid $border-default;
+  color: $text-secondary;
+  cursor: pointer;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  letter-spacing: 0.08em;
+  padding: 0.7rem 1.4rem;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+
+  &:first-child {
+    border-radius: $radius-md 0 0 $radius-md;
+  }
+
+  &:last-child {
+    border-radius: 0 $radius-md $radius-md 0;
+  }
+
+  &:not(:first-child) {
+    border-left: none;
+  }
+
+  &:hover:not(:disabled) {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &--active {
+    background: $navy-500;
+    border-color: $navy-400;
+    color: #ffffff;
+  }
+}
+
+.filter__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.filter__field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.filter__label {
+  color: $text-faint;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .filter__input {
+  width: 13rem;
+}
+
+:host ::ng-deep .filter__select {
+  min-width: 16rem;
+}

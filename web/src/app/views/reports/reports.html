@@ -1,0 +1,159 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Reports</h1>
+      <p class="page__subtitle">Check the month, then export the sheet — {{ rangeLabel() }}</p>
+    </div>
+
+    <div class="page__actions">
+      <p-button
+        icon="pi pi-file-excel"
+        label="Export CSV"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="loading()"
+        (onClick)="download('csv')"
+      />
+      <p-button
+        icon="pi pi-file-pdf"
+        label="Export PDF"
+        [disabled]="loading()"
+        (onClick)="download('pdf')"
+      />
+    </div>
+  </header>
+
+  <div class="card card--pad">
+    <app-range-filter
+      [value]="filter()"
+      [series]="series()"
+      [busy]="loading()"
+      (changed)="onFilterChange($event)"
+    />
+  </div>
+
+  <div class="stats">
+    <article class="stat">
+      <span class="stat__label">Total pieces lost</span>
+      <span class="stat__value tabular">{{ totalPieces() }}</span>
+    </article>
+    <article class="stat stat--grade3">
+      <span class="stat__label">Grade 3</span>
+      <span class="stat__value tabular">{{ grandTotal().grade3 }}</span>
+    </article>
+    <article class="stat stat--grade4">
+      <span class="stat__label">Grade 4</span>
+      <span class="stat__value tabular">{{ grandTotal().grade4 }}</span>
+    </article>
+    <article class="stat stat--muted">
+      <span class="stat__label">Workers with waste</span>
+      <span class="stat__value tabular">{{ workersWithWaste() }}</span>
+    </article>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <div class="card__head"><h2 class="card__title">By reason</h2></div>
+
+      @if (!breakdown().length || totalPieces() === 0) {
+        <div class="empty">
+          <i class="pi pi-chart-bar"></i>
+          <span class="empty__title">No waste logged</span>
+          <p>Nothing was recorded in this period.</p>
+        </div>
+      } @else {
+        <ul class="breakdown">
+          @for (item of breakdown(); track item.name) {
+            <li class="breakdown__row">
+              <div class="breakdown__bar" [style.width.%]="item.share"></div>
+              <span class="breakdown__name">{{ item.name }}</span>
+              <span class="breakdown__grades tabular">
+                <span class="breakdown__g3">{{ item.grade3 }}</span>
+                <span class="breakdown__sep">/</span>
+                <span class="breakdown__g4">{{ item.grade4 }}</span>
+              </span>
+              <span class="breakdown__total tabular">{{ item.total }}</span>
+              <span class="breakdown__share tabular">{{ item.share }}%</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="card">
+      <div class="card__head"><h2 class="card__title">Highest waste</h2></div>
+
+      @if (!topWorkers().length) {
+        <div class="empty">
+          <i class="pi pi-users"></i>
+          <span class="empty__title">No waste logged</span>
+        </div>
+      } @else {
+        <ul class="top">
+          @for (row of topWorkers(); track row.worker.id; let i = $index) {
+            <li class="top__row">
+              <span class="top__rank tabular">{{ i + 1 }}</span>
+              <div class="top__ident">
+                <span class="top__name">{{ workerFullName(row.worker) }}</span>
+                <span class="top__series">{{ row.worker.seriesName }}</span>
+              </div>
+              <span class="top__grades tabular">
+                {{ row.total.grade3 }} <span class="breakdown__sep">/</span>
+                <span class="breakdown__g4">{{ row.total.grade4 }}</span>
+              </span>
+              <span class="top__total tabular">{{ rowTotal(row) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__head">
+      <h2 class="card__title">Entry history</h2>
+      <span class="card__hint">{{ entries().length }} entr(ies) in this period</span>
+    </div>
+
+    @if (!entries().length) {
+      <div class="empty">
+        <i class="pi pi-history"></i>
+        <span class="empty__title">No entries</span>
+        <p>Taps recorded in this period will be listed here.</p>
+      </div>
+    } @else {
+      <p-table
+        [value]="entries()"
+        [paginator]="entries().length > 12"
+        [rows]="12"
+        [scrollable]="true"
+        scrollHeight="34rem"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Logged at</th>
+            <th>Worker</th>
+            <th>Reason</th>
+            <th class="numeric">Grade</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-entry>
+          <tr>
+            <td class="tabular">{{ entry.createdDate }}</td>
+            <td>{{ entry.workerName }}</td>
+            <td>{{ entry.reasonName }}</td>
+            <td class="numeric">
+              @if (entry.grade3 > 0) {
+                <p-tag value="Grade 3" severity="info" />
+              } @else {
+                <p-tag value="Grade 4" severity="danger" />
+              }
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</section>

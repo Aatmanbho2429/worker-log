@@ -1,0 +1,8 @@
+@use 'base/tokens' as *;
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}

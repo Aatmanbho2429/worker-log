@@ -1,0 +1,13 @@
+<ng-http-loader
+  [backdrop]="true"
+  [backgroundColor]="'#7098cb'"
+  [debounceDelay]="150"
+  [extraDuration]="200"
+  [minDuration]="200"
+  [spinner]="spinkit.skWave"
+></ng-http-loader>
+
+<p-toast position="top-right" />
+<p-confirmDialog [style]="{ width: '30rem' }" />
+
+<router-outlet></router-outlet>
