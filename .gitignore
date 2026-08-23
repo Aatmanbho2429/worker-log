@@ -1,0 +1,19 @@
+# Rust
+/server/target/
+**/*.rs.bk
+
+# Local database files
+*.db
+*.db-shm
+*.db-wal
+
+# Node / Angular
+/web/node_modules/
+/web/dist/
+/web/.angular/
+npm-debug.log*
+
+# Editors & OS
+.DS_Store
+Thumbs.db
+.idea/
