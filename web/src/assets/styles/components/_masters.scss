@@ -28,13 +28,23 @@
 }
 
 .master__meta {
-  color: $text-muted;
   font-size: $fs-sm;
 }
 
 .master__sr {
-  color: $text-faint;
   width: 5rem;
+}
+
+// PrimeNG's own body-cell rule is more specific than a bare class, so the
+// secondary columns have to out-specify it to stay muted.
+.p-datatable-tbody > tr > td {
+  &.master__sr {
+    color: $text-faint;
+  }
+
+  &.master__meta {
+    color: $text-muted;
+  }
 }
 
 .master__actions {
