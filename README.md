@@ -6,8 +6,9 @@ grade 4. At the end of the month it prints back out as the same sheet.
 
 ```
 worker-log/
-├── server/   Rust API + local SQLite database
-└── web/      Angular 21 + PrimeNG front end
+├── package.json   Root orchestrator — `npm run dev` starts both below
+├── server/        Rust API + local SQLite database
+└── web/           Angular 21 + PrimeNG front end
 ```
 
 ## What it does
@@ -43,7 +44,22 @@ the PDF; it is editable from the Reasons screen.
 
 ## Running it
 
-Two processes. The API first:
+### One command
+
+```bash
+npm install          # once, at the repo root — installs the orchestrator
+npm run setup         # once — installs the Angular front end's dependencies
+npm run dev            # runs both: http://localhost:8080 (API) + http://localhost:4200 (web)
+```
+
+Output is prefixed `[API]` / `[WEB]`. Ctrl+C stops both — the root script
+runs them via `concurrently --kill-others`, so an interrupt (or a crash) on
+either side takes the other down with it rather than leaving an orphaned
+process on a port.
+
+### Or run them separately
+
+Two terminals. The API first:
 
 ```bash
 cd server
@@ -68,8 +84,7 @@ own sheet — seeding only ever happens on an empty table.
 To see the app with a register behind it rather than empty screens:
 
 ```bash
-cd server
-cargo run -- seed
+npm run seed          # or: cd server && cargo run -- seed
 ```
 
 That writes 4 product series, 24 workers and roughly 700–800 waste entries
@@ -83,7 +98,7 @@ It refuses to touch a database that already has workers in it. Pass `--force`
 to clear the waste log, workers and series first and start over:
 
 ```bash
-cargo run -- seed --force
+npm run seed:force    # or: cd server && cargo run -- seed --force
 ```
 
 Reasons survive a `--force` reseed, since by then you may have renamed them to

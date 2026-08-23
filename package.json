@@ -1,0 +1,17 @@
+{
+  "name": "ceramic-waste-log-monorepo",
+  "private": true,
+  "description": "Runs the Rust API and the Angular front end together for local development.",
+  "scripts": {
+    "setup": "npm --prefix web install",
+    "dev": "concurrently -n API,WEB -c \"blue.bold,green.bold\" --kill-others \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "cd server && cargo run",
+    "dev:web": "cd web && npm start",
+    "seed": "cd server && cargo run -- seed",
+    "seed:force": "cd server && cargo run -- seed --force",
+    "build": "npm --prefix web run build && cd server && cargo build --release"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}
