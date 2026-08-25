@@ -1,3 +1,5 @@
+mod barcode;
+mod barcode_sheet;
 mod commands;
 mod db;
 mod error;
@@ -22,6 +24,18 @@ pub fn now() -> String {
     Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
+/// A `seed [--force]` invocation, if that is what the binary was launched for.
+///
+/// The demo register is otherwise only reachable from the Settings screen,
+/// which is no help when setting a terminal up over SSH or from a script.
+fn seed_request() -> Option<bool> {
+    let mut args = std::env::args().skip(1).filter(|arg| arg != "--");
+    if args.next().as_deref() != Some("seed") {
+        return None;
+    }
+    Some(args.any(|arg| arg == "--force" || arg == "-f"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -37,6 +51,28 @@ pub fn run() {
             // directory the executable happened to be launched from.
             let path = state::database_path(app.handle())?;
             let db = db::open(&path)?;
+
+            // Seeding from the terminal writes the register and leaves,
+            // rather than falling through and opening the app.
+            if let Some(force) = seed_request() {
+                let mut connection =
+                    db.lock().expect("a connection opened moments ago cannot be poisoned");
+                let code = match seed::run(&mut connection, force) {
+                    Ok(summary) => {
+                        println!("{summary}");
+                        println!("database: {}", path.display());
+                        0
+                    }
+                    Err(error) => {
+                        eprintln!("seeding failed: {error}");
+                        1
+                    }
+                };
+                // `exit` runs no destructors, so fold the write-ahead log back
+                // into the database file by hand before leaving.
+                let _ = connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+                std::process::exit(code);
+            }
 
             log::info!("opened local database at {}", path.display());
             app.manage(state::AppState::new(db, path));
@@ -64,6 +100,9 @@ pub fn run() {
             commands::undo_waste_entry,
             commands::export_waste_pdf,
             commands::export_waste_csv,
+            commands::barcode_sheet,
+            commands::record_scan,
+            commands::export_barcodes_pdf,
             commands::seed_demo_data,
         ])
         .run(tauri::generate_context!())

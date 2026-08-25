@@ -11,9 +11,12 @@ use tauri::{AppHandle, State};
 use crate::error::{AppError, AppResult};
 use crate::events::{ChangeScope, emit_changed, emit_changed_with};
 use crate::models::{
-    Dashboard, LogEntryRequest, RangeQuery, Reason, ReasonUpsert, SeriesOfProduct, SeriesUpsert,
+    Dashboard, Grade, LogEntryRequest, RangeQuery, Reason, ReasonUpsert, SeriesOfProduct,
+    SeriesUpsert,
     Worker, WorkerLog, WorkerUpsert,
 };
+use crate::barcode::Scan;
+use crate::barcode_sheet::{self, Sheet};
 use crate::report::{ReportContext, to_csv, to_pdf};
 use crate::repo::{DateRange, logs, reasons, series, workers};
 use crate::state::AppState;
@@ -247,6 +250,103 @@ pub fn undo_waste_entry(
     };
     emit_changed(&app, ChangeScope::Waste);
     Ok(removed)
+}
+
+// -------------------------------------------------------------- barcodes ---
+
+/// Every barcode the scanning sheet shows: one per worker, and a grade 3 /
+/// grade 4 pair per reason.
+#[tauri::command]
+pub fn barcode_sheet(state: State<'_, AppState>, series_id: Option<i64>) -> AppResult<Sheet> {
+    let connection = state.conn()?;
+    barcode_sheet::build(&connection, series_id)
+}
+
+/// Records the entry a scanned barcode stands for.
+///
+/// The barcode is the grade button, so a scan does exactly what a tap does:
+/// one `worker_log` row, one `data-changed` event, the same validation. The
+/// decode lives in Rust so the screen, the printed sheet and the reader can
+/// never disagree about what a code means.
+#[tauri::command]
+pub fn record_scan(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    code: String,
+) -> AppResult<ScanReceipt> {
+    let scan = Scan::parse(&code)?;
+
+    let (entry, worker, reason) = {
+        let connection = state.conn()?;
+
+        // Resolve both sides first, so a sheet printed before a worker was
+        // removed fails with something the operator can act on rather than a
+        // foreign key error.
+        let worker = workers::get(&connection, scan.worker_id).map_err(|error| match error {
+            AppError::NotFound(_) => AppError::NotFound(
+                "That barcode is for a worker who is no longer on the register. \
+                 Print a fresh sheet."
+                    .to_string(),
+            ),
+            other => other,
+        })?;
+        let reason = reasons::get(&connection, scan.reason_id).map_err(|error| match error {
+            AppError::NotFound(_) => AppError::NotFound(
+                "That barcode is for a reason that has since been deleted. \
+                 Print a fresh sheet."
+                    .to_string(),
+            ),
+            other => other,
+        })?;
+
+        let entry = logs::add_entry(
+            &connection,
+            &LogEntryRequest {
+                worker_id: scan.worker_id,
+                reason_id: scan.reason_id,
+                grade: scan.grade,
+            },
+        )?;
+        (entry, worker, reason)
+    };
+
+    emit_changed(&app, ChangeScope::Waste);
+
+    Ok(ScanReceipt {
+        entry,
+        worker_name: format!("{} {}", worker.first_name, worker.last_name).trim().to_string(),
+        reason_name: reason.name,
+        grade: scan.grade,
+    })
+}
+
+/// What the scanning screen shows back after a successful scan.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanReceipt {
+    pub entry: WorkerLog,
+    pub worker_name: String,
+    pub reason_name: String,
+    pub grade: Grade,
+}
+
+/// Writes the scanning sheet to `path` for printing.
+#[tauri::command]
+pub fn export_barcodes_pdf(
+    state: State<'_, AppState>,
+    series_id: Option<i64>,
+    path: String,
+) -> AppResult<String> {
+    let bytes = {
+        let connection = state.conn()?;
+        barcode_sheet::to_pdf(&barcode_sheet::build(&connection, series_id)?)
+    };
+
+    std::fs::write(&path, bytes).map_err(|error| {
+        AppError::Internal(format!("Could not write the PDF to {path}: {error}"))
+    })?;
+
+    Ok(path)
 }
 
 // --------------------------------------------------------------- exports ---

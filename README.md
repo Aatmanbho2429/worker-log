@@ -23,6 +23,9 @@ worker-log/
   column pair per reason across, totals on every edge.
 - **Reports** — totals for the period, a breakdown by reason, the workers with
   the most waste, the full entry history, and the PDF/CSV exports.
+- **Scanning sheet** — the same grade buttons as barcodes, every reason on one
+  page, so a handheld reader can replace the tap. One scan records one entry;
+  the sheet prints to PDF for the wall beside the line.
 - **Masters** — CRUD for workers, series of product and reasons.
 - **Settings** — where the database file lives, and the demo data loader.
 
@@ -87,10 +90,81 @@ reasons are weighted — handling and the loader break the most pieces, glazing
 faults are rare — so the report's breakdown has a realistic shape rather than
 being flat noise.
 
+The same generator is reachable from a terminal, which is easier when setting
+a machine up or resetting between demos:
+
+```bash
+cargo run --manifest-path src-tauri/Cargo.toml -- seed          # empty register only
+cargo run --manifest-path src-tauri/Cargo.toml -- seed --force  # clear and reseed
+```
+
+It writes to the same database the app uses, prints the path it wrote to, and
+exits without opening a window. `WORKER_LOG_DB` redirects it like everywhere
+else.
+
 Loading only works on an empty register. **Replace everything with demo data**
 clears the waste log, workers and series first. Reasons survive, since by then
 you may have renamed them to match your own register. The generator is
 deterministic, so a fresh database always seeds the same demo.
+
+## Scanning
+
+The waste screen's grade buttons are also barcodes. Scanning one records
+exactly what tapping it records — one `worker_log` row for that worker, that
+reason and that grade — so a reader can stand in for a finger without the
+operator having to hold anything in their head. The buttons are unchanged;
+**Scanning sheet** is the same action taken with a reader.
+
+That means one barcode per worker x reason x grade: 24 workers and 10 reasons
+is 480 of them. All of them are on the one screen — every reason, one after
+another — so there is nothing to pick and nothing to navigate before scanning;
+chips along the top jump to a reason without hiding any of the others. The PDF
+gives each reason its own landscape page with the workers in two columns.
+
+Worker rows flow into as many columns as the window can hold *without shrinking
+a barcode*, since a stretched or squeezed barcode is one that stops scanning at
+the size it was proofed at. Each barcode is drawn as a single SVG path rather
+than one rectangle per bar: at 480 barcodes that is the difference between
+about 4,700 elements on the page and some fifteen thousand, rebuilt on every
+change detection pass.
+
+### The payload
+
+Code 128, twelve digits, all numeric so the whole symbol fits subset C and
+packs two digits per symbol:
+
+```text
+3 wwwww rrrr g c
+| |     |    | \ check digit
+| |     |    \-- grade, 3 or 4
+| |     \------- reason id
+| \------------- worker id
+\--------------- format marker
+```
+
+The leading `3` and the trailing check digit are what let a barcode off a
+passing carton be rejected as a normal outcome rather than logged against
+whoever happened to be selected. Codes are decoded in Rust
+(`src-tauri/src/barcode.rs`), not in the front end, so the screen, the printed
+sheet and the reader cannot disagree about what one means.
+
+The encoder is checked against the symbology's own structural rules — every
+symbol 11 modules wide, bars totalling an even number of modules, no two
+patterns alike — because a transcription slip in the pattern table would still
+look like a perfectly plausible barcode on screen while scanning as nothing at
+all.
+
+### Readers
+
+A handheld scanner is a keyboard: it types the payload and presses Enter. The
+screen tells one from a person by speed, so the "Find a worker" box on the same
+page still works normally. Barcodes are drawn as dark bars on a white tile even
+though the app is dark throughout — inverted barcodes read poorly on cheap
+laser readers and not at all on some.
+
+Reprint the sheet after adding a worker or deleting a reason. A code for
+someone no longer on the register is refused with a message saying so rather
+than silently doing nothing.
 
 ## How the two halves talk
 
@@ -109,6 +183,9 @@ pushes events back.
 | `waste_dashboard` | the worker × reason grid |
 | `waste_logs` | the entry history |
 | `add_waste_entry` `undo_waste_entry` | record / remove one tap |
+| `barcode_sheet` | every button's barcode, grouped by reason |
+| `record_scan` | record the entry a scanned barcode stands for |
+| `export_barcodes_pdf` | write the scanning sheet to a chosen path |
 | `export_waste_pdf` `export_waste_csv` | write the sheet to a chosen path |
 | `seed_demo_data` | load the demo register |
 
@@ -163,7 +240,7 @@ does cascade to their waste entries, so the confirmation says how many.
 
 ## Exports
 
-Reports and Month sheet both export. The operator picks the location through
+Reports, Month sheet and the Scanning sheet all export. The operator picks the location through
 the native save dialog, Rust writes the file, and the app offers to open it in
 whatever the system uses for PDFs.
 

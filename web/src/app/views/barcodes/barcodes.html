@@ -1,0 +1,167 @@
+<section class="page scan">
+  <!-- Everything that moves, and every control, pinned to the top: the sheet
+       below is long, and feedback the operator has scrolled past is no
+       feedback at all. -->
+  <header class="scan__bar">
+    <div class="scan__status" [class.scan__status--problem]="problem()">
+      @if (problem(); as issue) {
+        <div class="scan__state scan__state--problem">
+          <i class="pi pi-exclamation-triangle"></i>
+          <div>
+            <span class="scan__state-label">Not recorded</span>
+            <strong>{{ issue }}</strong>
+          </div>
+          <p-button
+            severity="secondary"
+            text
+            icon="pi pi-times"
+            label="Dismiss"
+            (onClick)="clearProblem()"
+          />
+        </div>
+      } @else if (recent()[0]; as last) {
+        <div class="scan__state scan__state--ok">
+          <i class="pi pi-check-circle"></i>
+          <div>
+            <span class="scan__state-label">Recorded — {{ scannedTotal() }} this session</span>
+            <strong>
+              {{ last.worker }}
+              <span class="scan__state-grade" [class.scan__state-grade--g4]="last.grade === 4">
+                {{ last.reason }} · grade {{ last.grade }}
+              </span>
+            </strong>
+          </div>
+        </div>
+      } @else {
+        <div class="scan__state">
+          <i class="pi pi-qrcode"></i>
+          <div>
+            <span class="scan__state-label">Ready</span>
+            <strong>Scan a barcode to record an entry</strong>
+          </div>
+        </div>
+      }
+
+      <div class="scan__recent">
+        @for (entry of recent(); track $index) {
+          <div class="scan__recent-row" [class.scan__recent-row--g4]="entry.grade === 4">
+            <span class="scan__recent-time tabular">{{ entry.at }}</span>
+            <span class="scan__recent-worker">{{ entry.worker }}</span>
+            <span class="scan__recent-reason">{{ entry.reason }}</span>
+            <span class="scan__recent-grade">G{{ entry.grade }}</span>
+          </div>
+        } @empty {
+          <p class="scan__recent-empty">Entries recorded by the reader appear here.</p>
+        }
+      </div>
+
+      <div class="scan__tools">
+        <select
+          class="scan__select"
+          aria-label="Series"
+          [ngModel]="seriesId()"
+          (ngModelChange)="onSeriesChange($event)"
+        >
+          <option [ngValue]="null">All series</option>
+          @for (item of series(); track item.id) {
+            <option [ngValue]="item.id">{{ item.name }}</option>
+          }
+        </select>
+
+        <input
+          type="search"
+          class="scan__search"
+          placeholder="Find a worker"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+
+        <p-button
+          icon="pi pi-file-pdf"
+          label="PDF"
+          severity="secondary"
+          [outlined]="true"
+          [loading]="exporting()"
+          [disabled]="loading()"
+          (onClick)="exportPdf()"
+        />
+      </div>
+    </div>
+
+    @if (reasons().length > 1) {
+      <!-- Jump links, not tabs: nothing below is hidden, this only saves
+           scrolling past reasons the operator is not looking for. -->
+      <nav class="jumps" aria-label="Jump to a reason">
+        <span class="jumps__label">{{ barcodeCount() }} barcodes</span>
+        @for (reason of reasons(); track reason.reasonId) {
+          <button type="button" class="jumps__chip" (click)="jumpTo(reason.reasonId)">
+            {{ reason.reasonName }}
+          </button>
+        }
+      </nav>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="scan__empty">Building the sheet…</p>
+  } @else if (!reasons().length) {
+    <p class="scan__empty">No workers to show.</p>
+  } @else {
+    @for (reason of reasons(); track reason.reasonId) {
+      <section class="reason" [id]="'reason-' + reason.reasonId">
+        <h2 class="reason__name">
+          {{ reason.reasonName }}
+          <span class="reason__count">{{ reason.rows.length }} worker(s)</span>
+        </h2>
+
+        <div class="grid">
+          @for (row of reason.rows; track row.workerId) {
+            <div class="grid__row">
+              <div class="grid__worker">
+                <strong class="grid__name">{{ row.name }}</strong>
+                <span class="grid__series">{{ row.seriesName }}</span>
+              </div>
+
+              @for (tile of row.tiles; track tile.code) {
+                <figure class="tile" [class.tile--g4]="tile.grade === 4">
+                  <svg
+                    class="tile__bars"
+                    [attr.viewBox]="'0 0 ' + barcodeWidth + ' ' + barcodeHeight"
+                    [attr.width]="barcodeWidth"
+                    [attr.height]="barcodeHeight"
+                    role="img"
+                    [attr.aria-label]="
+                      row.name + ', ' + reason.reasonName + ', grade ' + tile.grade
+                    "
+                  >
+                    <rect class="tile__quiet" width="100%" height="100%" />
+                    <path class="tile__bar" [attr.d]="tile.path" />
+                  </svg>
+                  <figcaption class="tile__caption">
+                    <span class="tile__grade">G{{ tile.grade }}</span>
+                    <span class="tile__code tabular">{{ tile.code }}</span>
+                  </figcaption>
+                </figure>
+              }
+
+              <div class="grid__tally">
+                <span
+                  class="grid__scanned tabular"
+                  [class.grid__scanned--on]="scanned(row.workerId, reason.reasonId, 3)"
+                >
+                  {{ scanned(row.workerId, reason.reasonId, 3) }}
+                </span>
+                <span
+                  class="grid__scanned grid__scanned--g4 tabular"
+                  [class.grid__scanned--on]="scanned(row.workerId, reason.reasonId, 4)"
+                >
+                  {{ scanned(row.workerId, reason.reasonId, 4) }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</section>

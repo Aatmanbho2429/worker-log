@@ -102,3 +102,44 @@ export interface RangeFilter {
 export function workerFullName(worker: Worker): string {
   return `${worker.firstName} ${worker.lastName}`.trim();
 }
+
+// -------------------------------------------------------------- barcodes ---
+
+/** The bars of one Code 128 symbol, as widths in modules. */
+export interface BarcodeSymbol {
+  /** The digits encoded, printed under the bars. */
+  code: string;
+  /** Alternating bar, space, bar, space … starting with a bar. */
+  modules: number[];
+  /** Total width including both quiet zones, so callers can scale to fit. */
+  moduleCount: number;
+}
+
+/** One worker's pair of barcodes under a reason — their two grade buttons. */
+export interface BarcodeWorkerRow {
+  workerId: number;
+  name: string;
+  seriesName: string;
+  grade3: BarcodeSymbol;
+  grade4: BarcodeSymbol;
+}
+
+export interface BarcodeReasonSheet {
+  reasonId: number;
+  reasonName: string;
+  rows: BarcodeWorkerRow[];
+}
+
+export interface BarcodeSheet {
+  reasons: BarcodeReasonSheet[];
+  seriesName: string | null;
+  generatedAt: string;
+}
+
+/** What the backend recorded for a scan, echoed back for confirmation. */
+export interface ScanReceipt {
+  entry: WorkerLog;
+  workerName: string;
+  reasonName: string;
+  grade: Grade;
+}

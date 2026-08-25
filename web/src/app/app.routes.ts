@@ -14,6 +14,11 @@ export const routes: Routes = [
         loadComponent: () => import('./views/waste/waste').then((m) => m.Waste),
       },
       {
+        path: 'barcodes',
+        title: 'Scanning sheet — Ceramic Waste Log',
+        loadComponent: () => import('./views/barcodes/barcodes').then((m) => m.Barcodes),
+      },
+      {
         path: 'sheet',
         title: 'Month sheet — Ceramic Waste Log',
         loadComponent: () => import('./views/sheet/sheet').then((m) => m.Sheet),

@@ -25,6 +25,7 @@ export class Shell implements OnDestroy {
       label: 'Floor',
       items: [
         { label: 'Waste log', icon: 'pi pi-bolt', route: '/waste' },
+        { label: 'Scanning sheet', icon: 'pi pi-qrcode', route: '/barcodes' },
         { label: 'Month sheet', icon: 'pi pi-table', route: '/sheet' },
         { label: 'Reports', icon: 'pi pi-file-pdf', route: '/reports' },
       ],

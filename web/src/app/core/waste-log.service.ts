@@ -2,11 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
+  BarcodeSheet,
   Dashboard,
   LogEntryPayload,
   RangeFilter,
   Reason,
   ReasonPayload,
+  ScanReceipt,
   SeriesOfProduct,
   SeriesPayload,
   Worker,
@@ -142,5 +144,23 @@ export class WasteLogService {
 
   seedDemoData(force: boolean): Promise<string> {
     return this.tauri.call<string>('seed_demo_data', { force });
+  }
+
+  // ------------------------------------------------------------ barcodes ---
+
+  barcodeSheet(seriesId: number | null): Promise<BarcodeSheet> {
+    return this.tauri.call<BarcodeSheet>('barcode_sheet', { seriesId });
+  }
+
+  /**
+   * Records the entry a scanned barcode stands for. The barcode is the grade
+   * button, so this does exactly what {@link addEntry} does for a tap.
+   */
+  recordScan(code: string): Promise<ScanReceipt> {
+    return this.tauri.call<ScanReceipt>('record_scan', { code });
+  }
+
+  exportBarcodesPdf(seriesId: number | null, path: string): Promise<string> {
+    return this.tauri.call<string>('export_barcodes_pdf', { seriesId, path });
   }
 }

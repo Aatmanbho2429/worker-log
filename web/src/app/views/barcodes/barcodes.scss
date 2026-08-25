@@ -1,0 +1,386 @@
+@use 'base/tokens' as *;
+
+.scan {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+// ---------------------------------------------------------------- pinned bar --
+//
+// The sheet below runs to several screens. Feedback and controls stay put so
+// the operator never has to scroll back to find out whether a scan landed.
+
+.scan__bar {
+  background: $surface-page;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding-bottom: $space-sm;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.scan__status {
+  align-items: center;
+  background: linear-gradient(150deg, $surface-raised, $surface-card);
+  border: 1px solid $border-default;
+  border-left: 0.4rem solid $green-500;
+  border-radius: $radius-md;
+  display: grid;
+  gap: $space-lg;
+  grid-template-columns: minmax(28rem, 1.6fr) minmax(24rem, 2fr) auto;
+  padding: $space-sm $space-lg;
+
+  &--problem {
+    border-left-color: $amber-500;
+  }
+}
+
+.scan__state {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+
+  > i {
+    color: $text-faint;
+    font-size: 2.2rem;
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  &--ok > i {
+    color: $green-400;
+  }
+
+  &--problem {
+    > i {
+      color: $amber-400;
+    }
+
+    strong {
+      color: $amber-400;
+      font-size: $fs-md;
+      line-height: 1.25;
+    }
+  }
+}
+
+.scan__state-label {
+  color: $text-muted;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scan__state strong {
+  color: $text-primary;
+  font-family: $font-display;
+  font-size: $fs-lg;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+}
+
+.scan__state-grade {
+  color: $navy-200;
+  font-family: $font-body;
+  font-size: $fs-sm;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-left: $space-sm;
+
+  &--g4 {
+    color: $red-400;
+  }
+}
+
+.scan__recent {
+  border-left: 1px solid $border-subtle;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  justify-content: center;
+  max-height: 8rem;
+  overflow-y: auto;
+  padding-left: $space-lg;
+}
+
+.scan__recent-row {
+  align-items: baseline;
+  color: $text-secondary;
+  display: grid;
+  font-size: $fs-sm;
+  gap: $space-md;
+  grid-template-columns: 7.5rem 1fr 1fr 3rem;
+
+  // The newest entry is the one being confirmed, so it stays brightest.
+  &:first-child {
+    color: $green-400;
+  }
+
+  &--g4 .scan__recent-grade {
+    color: $red-400;
+  }
+}
+
+.scan__recent-time,
+.scan__recent-reason {
+  color: $text-faint;
+}
+
+.scan__recent-grade {
+  font-weight: 700;
+  text-align: right;
+}
+
+.scan__recent-empty {
+  color: $text-faint;
+  font-size: $fs-sm;
+  margin: 0;
+}
+
+.scan__tools {
+  align-items: center;
+  display: flex;
+  gap: $space-sm;
+}
+
+.scan__select,
+.scan__search {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  color: $text-primary;
+  font-family: $font-body;
+  font-size: $fs-base;
+  padding: $space-xs $space-sm;
+  width: 14rem;
+}
+
+.scan__empty {
+  color: $text-faint;
+  font-size: $fs-base;
+  margin: 0;
+  padding: $space-lg;
+}
+
+// ------------------------------------------------------------- jump links --
+
+.jumps {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.jumps__label {
+  color: $text-faint;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  margin-right: $space-xs;
+  text-transform: uppercase;
+}
+
+.jumps__chip {
+  background: $surface-card;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  cursor: pointer;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 1.1rem;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+}
+
+// ----------------------------------------------------------------- reason --
+
+.reason {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.reason__name {
+  align-items: baseline;
+  background: $surface-header;
+  border-bottom: 1px solid $border-default;
+  color: $text-primary;
+  display: flex;
+  font-family: $font-display;
+  font-size: $fs-md;
+  font-weight: 600;
+  gap: $space-sm;
+  letter-spacing: 0.12em;
+  margin: 0;
+  padding: $space-sm $space-lg;
+  text-transform: uppercase;
+}
+
+.reason__count {
+  color: $text-faint;
+  font-family: $font-body;
+  font-size: $fs-sm;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// ------------------------------------------------------------------- grid --
+//
+// Worker rows flow into as many columns as the window can hold without
+// shrinking a barcode: widening the window fits more per row rather than
+// stretching the bars, and a stretched barcode is one that stops scanning at
+// the size it was proofed at.
+
+.grid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(auto-fill, minmax(48rem, 1fr));
+}
+
+.grid__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-sm;
+  grid-template-columns: minmax(11rem, 1fr) auto auto 5.6rem;
+  padding: $space-xs $space-md;
+
+  &:hover {
+    background: $surface-hover;
+  }
+}
+
+.grid__worker {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.grid__name {
+  color: $text-primary;
+  font-size: $fs-base;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid__series {
+  color: $text-faint;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grid__tally {
+  display: flex;
+  gap: $space-xs;
+  justify-content: flex-end;
+}
+
+// Scans counted this session. Dim at zero so a row that has been used stands
+// out from one that has not.
+.grid__scanned {
+  background: $surface-sunken;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-sm;
+  color: $text-faint;
+  font-size: $fs-sm;
+  font-weight: 700;
+  min-width: 2.4rem;
+  padding: 0.1rem 0;
+  text-align: center;
+
+  &--on {
+    background: $navy-600;
+    border-color: $navy-400;
+    color: $text-primary;
+  }
+
+  &--g4#{&}--on {
+    background: $red-700;
+    border-color: $red-500;
+  }
+}
+
+// ------------------------------------------------------------------- tile --
+//
+// A deliberate white island in a dark app. Scanners expect dark bars on a light
+// field; inverted barcodes read poorly on cheap laser readers and not at all on
+// some, so the tile keeps paper's contrast whatever the UI does.
+
+.tile {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid $border-default;
+  border-bottom: 0.25rem solid $navy-500;
+  border-radius: $radius-sm;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0.2rem 0.4rem 0.1rem;
+
+  &--g4 {
+    border-bottom-color: $red-500;
+  }
+}
+
+// The grade and the printed digits share a line under the bars, so a tile is
+// only as wide as the barcode it carries.
+.tile__caption {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tile__grade {
+  color: #0b1524;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.tile__bars {
+  display: block;
+  height: auto;
+}
+
+.tile__quiet {
+  fill: #ffffff;
+}
+
+.tile__bar {
+  fill: #000000;
+  // Crisp edges matter more than smoothing: a half-shaded module is a module
+  // the reader may size wrongly.
+  shape-rendering: crispEdges;
+}
+
+.tile__code {
+  color: #8296ae;
+  font-family: $font-mono;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
