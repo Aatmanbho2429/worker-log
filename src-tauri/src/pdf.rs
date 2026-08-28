@@ -136,6 +136,47 @@ impl Canvas {
         let (fitted, used_size) = fit(text, font, size, max_width);
         self.text(x, y, used_size, font, color, &fitted);
     }
+
+    /// Draws `text` turned a quarter turn anticlockwise, so it reads bottom to
+    /// top, with its baseline on `x` and its first letter at `y`.
+    ///
+    /// Same text operator as [`Canvas::text`]; only the matrix differs.
+    /// `1 0 0 1` is the identity, and `0 1 -1 0` is that rotated 90°.
+    pub fn text_turned(&mut self, x: f64, y: f64, size: f64, font: Font, color: Rgb, text: &str) {
+        if text.is_empty() {
+            return;
+        }
+        let _ = write!(
+            self.ops,
+            "BT {r:.3} {g:.3} {b:.3} rg /{f} {s:.2} Tf 0 1 -1 0 {x:.2} {y:.2} Tm ({t}) Tj ET\n",
+            r = color.0,
+            g = color.1,
+            b = color.2,
+            f = font.resource(),
+            s = size,
+            x = x,
+            y = self.flip(y),
+            t = escape(text),
+        );
+    }
+
+    /// Turned text centred on `cy`, shrunk and clipped to `max_height` — the
+    /// upright [`Canvas::text_centered`] with the page on its side.
+    #[allow(clippy::too_many_arguments)]
+    pub fn text_turned_centered(
+        &mut self,
+        x: f64,
+        cy: f64,
+        max_height: f64,
+        size: f64,
+        font: Font,
+        color: Rgb,
+        text: &str,
+    ) {
+        let (fitted, used_size) = fit(text, font, size, max_height);
+        let h = text_width(&fitted, font, used_size);
+        self.text_turned(x, cy + h / 2.0, used_size, font, color, &fitted);
+    }
 }
 
 /// Width of `text` in points when set in `font` at `size`.

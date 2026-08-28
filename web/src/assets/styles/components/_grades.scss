@@ -1,0 +1,94 @@
+@use 'sass:map';
+@use 'base/tokens' as *;
+
+// A colour per grade, applied by position rather than by id.
+//
+// The floor reads these at a glance from a metre away, so the two grades the
+// register ships with keep the colours they have always had: the first is the
+// app's navy, the second the red that says scrap. Grades added after that take
+// the remaining tones in order, and the palette repeats if a factory ever
+// tracks more than it holds — a repeated colour is a smaller problem than an
+// unreadable one, and the name is always printed beside it.
+//
+// Each tone only declares custom properties; what to paint with them is the
+// individual screen's business.
+//
+// `accent` is a solid fill that carries white text in either theme, so it needs
+// no variant. Text drawn *in* the grade's colour does: a pale tint is legible
+// on the dark theme and invisible on the light one. Each tone therefore gives
+// `bright` twice — the light value on the tone itself, the dark one under
+// `.app-dark` — because a custom property is substituted where it is declared,
+// not where it is used, so a single `--grade-bright: var(--grade-on-light)` up
+// on `:root` would resolve against the root and find nothing.
+
+$tones: (
+  0: (
+    accent: $navy-500,
+    hover: $navy-400,
+    active: $navy-600,
+    edge: $navy-400,
+    soft: rgba($navy-300, 0.16),
+    on-light: $navy-600,
+    on-dark: $navy-200,
+  ),
+  1: (
+    accent: $red-600,
+    hover: $red-500,
+    active: $red-700,
+    edge: $red-500,
+    soft: rgba($red-500, 0.16),
+    on-light: $red-600,
+    on-dark: $red-400,
+  ),
+  2: (
+    accent: $amber-600,
+    hover: $amber-500,
+    active: $amber-700,
+    edge: $amber-500,
+    soft: rgba($amber-500, 0.16),
+    on-light: $amber-700,
+    on-dark: $amber-400,
+  ),
+  3: (
+    accent: $green-600,
+    hover: $green-500,
+    active: $green-700,
+    edge: $green-500,
+    soft: rgba($green-500, 0.16),
+    on-light: $green-700,
+    on-dark: $green-400,
+  ),
+  4: (
+    accent: $violet-500,
+    hover: $violet-400,
+    active: $violet-700,
+    edge: $violet-400,
+    soft: rgba($violet-500, 0.18),
+    on-light: $violet-600,
+    on-dark: $violet-400,
+  ),
+  5: (
+    accent: $teal-500,
+    hover: $teal-400,
+    active: $teal-700,
+    edge: $teal-400,
+    soft: rgba($teal-500, 0.2),
+    on-light: $teal-600,
+    on-dark: $teal-400,
+  ),
+);
+
+@each $index, $tone in $tones {
+  .g-tone-#{$index} {
+    --grade-accent: #{map.get($tone, accent)};
+    --grade-accent-hover: #{map.get($tone, hover)};
+    --grade-accent-active: #{map.get($tone, active)};
+    --grade-edge: #{map.get($tone, edge)};
+    --grade-soft: #{map.get($tone, soft)};
+    --grade-bright: #{map.get($tone, on-light)};
+  }
+
+  .app-dark .g-tone-#{$index} {
+    --grade-bright: #{map.get($tone, on-dark)};
+  }
+}

@@ -1,3 +1,5 @@
+pub mod barcodes;
+pub mod grades;
 pub mod logs;
 pub mod reasons;
 pub mod series;

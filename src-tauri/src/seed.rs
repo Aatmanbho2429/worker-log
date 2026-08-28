@@ -102,6 +102,20 @@ pub fn run(connection: &mut Connection, force: bool) -> AppResult<String> {
         ));
     }
 
+    // ------------------------------------------------------------- grades ---
+    // Whatever the register tracks, not a hard-coded 3 and 4: a factory that
+    // has added its own grade wants the demo to exercise it.
+    let grades: Vec<i64> = {
+        let mut statement = transaction.prepare("SELECT id FROM grade ORDER BY id")?;
+        statement.query_map([], |row| row.get(0))?.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+
+    if grades.is_empty() {
+        return Err(AppError::Internal(
+            "No grades exist to log waste against — the database was not initialised.".to_string(),
+        ));
+    }
+
     let picker = WeightedPicker::new(&reasons);
 
     // -------------------------------------------------------- waste taps ---
@@ -124,17 +138,22 @@ pub fn run(connection: &mut Connection, force: bool) -> AppResult<String> {
                 let worker_id = worker_ids[rng.below(worker_ids.len())];
                 let reason_id = picker.pick(&mut rng);
 
-                // Grade 3 is the more common salvage grade; grade 4 is scrap.
-                let (grade3, grade4) = if rng.chance(58) { (1, 0) } else { (0, 1) };
+                // The first grade is the common salvage grade; the rest share
+                // what is left, so the report's grade split has a shape.
+                let grade_id = if grades.len() == 1 || rng.chance(58) {
+                    grades[0]
+                } else {
+                    grades[1 + rng.below(grades.len() - 1)]
+                };
 
                 let logged = shift_time(day, &mut rng);
                 let stamp = logged.format("%Y-%m-%d %H:%M:%S").to_string();
 
                 transaction.execute(
-                    "INSERT INTO worker_log (worker_id, grade3, grade4, reason_id,
+                    "INSERT INTO worker_log (worker_id, reason_id, grade_id,
                                              created_date, modified_date)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
-                    params![worker_id, grade3, grade4, reason_id, stamp],
+                     VALUES (?1, ?2, ?3, ?4, ?4)",
+                    params![worker_id, reason_id, grade_id, stamp],
                 )?;
                 entries += 1;
             }
@@ -143,10 +162,15 @@ pub fn run(connection: &mut Connection, force: bool) -> AppResult<String> {
         day += Duration::days(1);
     }
 
+    // The demo workers need their grade buttons like any others, or the
+    // scanning sheet comes up empty on a freshly seeded register.
+    let codes = crate::repo::barcodes::sync(&transaction)?;
+
     transaction.commit()?;
 
     let summary = format!(
-        "Seeded {} series, {} workers and {entries} waste entries from {start} to {today}.",
+        "Seeded {} series, {} workers, {codes} barcodes and {entries} waste entries \
+         from {start} to {today}.",
         SERIES.len(),
         worker_ids.len(),
     );

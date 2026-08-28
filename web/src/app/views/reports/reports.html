@@ -38,14 +38,12 @@
       <span class="stat__label">Total pieces lost</span>
       <span class="stat__value tabular">{{ totalPieces() }}</span>
     </article>
-    <article class="stat stat--grade3">
-      <span class="stat__label">Grade 3</span>
-      <span class="stat__value tabular">{{ grandTotal().grade3 }}</span>
-    </article>
-    <article class="stat stat--grade4">
-      <span class="stat__label">Grade 4</span>
-      <span class="stat__value tabular">{{ grandTotal().grade4 }}</span>
-    </article>
+    @for (grade of grades(); track grade.id; let i = $index) {
+      <article class="stat stat--grade" [class]="gradeToneClass(i)">
+        <span class="stat__label">{{ grade.name }}</span>
+        <span class="stat__value tabular">{{ gradeTotal(i) }}</span>
+      </article>
+    }
     <article class="stat stat--muted">
       <span class="stat__label">Workers with waste</span>
       <span class="stat__value tabular">{{ workersWithWaste() }}</span>
@@ -69,9 +67,12 @@
               <div class="breakdown__bar" [style.width.%]="item.share"></div>
               <span class="breakdown__name">{{ item.name }}</span>
               <span class="breakdown__grades tabular">
-                <span class="breakdown__g3">{{ item.grade3 }}</span>
-                <span class="breakdown__sep">/</span>
-                <span class="breakdown__g4">{{ item.grade4 }}</span>
+                @for (count of item.counts; track $index; let i = $index; let first = $first) {
+                  @if (!first) {
+                    <span class="breakdown__sep">/</span>
+                  }
+                  <span class="breakdown__count" [class]="gradeToneClass(i)">{{ count }}</span>
+                }
               </span>
               <span class="breakdown__total tabular">{{ item.total }}</span>
               <span class="breakdown__share tabular">{{ item.share }}%</span>
@@ -99,8 +100,12 @@
                 <span class="top__series">{{ row.worker.seriesName }}</span>
               </div>
               <span class="top__grades tabular">
-                {{ row.total.grade3 }} <span class="breakdown__sep">/</span>
-                <span class="breakdown__g4">{{ row.total.grade4 }}</span>
+                @for (count of row.total; track $index; let i = $index; let first = $first) {
+                  @if (!first) {
+                    <span class="breakdown__sep">/</span>
+                  }
+                  <span class="breakdown__count" [class]="gradeToneClass(i)">{{ count }}</span>
+                }
               </span>
               <span class="top__total tabular">{{ rowTotal(row) }}</span>
             </li>
@@ -146,11 +151,9 @@
             <td>{{ entry.workerName }}</td>
             <td>{{ entry.reasonName }}</td>
             <td class="numeric">
-              @if (entry.grade3 > 0) {
-                <p-tag value="Grade 3" severity="info" />
-              } @else {
-                <p-tag value="Grade 4" severity="danger" />
-              }
+              <span class="entry-grade" [class]="gradeToneClass(gradeIndex(entry.gradeId))">
+                {{ entry.gradeName }}
+              </span>
             </td>
           </tr>
         </ng-template>

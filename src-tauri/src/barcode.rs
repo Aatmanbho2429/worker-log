@@ -9,10 +9,12 @@
 //! barcodes; the sheet deals with the volume by showing one reason at a time,
 //! the same way the waste screen does.
 //!
-//! The encoder lives here rather than in the front end because the same bars
-//! have to come out of the screen and the PDF. Two implementations would
-//! eventually disagree, and a barcode that prints differently from the one it
-//! was proofed against is worse than no barcode at all.
+//! The codes themselves live in the `barcode` table — a row per button, so
+//! what is printed and what a scan resolves to are the same record. This
+//! module owns how a code is *made*: the digits, the check digit and the bars.
+//! The encoder is here rather than in the front end because the same bars have
+//! to come out of the screen and the PDF, and two implementations would
+//! eventually disagree.
 //!
 //! Payloads are 12 digits so the whole symbol fits Code 128's subset C, which
 //! packs two digits per symbol and keeps the printed bars narrow:
@@ -20,16 +22,22 @@
 //! ```text
 //! 3 wwwww rrrr g c
 //! | |     |    | \ check digit
-//! | |     |    \-- grade, 3 or 4
+//! | |     |    \-- grade id
 //! | |     \------- reason id
 //! | \------------- worker id
 //! \--------------- format marker, so a carton barcode is rejected outright
 //! ```
+//!
+//! The grade field is one digit because it used to carry the grade *number*,
+//! 3 or 4. Grades are rows now, and the two the register ships with are seeded
+//! with the ids 3 and 4 precisely so a sheet printed before that change still
+//! scans. The cost is a ceiling of nine grades, which [`MAX_GRADE_ID`] states
+//! and the Grades screen refuses past — a factory sorting breakages into ten
+//! grades wants a wider payload, not a silently unprintable button.
 
 use serde::Serialize;
 
 use crate::error::{AppError, AppResult};
-use crate::models::Grade;
 
 /// Widths of the bars and spaces of every Code 128 symbol, indexed by value.
 ///
@@ -79,7 +87,7 @@ pub const QUIET_ZONE: u32 = 10;
 pub struct Scan {
     pub worker_id: i64,
     pub reason_id: i64,
-    pub grade: Grade,
+    pub grade_id: i64,
 }
 
 /// The widest id each field can carry. A factory that outgrows these has
@@ -87,6 +95,8 @@ pub struct Scan {
 /// print a barcode that never scans back, so it is refused instead.
 const MAX_WORKER_ID: i64 = 99_999;
 const MAX_REASON_ID: i64 = 9_999;
+/// The widest grade id the single grade digit can carry.
+pub const MAX_GRADE_ID: i64 = 9;
 
 const MARKER: char = '3';
 
@@ -121,20 +131,24 @@ impl Scan {
                 self.reason_id
             )));
         }
+        if self.grade_id < 1 || self.grade_id > MAX_GRADE_ID {
+            return Err(AppError::Internal(format!(
+                "Grade id {} cannot be put on a barcode.",
+                self.grade_id
+            )));
+        }
 
-        let body = format!(
-            "{MARKER}{:05}{:04}{}",
-            self.worker_id,
-            self.reason_id,
-            i64::from(self.grade)
-        );
+        let body =
+            format!("{MARKER}{:05}{:04}{}", self.worker_id, self.reason_id, self.grade_id);
         Ok(format!("{body}{}", check_digit(&body)))
     }
 
     /// Reads a payload back, rejecting anything that is not one of ours.
     ///
     /// Scanners are pointed at whatever is in front of them, so a barcode off a
-    /// passing carton has to be a normal outcome rather than a fault.
+    /// passing carton has to be a normal outcome rather than a fault. The ids
+    /// this returns are what the digits *claim*; the row in `barcode` is what
+    /// a scan is actually recorded against.
     pub fn parse(raw: &str) -> AppResult<Self> {
         let code = raw.trim();
         let invalid = || AppError::BadRequest(format!("`{code}` is not a waste log barcode."));
@@ -160,13 +174,8 @@ impl Scan {
         Ok(Scan {
             worker_id: digits(1..6),
             reason_id: digits(6..10),
-            grade: Grade::try_from(digits(10..11)).map_err(AppError::BadRequest)?,
+            grade_id: digits(10..11),
         })
-    }
-
-    /// The bars for this entry's payload.
-    pub fn symbol(self) -> AppResult<Symbol> {
-        Ok(encode(&self.payload()?))
     }
 }
 
@@ -186,9 +195,9 @@ fn check_digit(body: &str) -> u8 {
 
 /// Encodes an even-length run of digits as Code 128 subset C.
 ///
-/// Panics only on input this module does not generate; every caller goes
-/// through `Scan::payload`, which is 8 digits by construction.
-fn encode(digits: &str) -> Symbol {
+/// Panics only on input this module does not generate; every caller passes a
+/// stored `barcode.barcode`, which `Scan::payload` built as 12 digits.
+pub fn encode(digits: &str) -> Symbol {
     debug_assert!(digits.len() % 2 == 0 && digits.bytes().all(|b| b.is_ascii_digit()));
 
     let mut values = vec![START_C];
@@ -221,9 +230,9 @@ mod tests {
     #[test]
     fn payloads_round_trip() {
         for scan in [
-            Scan { worker_id: 1, reason_id: 1, grade: Grade::Three },
-            Scan { worker_id: 24, reason_id: 7, grade: Grade::Four },
-            Scan { worker_id: 99_999, reason_id: 9_999, grade: Grade::Three },
+            Scan { worker_id: 1, reason_id: 1, grade_id: 3 },
+            Scan { worker_id: 24, reason_id: 7, grade_id: 4 },
+            Scan { worker_id: 99_999, reason_id: 9_999, grade_id: MAX_GRADE_ID },
         ] {
             let payload = scan.payload().unwrap();
             assert_eq!(payload.len(), 12, "{payload} should be 12 digits");
@@ -238,8 +247,8 @@ mod tests {
         let mut seen = std::collections::HashSet::new();
         for worker_id in 1..=40 {
             for reason_id in 1..=12 {
-                for grade in [Grade::Three, Grade::Four] {
-                    let scan = Scan { worker_id, reason_id, grade };
+                for grade_id in [3, 4] {
+                    let scan = Scan { worker_id, reason_id, grade_id };
                     assert!(seen.insert(scan.payload().unwrap()), "collision at {scan:?}");
                 }
             }
@@ -249,9 +258,11 @@ mod tests {
 
     #[test]
     fn ids_too_large_to_encode_are_refused() {
-        let scan = Scan { worker_id: 100_000, reason_id: 1, grade: Grade::Three };
+        let scan = Scan { worker_id: 100_000, reason_id: 1, grade_id: 3 };
         assert!(scan.payload().is_err());
-        let scan = Scan { worker_id: 1, reason_id: 10_000, grade: Grade::Three };
+        let scan = Scan { worker_id: 1, reason_id: 10_000, grade_id: 3 };
+        assert!(scan.payload().is_err());
+        let scan = Scan { worker_id: 1, reason_id: 1, grade_id: MAX_GRADE_ID + 1 };
         assert!(scan.payload().is_err());
     }
 
@@ -261,13 +272,11 @@ mod tests {
         assert!(Scan::parse("500123456789").is_err());
         // Our shape, but a digit misread.
         let mut damaged =
-            Scan { worker_id: 12, reason_id: 3, grade: Grade::Four }.payload().unwrap().into_bytes();
+            Scan { worker_id: 12, reason_id: 3, grade_id: 4 }.payload().unwrap().into_bytes();
         damaged[4] = if damaged[4] == b'9' { b'8' } else { damaged[4] + 1 };
         assert!(Scan::parse(std::str::from_utf8(&damaged).unwrap()).is_err());
         assert!(Scan::parse("").is_err());
         assert!(Scan::parse("abcdefghijkl").is_err());
-        // A grade that is neither 3 nor 4.
-        assert!(Scan::parse("300001000159").is_err());
     }
 
     /// A transcription slip in the pattern table would break real scanners

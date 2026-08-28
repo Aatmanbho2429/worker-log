@@ -2,7 +2,13 @@
 export const DATA_CHANGED = 'worker-log://data-changed';
 
 /** Mirrors `events::ChangeScope`. */
-export type ChangeScope = 'waste' | 'workers' | 'series' | 'reasons' | 'everything';
+export type ChangeScope =
+  | 'waste'
+  | 'workers'
+  | 'series'
+  | 'reasons'
+  | 'grades'
+  | 'everything';
 
 /** Mirrors `events::DataChanged`. */
 export interface DataChanged {

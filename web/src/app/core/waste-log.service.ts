@@ -4,6 +4,9 @@ import { Observable } from 'rxjs';
 import {
   BarcodeSheet,
   Dashboard,
+  Grade,
+  GradeDeleteImpact,
+  GradePayload,
   LogEntryPayload,
   RangeFilter,
   Reason,
@@ -75,6 +78,29 @@ export class WasteLogService {
 
   deleteReason(id: number): Promise<void> {
     return this.tauri.call<void>('delete_reason', { id });
+  }
+
+  // ------------------------------------------------------------- grades ---
+
+  listGrades(): Promise<Grade[]> {
+    return this.tauri.call<Grade[]>('list_grades');
+  }
+
+  createGrade(payload: GradePayload): Promise<Grade> {
+    return this.tauri.call<Grade>('create_grade', { payload });
+  }
+
+  updateGrade(id: number, payload: GradePayload): Promise<Grade> {
+    return this.tauri.call<Grade>('update_grade', { id, payload });
+  }
+
+  /** How many printed barcodes a delete would take off the sheet. */
+  gradeDeleteImpact(id: number): Promise<GradeDeleteImpact> {
+    return this.tauri.call<GradeDeleteImpact>('grade_delete_impact', { id });
+  }
+
+  deleteGrade(id: number): Promise<void> {
+    return this.tauri.call<void>('delete_grade', { id });
   }
 
   // ------------------------------------------------------------ workers ---

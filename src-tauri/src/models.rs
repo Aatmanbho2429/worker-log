@@ -127,6 +127,41 @@ impl WorkerUpsert {
     }
 }
 
+// ----------------------------------------------------------------- grade ---
+
+/// A waste grade — a column pair on the paper sheet, a button on the waste
+/// screen, and a barcode on the scanning sheet.
+///
+/// The register ships with grade 3 (salvage) and grade 4 (scrap); a factory
+/// that sorts its breakages differently adds its own from the Grades screen.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Grade {
+    pub id: i64,
+    pub name: String,
+    pub created_date: String,
+    pub modified_date: String,
+    /// Waste entries recorded against this grade, so a blocked delete can say
+    /// why. Not stored — counted per request, like a series' worker count.
+    pub entry_count: i64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GradeUpsert {
+    pub name: String,
+}
+
+impl GradeUpsert {
+    pub fn validated(self) -> Result<Self, String> {
+        let name = trimmed(&self.name);
+        if name.is_empty() {
+            return Err("Grade name is required.".to_string());
+        }
+        Ok(GradeUpsert { name })
+    }
+}
+
 // ------------------------------------------------------------ worker log ---
 
 #[derive(Debug, Clone, Serialize)]
@@ -135,76 +170,35 @@ pub struct WorkerLog {
     pub id: i64,
     pub worker_id: i64,
     pub worker_name: String,
-    pub grade3: i64,
-    pub grade4: i64,
     pub reason_id: i64,
     pub reason_name: String,
+    pub grade_id: i64,
+    pub grade_name: String,
     pub created_date: String,
     pub modified_date: String,
 }
 
-/// A grade is either 3 or 4 — the two waste grades tracked on the sheet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "i64", into = "i64")]
-pub enum Grade {
-    Three,
-    Four,
-}
-
-impl TryFrom<i64> for Grade {
-    type Error = String;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        match value {
-            3 => Ok(Grade::Three),
-            4 => Ok(Grade::Four),
-            other => Err(format!("Grade must be 3 or 4, got {other}.")),
-        }
-    }
-}
-
-impl From<Grade> for i64 {
-    fn from(grade: Grade) -> i64 {
-        match grade {
-            Grade::Three => 3,
-            Grade::Four => 4,
-        }
-    }
-}
-
-impl Grade {
-    /// The `(grade3, grade4)` pair a single tap writes into `worker_log`.
-    pub fn counters(self) -> (i64, i64) {
-        match self {
-            Grade::Three => (1, 0),
-            Grade::Four => (0, 1),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogEntryRequest {
     pub worker_id: i64,
     pub reason_id: i64,
-    pub grade: Grade,
+    pub grade_id: i64,
 }
 
 // ------------------------------------------------------------- dashboard ---
 
-#[derive(Debug, Clone, Copy, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GradeCounts {
-    pub grade3: i64,
-    pub grade4: i64,
-}
-
+/// One worker's count for one reason, one entry per grade.
+///
+/// `counts` runs parallel to [`Dashboard::grades`] rather than keying by id:
+/// every consumer — the grid, the month sheet, the PDF, the CSV — walks the
+/// grades in order to lay out its columns, so the aligned vector is what they
+/// all want and there is no lookup to get wrong.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardCell {
     pub reason_id: i64,
-    #[serde(flatten)]
-    pub counts: GradeCounts,
+    pub counts: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -212,7 +206,8 @@ pub struct DashboardCell {
 pub struct DashboardRow {
     pub worker: Worker,
     pub cells: Vec<DashboardCell>,
-    pub total: GradeCounts,
+    /// Row totals, one per grade.
+    pub total: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -220,11 +215,14 @@ pub struct DashboardRow {
 pub struct Dashboard {
     pub from: String,
     pub to: String,
+    /// The grade columns, in the order every table renders them.
+    pub grades: Vec<Grade>,
     pub reasons: Vec<Reason>,
     pub rows: Vec<DashboardRow>,
     /// Column totals, one per reason, in the same order as `reasons`.
     pub reason_totals: Vec<DashboardCell>,
-    pub grand_total: GradeCounts,
+    /// Sheet totals, one per grade.
+    pub grand_total: Vec<i64>,
 }
 
 // ----------------------------------------------------------------- query ---

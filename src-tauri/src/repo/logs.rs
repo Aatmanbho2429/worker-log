@@ -3,24 +3,23 @@ use std::collections::HashMap;
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::error::{AppError, AppResult};
-use crate::models::{
-    Dashboard, DashboardCell, DashboardRow, Grade, GradeCounts, LogEntryRequest, WorkerLog,
-};
-use crate::repo::{DateRange, reasons, workers};
+use crate::models::{Dashboard, DashboardCell, DashboardRow, LogEntryRequest, WorkerLog};
+use crate::repo::{DateRange, grades, reasons, workers};
 
 const SELECT_LOG: &str = "
     SELECT l.id,
            l.worker_id,
            w.first_name || ' ' || w.last_name AS worker_name,
-           l.grade3,
-           l.grade4,
            l.reason_id,
            r.name AS reason_name,
+           l.grade_id,
+           g.name AS grade_name,
            l.created_date,
            l.modified_date
       FROM worker_log l
       JOIN worker w ON w.id = l.worker_id
       JOIN reason r ON r.id = l.reason_id
+      JOIN grade  g ON g.id = l.grade_id
 ";
 
 fn map(row: &rusqlite::Row<'_>) -> rusqlite::Result<WorkerLog> {
@@ -28,10 +27,10 @@ fn map(row: &rusqlite::Row<'_>) -> rusqlite::Result<WorkerLog> {
         id: row.get("id")?,
         worker_id: row.get("worker_id")?,
         worker_name: row.get("worker_name")?,
-        grade3: row.get("grade3")?,
-        grade4: row.get("grade4")?,
         reason_id: row.get("reason_id")?,
         reason_name: row.get("reason_name")?,
+        grade_id: row.get("grade_id")?,
+        grade_name: row.get("grade_name")?,
         created_date: row.get("created_date")?,
         modified_date: row.get("modified_date")?,
     })
@@ -42,13 +41,12 @@ pub fn add_entry(connection: &Connection, input: &LogEntryRequest) -> AppResult<
     // Surfaces a clear message rather than a bare foreign key failure.
     workers::get(connection, input.worker_id)?;
     reasons::get(connection, input.reason_id)?;
-
-    let (grade3, grade4) = input.grade.counters();
+    grades::get(connection, input.grade_id)?;
 
     connection.execute(
-        "INSERT INTO worker_log (worker_id, grade3, grade4, reason_id, created_date, modified_date)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
-        params![input.worker_id, grade3, grade4, input.reason_id, crate::now()],
+        "INSERT INTO worker_log (worker_id, reason_id, grade_id, created_date, modified_date)
+         VALUES (?1, ?2, ?3, ?4, ?4)",
+        params![input.worker_id, input.reason_id, input.grade_id, crate::now()],
     )?;
 
     get(connection, connection.last_insert_rowid())
@@ -63,34 +61,32 @@ pub fn remove_latest_entry(
     range: &DateRange,
     input: &LogEntryRequest,
 ) -> AppResult<WorkerLog> {
-    let grade_column = match input.grade {
-        Grade::Three => "grade3",
-        Grade::Four => "grade4",
-    };
-
-    let sql = format!(
-        "SELECT id FROM worker_log
-          WHERE worker_id = ?1
-            AND reason_id = ?2
-            AND {grade_column} > 0
-            AND created_date >= ?3
-            AND created_date < ?4
-          ORDER BY created_date DESC, id DESC
-          LIMIT 1"
-    );
-
     let id: Option<i64> = connection
         .query_row(
-            &sql,
-            params![input.worker_id, input.reason_id, range.start_bound(), range.end_bound()],
+            "SELECT id FROM worker_log
+              WHERE worker_id = ?1
+                AND reason_id = ?2
+                AND grade_id = ?3
+                AND created_date >= ?4
+                AND created_date < ?5
+              ORDER BY created_date DESC, id DESC
+              LIMIT 1",
+            params![
+                input.worker_id,
+                input.reason_id,
+                input.grade_id,
+                range.start_bound(),
+                range.end_bound()
+            ],
             |row| row.get(0),
         )
         .optional()?;
 
     let Some(id) = id else {
+        let grade = grades::get(connection, input.grade_id)?;
         return Err(AppError::NotFound(format!(
-            "There is no grade {} entry left to remove for this worker and reason in {}.",
-            i64::from(input.grade),
+            "There is no {} entry left to remove for this worker and reason in {}.",
+            grade.name,
             range.label(),
         )));
     };
@@ -137,13 +133,20 @@ pub fn list(
 }
 
 /// Builds the whole grid the waste dashboard and the PDF both render: every
-/// worker crossed with every reason, plus row, column and grand totals.
+/// worker crossed with every reason, a count per grade, plus row, column and
+/// grand totals.
 pub fn dashboard(connection: &Connection, range: &DateRange) -> AppResult<Dashboard> {
+    let grades = grades::list(connection)?;
     let reasons = reasons::list(connection)?;
     let workers = workers::list(connection, range.series_id)?;
 
+    // Where each grade sits in every `counts` vector, worked out once.
+    let column: HashMap<i64, usize> =
+        grades.iter().enumerate().map(|(index, grade)| (grade.id, index)).collect();
+    let width = grades.len();
+
     let mut sql = String::from(
-        "SELECT l.worker_id, l.reason_id, SUM(l.grade3) AS g3, SUM(l.grade4) AS g4
+        "SELECT l.worker_id, l.reason_id, l.grade_id, COUNT(*) AS entries
            FROM worker_log l
            JOIN worker w ON w.id = l.worker_id
           WHERE l.created_date >= ?1 AND l.created_date < ?2",
@@ -155,49 +158,60 @@ pub fn dashboard(connection: &Connection, range: &DateRange) -> AppResult<Dashbo
         sql.push_str(" AND w.series_of_product_id = ?3");
         values.push(series_id.into());
     }
-    sql.push_str(" GROUP BY l.worker_id, l.reason_id");
+    sql.push_str(" GROUP BY l.worker_id, l.reason_id, l.grade_id");
 
     let mut statement = connection.prepare(&sql)?;
-    let mut totals: HashMap<(i64, i64), GradeCounts> = HashMap::new();
+    let mut counted: HashMap<(i64, i64), Vec<i64>> = HashMap::new();
     let mut cursor = statement.query(rusqlite::params_from_iter(values))?;
 
     while let Some(row) = cursor.next()? {
         let worker_id: i64 = row.get("worker_id")?;
         let reason_id: i64 = row.get("reason_id")?;
-        totals.insert(
-            (worker_id, reason_id),
-            GradeCounts { grade3: row.get("g3")?, grade4: row.get("g4")? },
-        );
+        let grade_id: i64 = row.get("grade_id")?;
+        let entries: i64 = row.get("entries")?;
+
+        // A grade with no column has nowhere to land. `grade_id` is a
+        // restricting foreign key so this cannot happen through the app, but
+        // folding the count into a neighbouring grade would be worse than
+        // leaving it out if it ever did.
+        if let Some(&index) = column.get(&grade_id) {
+            counted.entry((worker_id, reason_id)).or_insert_with(|| vec![0; width])[index] +=
+                entries;
+        }
     }
 
     let mut reason_totals: Vec<DashboardCell> = reasons
         .iter()
-        .map(|reason| DashboardCell { reason_id: reason.id, counts: GradeCounts::default() })
+        .map(|reason| DashboardCell { reason_id: reason.id, counts: vec![0; width] })
         .collect();
-    let mut grand_total = GradeCounts::default();
+    let mut grand_total = vec![0_i64; width];
 
     let rows = workers
         .into_iter()
         .map(|worker| {
-            let mut row_total = GradeCounts::default();
+            let mut row_total = vec![0_i64; width];
 
             let cells = reasons
                 .iter()
                 .enumerate()
                 .map(|(index, reason)| {
-                    let counts = totals.get(&(worker.id, reason.id)).copied().unwrap_or_default();
+                    let counts = counted
+                        .get(&(worker.id, reason.id))
+                        .cloned()
+                        .unwrap_or_else(|| vec![0; width]);
 
-                    row_total.grade3 += counts.grade3;
-                    row_total.grade4 += counts.grade4;
-                    reason_totals[index].counts.grade3 += counts.grade3;
-                    reason_totals[index].counts.grade4 += counts.grade4;
+                    for (slot, count) in counts.iter().enumerate() {
+                        row_total[slot] += count;
+                        reason_totals[index].counts[slot] += count;
+                    }
 
                     DashboardCell { reason_id: reason.id, counts }
                 })
                 .collect();
 
-            grand_total.grade3 += row_total.grade3;
-            grand_total.grade4 += row_total.grade4;
+            for (slot, count) in row_total.iter().enumerate() {
+                grand_total[slot] += count;
+            }
 
             DashboardRow { worker, cells, total: row_total }
         })
@@ -206,6 +220,7 @@ pub fn dashboard(connection: &Connection, range: &DateRange) -> AppResult<Dashbo
     Ok(Dashboard {
         from: range.from.to_string(),
         to: range.to.to_string(),
+        grades,
         reasons,
         rows,
         reason_totals,

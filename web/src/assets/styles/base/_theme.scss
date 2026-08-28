@@ -1,0 +1,81 @@
+@use 'tokens' as *;
+
+// ================================================================ the theme ==
+//
+// Everything the app paints with is a CSS custom property, so **re-theming the
+// whole application means editing this one file**. Nothing else in the code
+// base names a surface, a text colour or a border directly.
+//
+// `:root` is the theme that ships — light. Adding `class="app-dark"` to
+// `<html>` swaps in the dark one below, and that same class drives PrimeNG's
+// own dark scheme (`darkModeSelector` in `app.config.ts`), so the components
+// and the page chrome always agree.
+//
+// To build a third theme, copy one of these blocks and change the values.
+//
+// This file emits CSS, so it is pulled in by `main.scss` and by nothing else —
+// `_tokens.scss` next door holds only Sass variables, which is what lets every
+// component stylesheet `@use` it without stamping out another copy of the
+// theme.
+
+:root {
+  // Surfaces, from the page behind everything up to the raised cards.
+  --surface-page: #{$ink-100};
+  --surface-sunken: #{$ink-200};
+  --surface-card: #{$ink-0};
+  --surface-raised: #{$ink-0};
+  --surface-hover: #{$ink-100};
+  --surface-header: #{$ink-0};
+
+  --border-subtle: #{$ink-200};
+  --border-default: #{$ink-300};
+  --border-strong: #{$ink-400};
+
+  --text-primary: #{$ink-900};
+  --text-secondary: #{$ink-700};
+  --text-muted: #{$ink-500};
+  --text-faint: #{$ink-450};
+
+  --shadow-card: 0 0.1rem 0.3rem rgba(15, 23, 42, 0.08);
+  --shadow-raised: 0 0.8rem 2.4rem rgba(15, 23, 42, 0.14);
+
+  // The wash over a hovered row, and the well a count or badge sits in. Both
+  // are translucent so they read the same over a card or over the grid.
+  --wash-hover: rgba(15, 23, 42, 0.04);
+  --wash-inset: rgba(15, 23, 42, 0.06);
+
+  // Header bands. These keep the brand navy in both themes: it is what makes
+  // the sheet read as the register it replaces rather than as a spreadsheet.
+  // Text on a band is therefore always the light one.
+  --band: #{$navy-800};
+  --band-strong: #{$navy-900};
+  --band-text: #{$ink-0};
+}
+
+.app-dark {
+  --surface-page: #05090f;
+  --surface-sunken: #070d17;
+  --surface-card: #0b1524;
+  --surface-raised: #10203a;
+  --surface-hover: #16294a;
+  --surface-header: #0a1728;
+
+  --border-subtle: #14243c;
+  --border-default: #1b2e4a;
+  --border-strong: #26426b;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3cede;
+  --text-muted: #8296ae;
+  --text-faint: #5b6d84;
+
+  --shadow-card: 0 0.2rem 1.2rem rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.55);
+
+  --wash-hover: rgba(255, 255, 255, 0.03);
+  --wash-inset: rgba(0, 0, 0, 0.32);
+
+  --band: #{$navy-800};
+  --band-strong: #{$navy-900};
+  --band-text: #{$ink-0};
+}

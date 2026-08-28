@@ -5,14 +5,24 @@ import { currentMonthRange, formatRange } from '../../core/date-range';
 import { ExportFormat, ExportService } from '../../core/export.service';
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
-import { Dashboard, RangeFilter, SeriesOfProduct, WorkerLog, workerFullName } from '../../models';
+import { gradeToneClass } from '../../core/grade-tone';
+import {
+  Dashboard,
+  DashboardRow,
+  Grade,
+  RangeFilter,
+  SeriesOfProduct,
+  WorkerLog,
+  sumCounts,
+  workerFullName,
+} from '../../models';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { RangeFilterBar } from '../../shared/range-filter/range-filter';
 
 interface ReasonBreakdown {
   name: string;
-  grade3: number;
-  grade4: number;
+  /** One count per grade, in the same order as `Reports.grades`. */
+  counts: number[];
   total: number;
   /** Share of all waste in the period, for the bar behind the row. */
   share: number;
@@ -43,18 +53,22 @@ export class Reports {
 
   protected readonly rangeLabel = computed(() => formatRange(this.filter()));
 
-  protected readonly grandTotal = computed(
-    () => this.dashboard()?.grandTotal ?? { grade3: 0, grade4: 0 },
+  /** The grades the register tracks, which drive every split on this screen. */
+  protected readonly grades = computed<Grade[]>(() => this.dashboard()?.grades ?? []);
+
+  protected readonly grandTotal = computed<number[]>(
+    () => this.dashboard()?.grandTotal ?? this.grades().map(() => 0),
   );
 
-  protected readonly totalPieces = computed(
-    () => this.grandTotal().grade3 + this.grandTotal().grade4,
-  );
+  protected readonly totalPieces = computed(() => sumCounts(this.grandTotal()));
+
+  /** The period's total for the grade at `index`. */
+  protected gradeTotal(index: number): number {
+    return this.grandTotal()[index] ?? 0;
+  }
 
   protected readonly workersWithWaste = computed(
-    () =>
-      (this.dashboard()?.rows ?? []).filter((row) => row.total.grade3 + row.total.grade4 > 0)
-        .length,
+    () => (this.dashboard()?.rows ?? []).filter((row) => sumCounts(row.total) > 0).length,
   );
 
   /** Reasons ranked by how much they cost, worst first. */
@@ -68,12 +82,11 @@ export class Reports {
 
     return dashboard.reasons
       .map((reason, index) => {
-        const cell = dashboard.reasonTotals[index] ?? { grade3: 0, grade4: 0 };
-        const total = cell.grade3 + cell.grade4;
+        const counts = dashboard.reasonTotals[index]?.counts ?? dashboard.grades.map(() => 0);
+        const total = sumCounts(counts);
         return {
           name: reason.name,
-          grade3: cell.grade3,
-          grade4: cell.grade4,
+          counts,
           total,
           share: overall ? Math.round((total / overall) * 100) : 0,
         };
@@ -83,8 +96,8 @@ export class Reports {
 
   protected readonly topWorkers = computed(() =>
     [...(this.dashboard()?.rows ?? [])]
-      .filter((row) => row.total.grade3 + row.total.grade4 > 0)
-      .sort((a, b) => b.total.grade3 + b.total.grade4 - (a.total.grade3 + a.total.grade4))
+      .filter((row) => sumCounts(row.total) > 0)
+      .sort((a, b) => sumCounts(b.total) - sumCounts(a.total))
       .slice(0, 8),
   );
 
@@ -117,11 +130,26 @@ export class Reports {
     }
   }
 
-  protected rowTotal(row: { total: { grade3: number; grade4: number } }): number {
-    return row.total.grade3 + row.total.grade4;
+  protected rowTotal(row: DashboardRow): number {
+    return sumCounts(row.total);
+  }
+
+  /**
+   * A grade's position in the register, which is what its colour is keyed to.
+   *
+   * The entry history lists individual entries rather than the grid, so it has
+   * an id to place rather than a column index. A grade deleted since the entry
+   * was logged is not in the list any more, and falls back to the first tone.
+   */
+  protected gradeIndex(gradeId: number): number {
+    return Math.max(
+      0,
+      this.grades().findIndex((grade) => grade.id === gradeId),
+    );
   }
 
   protected readonly workerFullName = workerFullName;
+  protected readonly gradeToneClass = gradeToneClass;
 
   private async loadSeries(): Promise<void> {
     try {

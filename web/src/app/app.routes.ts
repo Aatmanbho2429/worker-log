@@ -48,6 +48,11 @@ export const routes: Routes = [
         title: 'Reasons — Ceramic Waste Log',
         loadComponent: () => import('./views/reasons/reasons').then((m) => m.Reasons),
       },
+      {
+        path: 'grades',
+        title: 'Grades — Ceramic Waste Log',
+        loadComponent: () => import('./views/grades/grades').then((m) => m.Grades),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

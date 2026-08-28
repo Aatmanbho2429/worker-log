@@ -4,63 +4,74 @@ import { FormsModule } from '@angular/forms';
 import { save } from '@tauri-apps/plugin-dialog';
 import { openPath } from '@tauri-apps/plugin-opener';
 
+import { gradeToneClass } from '../../core/grade-tone';
 import { NotifyService } from '../../core/notify.service';
 import { ScanService } from '../../core/scan.service';
 import { WasteLogService } from '../../core/waste-log.service';
-import { BarcodeSheet, BarcodeSymbol, Grade, SeriesOfProduct } from '../../models';
+import { BarcodeSheet, BarcodeSymbol, Grade, SeriesOfProduct, WorkerLog } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
+import { ScanField } from '../../shared/scan-field/scan-field';
 
 /** An entry the reader just recorded, kept briefly so the operator sees it. */
 interface Recorded {
   worker: string;
   reason: string;
-  grade: Grade;
+  grade: string;
+  tone: string;
   at: string;
 }
 
 /**
- * One barcode, with its bars already reduced to a single SVG path.
+ * One box of the grid: the barcode standing in for one worker's grade button
+ * under one reason.
  *
- * The whole sheet is 480 barcodes. Drawing each bar as its own `<rect>` would
- * put some fifteen thousand elements on the page and rebuild them all on every
- * change detection pass; one path per barcode is two orders of magnitude less
- * DOM and is computed once, when the sheet loads.
+ * The bars are reduced to a single SVG path here rather than drawn as one
+ * `<rect>` each. A full sheet is hundreds of barcodes; one path apiece is two
+ * orders of magnitude less DOM, and it is computed once when the sheet loads.
  */
-interface Tile {
-  code: string;
-  grade: Grade;
-  path: string;
+interface Cell {
+  reasonId: number;
+  gradeId: number;
+  gradeName: string;
+  /** The class carrying this grade's colour variables. */
+  tone: string;
+  /** Both absent when no barcode exists for this button. */
+  code: string | null;
+  path: string | null;
 }
 
-interface RowView {
+/** One worker's line across the whole sheet. */
+interface Row {
   workerId: number;
   name: string;
   seriesName: string;
-  tiles: Tile[];
+  /** Reason-major, so `cells[i]` lines up with `columns()[i]`. */
+  cells: Cell[];
 }
 
-interface ReasonView {
+/** A reason's heading, spanning one column per grade. */
+interface Group {
   reasonId: number;
   reasonName: string;
-  rows: RowView[];
 }
 
 /**
- * The scanning station: the waste screen with barcodes where the buttons are.
+ * The scanning station: the paper reject sheet with barcodes in the boxes.
  *
- * Each barcode *is* a grade button — it carries the worker, the reason and the
- * grade — so one scan records one entry, exactly as one tap does. The buttons
- * on the waste screen are unchanged; this is the same action taken with a
- * reader instead of a finger.
+ * The register it replaces is one wide grid — workers down the left, a pair of
+ * columns per reason across the top, a box where they meet — and this is that
+ * grid with a barcode printed in every box. Scanning one records exactly what
+ * tapping the matching button on the waste screen records, so a reader stands
+ * in for a finger without the operator having to hold anything in their head.
  *
- * Every reason is on this one page. There is nothing to pick and nothing to
- * navigate: the operator finds the barcode they want and scans it, which is
- * what they would be doing with a printed sheet on the wall anyway.
+ * Nothing is hidden and nothing has to be picked first: a worker's whole line
+ * is in front of the operator, the way it is on paper. The number in each box
+ * is what the reader has put through it this session.
  */
 @Component({
   selector: 'app-barcodes',
-  imports: [PrimengComponentsModule, FormsModule],
+  imports: [PrimengComponentsModule, FormsModule, ScanField],
   templateUrl: './barcodes.html',
   styleUrl: './barcodes.scss',
 })
@@ -84,11 +95,7 @@ export class Barcodes {
 
   /**
    * Scans counted since this screen was opened, keyed
-   * `workerId:reasonId:grade`.
-   *
-   * Keyed by reason as well as worker because every reason lists every worker:
-   * a scan against Karigar must not light up the same worker's badge under
-   * Handling.
+   * `workerId:reasonId:gradeId` — the box they landed in.
    *
    * Deliberately a session tally rather than the register's totals: the
    * operator wants to see that the beep landed, and a running count they can
@@ -97,45 +104,88 @@ export class Barcodes {
    */
   private readonly tally = signal<ReadonlyMap<string, number>>(new Map());
 
-  /** The whole sheet, with every barcode's geometry worked out once. */
-  private readonly view = computed<ReasonView[]>(() =>
+  protected readonly grades = computed<Grade[]>(() => this.sheet()?.grades ?? []);
+
+  /** The reason headings, each spanning `grades().length` columns. */
+  protected readonly groups = computed<Group[]>(() =>
     (this.sheet()?.reasons ?? []).map((reason) => ({
       reasonId: reason.reasonId,
       reasonName: reason.reasonName,
-      rows: reason.rows.map((row) => ({
-        workerId: row.workerId,
-        name: row.name,
-        seriesName: row.seriesName,
-        tiles: [
-          { code: row.grade3.code, grade: 3 as Grade, path: barsPath(row.grade3) },
-          { code: row.grade4.code, grade: 4 as Grade, path: barsPath(row.grade4) },
-        ],
-      })),
     })),
   );
 
+  /** The grade sub-headings, reason-major — one per body column. */
+  protected readonly columns = computed(() => {
+    const grades = this.grades();
+    return this.groups().flatMap((group) =>
+      grades.map((grade, index) => ({
+        reasonId: group.reasonId,
+        gradeId: grade.id,
+        gradeName: grade.name,
+        tone: gradeToneClass(index),
+      })),
+    );
+  });
+
   /**
-   * The sheet with the worker filter applied. A reason whose workers are all
-   * filtered out drops away, so a search never leaves a run of empty headings
-   * between the rows that matched.
+   * The whole grid, pivoted from the reason-grouped sheet the backend sends
+   * into the worker-per-line shape the paper register uses.
    */
-  protected readonly reasons = computed<ReasonView[]>(() => {
+  private readonly matrix = computed<Row[]>(() => {
+    const sheet = this.sheet();
+    if (!sheet) {
+      return [];
+    }
+
+    const tones = new Map(sheet.grades.map((grade, index) => [grade.id, gradeToneClass(index)]));
+
+    // Every reason lists every worker, so one lookup table per reason beats
+    // searching its rows again for each worker.
+    const byReason = sheet.reasons.map((reason) => ({
+      reasonId: reason.reasonId,
+      workers: new Map(reason.rows.map((row) => [row.workerId, row])),
+    }));
+
+    // The first reason fixes the running order; the rest hold the same set.
+    return (sheet.reasons[0]?.rows ?? []).map((worker) => ({
+      workerId: worker.workerId,
+      name: worker.name,
+      seriesName: worker.seriesName,
+      cells: byReason.flatMap((reason) => {
+        const tiles = new Map(
+          (reason.workers.get(worker.workerId)?.tiles ?? []).map((tile) => [tile.gradeId, tile]),
+        );
+
+        return sheet.grades.map((grade) => {
+          const tile = tiles.get(grade.id);
+          return {
+            reasonId: reason.reasonId,
+            gradeId: grade.id,
+            gradeName: grade.name,
+            tone: tones.get(grade.id) ?? gradeToneClass(0),
+            // A button with no barcode row cannot be scanned, so its box is
+            // left empty rather than filled with bars that resolve to nothing.
+            code: tile?.symbol.code ?? null,
+            path: tile ? barsPath(tile.symbol) : null,
+          };
+        });
+      }),
+    }));
+  });
+
+  /** The grid with the worker filter applied. */
+  protected readonly rows = computed<Row[]>(() => {
     const term = this.search().trim().toLowerCase();
     if (!term) {
-      return this.view();
+      return this.matrix();
     }
-    return this.view()
-      .map((reason) => ({
-        ...reason,
-        rows: reason.rows.filter((row) =>
-          `${row.name} ${row.seriesName}`.toLowerCase().includes(term),
-        ),
-      }))
-      .filter((reason) => reason.rows.length > 0);
+    return this.matrix().filter((row) =>
+      `${row.name} ${row.seriesName}`.toLowerCase().includes(term),
+    );
   });
 
   protected readonly barcodeCount = computed(() =>
-    this.reasons().reduce((total, reason) => total + reason.rows.length * 2, 0),
+    this.rows().reduce((total, row) => total + row.cells.filter((cell) => cell.code).length, 0),
   );
 
   protected readonly scannedTotal = computed(() =>
@@ -150,10 +200,11 @@ export class Barcodes {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((code) => void this.onScan(code));
 
-    // A worker added or a reason renamed changes what belongs on the sheet.
-    // Waste taps do not: they change counts, and the sheet shows no totals.
+    // A worker added, a reason renamed or a grade created changes what belongs
+    // on the sheet. Waste taps do not: they change counts, and the sheet shows
+    // no totals.
     this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
-      if (affects(change, 'workers', 'reasons', 'series')) {
+      if (affects(change, 'workers', 'reasons', 'series', 'grades')) {
         void this.load();
       }
     });
@@ -180,51 +231,75 @@ export class Barcodes {
     void this.load();
   }
 
-  /** Scrolls a reason into view. Nothing is hidden; this only saves scrolling. */
+  /**
+   * Scrolls a reason's columns into view. Nothing is hidden; the grid is wider
+   * than the screen, and this saves dragging across to reach a reason.
+   */
   protected jumpTo(reasonId: number): void {
     document
       .getElementById(`reason-${reasonId}`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      ?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
   }
 
-  /** One scan, one entry. The barcode names its own worker, reason and grade. */
+  /**
+   * A scan made while nothing is focused. The scan box handles the rest, so
+   * this is only the fallback for a reader fired at the grid itself.
+   */
   private async onScan(code: string): Promise<void> {
     try {
-      const receipt = await this.api.recordScan(code);
-
-      this.problem.set(null);
-      this.bump(receipt.entry.workerId, receipt.entry.reasonId, receipt.grade);
-      this.recent.update((entries) =>
-        [
-          {
-            worker: receipt.workerName,
-            reason: receipt.reasonName,
-            grade: receipt.grade,
-            at: new Date().toLocaleTimeString('en-GB', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-          },
-          ...entries,
-        ].slice(0, 8),
-      );
+      this.onRecorded(await this.api.recordScan(code).then(({ entry }) => entry));
     } catch (error) {
       this.problem.set(messageOf(error, 'That barcode could not be recorded.'));
     }
   }
 
-  private bump(workerId: number, reasonId: number, grade: Grade): void {
+  /**
+   * One scan, one entry, however it arrived — through the box or off the page.
+   * The box reports nothing itself on this screen; the panel above the sheet
+   * already says what landed, and saying it twice would only split attention.
+   */
+  protected onRecorded(entry: WorkerLog): void {
+    this.problem.set(null);
+    this.bump(entry.workerId, entry.reasonId, entry.gradeId);
+    this.recent.update((entries) =>
+      [
+        {
+          worker: entry.workerName,
+          reason: entry.reasonName,
+          grade: entry.gradeName,
+          tone: this.toneFor(entry.gradeId),
+          at: new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        },
+        ...entries,
+      ].slice(0, 8),
+    );
+  }
+
+  protected onFailed(message: string): void {
+    this.problem.set(message);
+  }
+
+  /** A grade deleted since the scan has no column left, and falls back. */
+  private toneFor(gradeId: number): string {
+    const index = this.grades().findIndex((grade) => grade.id === gradeId);
+    return gradeToneClass(Math.max(0, index));
+  }
+
+  private bump(workerId: number, reasonId: number, gradeId: number): void {
     this.tally.update((counts) => {
       const next = new Map(counts);
-      const key = tallyKey(workerId, reasonId, grade);
+      const key = tallyKey(workerId, reasonId, gradeId);
       next.set(key, (next.get(key) ?? 0) + 1);
       return next;
     });
   }
 
-  protected scanned(workerId: number, reasonId: number, grade: Grade): number {
-    return this.tally().get(tallyKey(workerId, reasonId, grade)) ?? 0;
+  protected scanned(workerId: number, cell: Cell): number {
+    return this.tally().get(tallyKey(workerId, cell.reasonId, cell.gradeId)) ?? 0;
   }
 
   protected clearProblem(): void {
@@ -275,15 +350,15 @@ export class Barcodes {
   protected readonly barcodeHeight = BARCODE_HEIGHT;
 }
 
-function tallyKey(workerId: number, reasonId: number, grade: Grade): string {
-  return `${workerId}:${reasonId}:${grade}`;
+function tallyKey(workerId: number, reasonId: number, gradeId: number): string {
+  return `${workerId}:${reasonId}:${gradeId}`;
 }
 
 /** Matches the quiet zone the encoder builds into `moduleCount`. */
 const QUIET_ZONE = 10;
 
-const BARCODE_WIDTH = 138;
-const BARCODE_HEIGHT = 28;
+const BARCODE_WIDTH = 128;
+const BARCODE_HEIGHT = 26;
 
 /**
  * The bars of one symbol as a single SVG path, scaled so the symbol and both

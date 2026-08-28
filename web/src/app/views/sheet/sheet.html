@@ -33,6 +33,12 @@
     />
   </div>
 
+  <!-- The sheet is a read-only mirror and reloads on any change the backend
+       announces, so a scan needs no handling here beyond taking the code. -->
+  <div class="card card--pad">
+    <app-scan-field />
+  </div>
+
   <div class="card">
     @if (loading()) {
       <div class="skeletons">
@@ -63,17 +69,29 @@
               <th class="sheet__worker" rowspan="2">Worker</th>
               <th class="sheet__series" rowspan="2">Item / Series</th>
               @for (reason of reasons(); track reason.id) {
-                <th class="sheet__group" colspan="2">{{ reason.name }}</th>
+                <th class="sheet__group" [attr.colspan]="grades().length">{{ reason.name }}</th>
               }
-              <th class="sheet__group sheet__group--total" colspan="2">Total</th>
+              <th class="sheet__group sheet__group--total" [attr.colspan]="grades().length">
+                Total
+              </th>
             </tr>
             <tr>
               @for (reason of reasons(); track reason.id) {
-                <th class="sheet__sub">3rd</th>
-                <th class="sheet__sub sheet__sub--edge">4th</th>
+                @for (grade of grades(); track grade.id; let g = $index; let last = $last) {
+                  <th class="sheet__sub" [class.sheet__sub--edge]="last" [title]="grade.name">
+                    {{ shortGrade(grade, g) }}
+                  </th>
+                }
               }
-              <th class="sheet__sub sheet__sub--total">3rd</th>
-              <th class="sheet__sub sheet__sub--total sheet__sub--edge">4th</th>
+              @for (grade of grades(); track grade.id; let g = $index; let last = $last) {
+                <th
+                  class="sheet__sub sheet__sub--total"
+                  [class.sheet__sub--edge]="last"
+                  [title]="grade.name"
+                >
+                  {{ shortGrade(grade, g) }}
+                </th>
+              }
             </tr>
           </thead>
 
@@ -84,13 +102,20 @@
                 <td class="sheet__worker">{{ workerFullName(row.worker) }}</td>
                 <td class="sheet__series">{{ row.worker.seriesName }}</td>
                 @for (cell of row.cells; track cell.reasonId) {
-                  <td class="sheet__box tabular">{{ box(cell.grade3) }}</td>
-                  <td class="sheet__box sheet__box--edge tabular">{{ box(cell.grade4) }}</td>
+                  @for (count of cell.counts; track $index; let last = $last) {
+                    <td class="sheet__box tabular" [class.sheet__box--edge]="last">
+                      {{ box(count) }}
+                    </td>
+                  }
                 }
-                <td class="sheet__box sheet__box--total tabular">{{ box(row.total.grade3) }}</td>
-                <td class="sheet__box sheet__box--total sheet__box--edge tabular">
-                  {{ box(row.total.grade4) }}
-                </td>
+                @for (count of row.total; track $index; let last = $last) {
+                  <td
+                    class="sheet__box sheet__box--total tabular"
+                    [class.sheet__box--edge]="last"
+                  >
+                    {{ box(count) }}
+                  </td>
+                }
               </tr>
             }
           </tbody>
@@ -101,15 +126,17 @@
               <td class="sheet__worker">Total</td>
               <td class="sheet__series"></td>
               @for (total of dashboard()?.reasonTotals ?? []; track total.reasonId) {
-                <td class="sheet__box tabular">{{ box(total.grade3) }}</td>
-                <td class="sheet__box sheet__box--edge tabular">{{ box(total.grade4) }}</td>
+                @for (count of total.counts; track $index; let last = $last) {
+                  <td class="sheet__box tabular" [class.sheet__box--edge]="last">
+                    {{ box(count) }}
+                  </td>
+                }
               }
-              <td class="sheet__box sheet__box--total tabular">
-                {{ box(dashboard()!.grandTotal.grade3) }}
-              </td>
-              <td class="sheet__box sheet__box--total sheet__box--edge tabular">
-                {{ box(dashboard()!.grandTotal.grade4) }}
-              </td>
+              @for (count of dashboard()?.grandTotal ?? []; track $index; let last = $last) {
+                <td class="sheet__box sheet__box--total tabular" [class.sheet__box--edge]="last">
+                  {{ box(count) }}
+                </td>
+              }
             </tr>
           </tfoot>
         </table>

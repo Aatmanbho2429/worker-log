@@ -1,10 +1,12 @@
 //! Renders the waste dashboard as the monthly sheet it replaces.
 //!
 //! The PDF keeps the shape of the paper register: workers run down the page,
-//! every reason owns a pair of columns headed `3rd` and `4th`, and each box
-//! holds the count for that worker/reason/grade.
+//! every reason owns a group of columns — one per grade — and each box holds
+//! the count for that worker/reason/grade. The register ships with two grades,
+//! which is the `3rd` / `4th` pair the paper sheet was ruled for; a third
+//! narrows the boxes rather than changing the shape.
 
-use crate::models::{Dashboard, GradeCounts};
+use crate::models::Dashboard;
 use crate::pdf::{BLACK, Document, Font, Rgb, WHITE, text_width};
 use crate::repo::DateRange;
 
@@ -32,24 +34,27 @@ const W_NAME: f64 = 122.0;
 const W_SERIES: f64 = 80.0;
 
 /// Column geometry for one rendering, chosen so the numeric boxes stay wide
-/// enough to be legible however many reasons the factory tracks.
+/// enough to be legible however many reasons and grades the factory tracks.
 struct Layout {
     page_w: f64,
     page_h: f64,
-    /// Reason columns plus the trailing TOTAL column.
-    pairs: usize,
+    /// Reason groups plus the trailing TOTAL group.
+    groups: usize,
+    /// Grade boxes inside one group.
+    grades: usize,
     box_w: f64,
     rows_per_page: usize,
 }
 
 impl Layout {
-    fn plan(reason_count: usize) -> Self {
-        let pairs = reason_count + 1;
+    fn plan(reason_count: usize, grade_count: usize) -> Self {
+        let groups = reason_count + 1;
+        let grades = grade_count.max(1);
 
         // Prefer A4; step up to A3 only when A4 would squeeze the boxes.
         let (page_w, page_h) = {
             let (w, h) = A4_LANDSCAPE;
-            if box_width(w, pairs) >= 21.0 { (w, h) } else { A3_LANDSCAPE }
+            if box_width(w, groups, grades) >= 21.0 { (w, h) } else { A3_LANDSCAPE }
         };
 
         let table_top = MARGIN_TOP + TITLE_BLOCK;
@@ -59,10 +64,22 @@ impl Layout {
         Layout {
             page_w,
             page_h,
-            pairs,
-            box_w: box_width(page_w, pairs).max(14.0),
+            groups,
+            grades,
+            // Exactly the numeric area divided by the boxes in it. There is no
+            // minimum width to hold the box open to: `box_width` already spends
+            // all the room there is, so a floor could only ever widen the grid
+            // past the paper's edge — and a table running off the page loses
+            // its last reasons outright, which is worse than a tight box. The
+            // A3 step-up above is what keeps the common cases comfortable.
+            box_w: box_width(page_w, groups, grades),
             rows_per_page: ((body_height / DATA_ROW).floor() as usize).max(1),
         }
+    }
+
+    /// Width of one reason's block of grade boxes.
+    fn group_width(&self) -> f64 {
+        self.box_w * self.grades as f64
     }
 
     fn table_left(&self) -> f64 {
@@ -77,13 +94,13 @@ impl Layout {
         MARGIN_X + W_SR + W_NAME + W_SERIES
     }
 
-    /// Left edge of the column pair at `index` (reasons first, TOTAL last).
-    fn pair_left(&self, index: usize) -> f64 {
-        self.grid_left() + (index as f64) * self.box_w * 2.0
+    /// Left edge of the column group at `index` (reasons first, TOTAL last).
+    fn group_left(&self, index: usize) -> f64 {
+        self.grid_left() + (index as f64) * self.group_width()
     }
 
     fn table_right(&self) -> f64 {
-        self.pair_left(self.pairs)
+        self.group_left(self.groups)
     }
 
     fn table_width(&self) -> f64 {
@@ -91,14 +108,47 @@ impl Layout {
     }
 }
 
-fn box_width(page_w: f64, pairs: usize) -> f64 {
+fn box_width(page_w: f64, groups: usize, grades: usize) -> f64 {
     let numeric_space = page_w - 2.0 * MARGIN_X - W_SR - W_NAME - W_SERIES;
-    numeric_space / (pairs as f64 * 2.0)
+    numeric_space / (groups * grades) as f64
 }
 
 /// A count of zero is left blank, the way an unused box on the paper sheet is.
 fn cell_text(value: i64) -> String {
     if value == 0 { String::new() } else { value.to_string() }
+}
+
+/// The narrow sub-heading over one grade's boxes, `position` counting from 1.
+///
+/// A grade box is around twenty points wide, which "Grade 3" does not fit and
+/// would be clipped to something unreadable. The paper register rules those
+/// columns `3rd` and `4th`, so a name ending in a number is written the same
+/// way. A name that does not is abbreviated, and one the base-14 font cannot
+/// print — a Gujarati name, say, which WinAnsi would render as `?` — falls back
+/// to its position in the row.
+fn sub_heading(name: &str, position: usize) -> String {
+    let trailing: String = {
+        let digits: Vec<char> = name.chars().rev().take_while(char::is_ascii_digit).collect();
+        digits.into_iter().rev().collect()
+    };
+
+    if let Ok(number) = trailing.parse::<u32>() {
+        let suffix = match (number % 100, number % 10) {
+            (11..=13, _) => "th",
+            (_, 1) => "st",
+            (_, 2) => "nd",
+            (_, 3) => "rd",
+            _ => "th",
+        };
+        return format!("{number}{suffix}");
+    }
+
+    let trimmed = name.trim();
+    if trimmed.is_ascii() && !trimmed.is_empty() {
+        trimmed.chars().take(4).collect::<String>().to_uppercase()
+    } else {
+        format!("G{position}")
+    }
 }
 
 pub struct ReportContext<'a> {
@@ -110,7 +160,7 @@ pub struct ReportContext<'a> {
 
 pub fn to_pdf(context: &ReportContext<'_>) -> Vec<u8> {
     let dashboard = context.dashboard;
-    let layout = Layout::plan(dashboard.reasons.len());
+    let layout = Layout::plan(dashboard.reasons.len(), dashboard.grades.len());
 
     let chunks: Vec<&[crate::models::DashboardRow]> = if dashboard.rows.is_empty() {
         vec![&[]]
@@ -140,8 +190,8 @@ pub fn to_pdf(context: &ReportContext<'_>) -> Vec<u8> {
                 shaded,
                 &format!("{} {}", row.worker.first_name, row.worker.last_name),
                 &row.worker.series_name,
-                row.cells.iter().map(|cell| cell.counts),
-                row.total,
+                row.cells.iter().map(|cell| cell.counts.as_slice()),
+                &row.total,
                 Font::Regular,
             );
             y += DATA_ROW;
@@ -156,8 +206,8 @@ pub fn to_pdf(context: &ReportContext<'_>) -> Vec<u8> {
                 false,
                 "TOTAL",
                 "",
-                dashboard.reason_totals.iter().map(|cell| cell.counts),
-                dashboard.grand_total,
+                dashboard.reason_totals.iter().map(|cell| cell.counts.as_slice()),
+                &dashboard.grand_total,
                 Font::Bold,
             );
             y += TOTAL_ROW;
@@ -225,21 +275,31 @@ fn draw_header(canvas: &mut crate::pdf::Canvas, dashboard: &Dashboard, layout: &
     let labels: Vec<&str> =
         dashboard.reasons.iter().map(|reason| reason.name.as_str()).chain(["TOTAL"]).collect();
 
+    // A grade's own name is written for the screen — "Grade 3" — and would eat
+    // a narrow box twice over, so the sub-heading uses the ordinal the paper
+    // sheet is ruled with wherever the name ends in a number.
+    let grade_labels: Vec<String> = dashboard
+        .grades
+        .iter()
+        .enumerate()
+        .map(|(index, grade)| sub_heading(&grade.name, index + 1))
+        .collect();
+
     for (index, label) in labels.iter().enumerate() {
-        let left = layout.pair_left(index);
-        let pair_width = layout.box_w * 2.0;
+        let left = layout.group_left(index);
+        let group_width = layout.group_width();
 
         canvas.text_centered(
-            left + pair_width / 2.0,
+            left + group_width / 2.0,
             top + 16.0,
-            pair_width - 3.0,
+            group_width - 3.0,
             7.5,
             Font::Bold,
             WHITE,
             &label.to_uppercase(),
         );
 
-        for (grade_index, grade) in ["3rd", "4th"].iter().enumerate() {
+        for (grade_index, grade) in grade_labels.iter().enumerate() {
             canvas.text_centered(
                 left + layout.box_w * (grade_index as f64 + 0.5),
                 top + GROUP_ROW + 9.5,
@@ -252,7 +312,7 @@ fn draw_header(canvas: &mut crate::pdf::Canvas, dashboard: &Dashboard, layout: &
         }
     }
 
-    // Separator between the group names and their 3rd/4th sub-headings.
+    // Separator between the group names and their per-grade sub-headings.
     canvas.line(
         layout.grid_left(),
         top + GROUP_ROW,
@@ -266,7 +326,7 @@ fn draw_header(canvas: &mut crate::pdf::Canvas, dashboard: &Dashboard, layout: &
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_data_row(
+fn draw_data_row<'a>(
     canvas: &mut crate::pdf::Canvas,
     layout: &Layout,
     y: f64,
@@ -274,8 +334,8 @@ fn draw_data_row(
     shaded: bool,
     name: &str,
     series: &str,
-    counts: impl Iterator<Item = GradeCounts>,
-    total: GradeCounts,
+    counts: impl Iterator<Item = &'a [i64]>,
+    total: &'a [i64],
     font: Font,
 ) {
     let is_total_row = number == 0;
@@ -313,9 +373,9 @@ fn draw_data_row(
     canvas.text_clipped(x + 4.0, baseline, W_SERIES - 8.0, 7.5, Font::Regular, BLACK, series);
 
     let ink = if is_total_row { NAVY } else { BLACK };
-    for (index, count) in counts.chain(std::iter::once(total)).enumerate() {
-        let left = layout.pair_left(index);
-        for (grade_index, value) in [count.grade3, count.grade4].into_iter().enumerate() {
+    for (index, group) in counts.chain(std::iter::once(total)).enumerate() {
+        let left = layout.group_left(index);
+        for (grade_index, value) in group.iter().enumerate() {
             canvas.text_centered(
                 left + layout.box_w * (grade_index as f64 + 0.5),
                 baseline,
@@ -323,7 +383,7 @@ fn draw_data_row(
                 8.0,
                 font,
                 ink,
-                &cell_text(value),
+                &cell_text(*value),
             );
         }
     }
@@ -344,25 +404,22 @@ fn draw_outline(canvas: &mut crate::pdf::Canvas, layout: &Layout, bottom: f64) {
     }
     canvas.line(left, bottom, right, bottom, 0.9, RULE);
 
-    // Identity columns, then a light rule per grade box and a firm one per
-    // reason so the 3rd/4th pairs read as a unit.
+    // Identity columns, then a light rule between grade boxes and a firm one
+    // per reason, so a reason's grades read as one block.
     let mut x = left;
     for width in [W_SR, W_NAME, W_SERIES] {
         canvas.line(x, top, x, bottom, 0.9, RULE);
         x += width;
     }
 
-    for index in 0..layout.pairs {
-        let pair_left = layout.pair_left(index);
-        canvas.line(pair_left, top, pair_left, bottom, 0.9, RULE);
-        canvas.line(
-            pair_left + layout.box_w,
-            top + GROUP_ROW,
-            pair_left + layout.box_w,
-            bottom,
-            0.4,
-            HAIRLINE,
-        );
+    for index in 0..layout.groups {
+        let group_left = layout.group_left(index);
+        canvas.line(group_left, top, group_left, bottom, 0.9, RULE);
+
+        for grade in 1..layout.grades {
+            let divider = group_left + layout.box_w * grade as f64;
+            canvas.line(divider, top + GROUP_ROW, divider, bottom, 0.4, HAIRLINE);
+        }
     }
 
     canvas.line(right, top, right, bottom, 0.9, RULE);
@@ -377,13 +434,23 @@ fn draw_footer(
 ) {
     let y = layout.page_h - MARGIN_BOTTOM + 12.0;
 
+    // Spells out the sub-headings, which are abbreviated to fit their boxes.
+    let grades = context
+        .dashboard
+        .grades
+        .iter()
+        .enumerate()
+        .map(|(index, grade)| format!("{} = {}", sub_heading(&grade.name, index + 1), grade.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+
     canvas.text(
         MARGIN_X,
         y,
         7.0,
         Font::Regular,
         RULE,
-        "Grade 3 / Grade 4 waste, counted per worker and per reason.",
+        &format!("{grades}. Counted per worker and per reason."),
     );
 
     let label = format!("Page {page} of {page_count}");
@@ -409,16 +476,22 @@ pub fn to_csv(context: &ReportContext<'_>) -> String {
     out.push_str(&format!("Series,{}\n", escape_csv(context.series_name.unwrap_or("All"))));
     out.push_str(&format!("Generated,{}\n\n", escape_csv(&context.generated_at)));
 
+    // The spreadsheet has the room the printed box does not, so the columns
+    // carry the grade's full name rather than the abbreviated heading.
     let mut header = String::from("Sr,Worker,Item / Series");
-    for reason in &dashboard.reasons {
-        header.push_str(&format!(
-            ",{} 3rd,{} 4th",
-            escape_csv(&reason.name),
-            escape_csv(&reason.name)
-        ));
+    for group in dashboard.reasons.iter().map(|reason| reason.name.as_str()).chain(["Total"]) {
+        for grade in &dashboard.grades {
+            header.push_str(&format!(",{}", escape_csv(&format!("{group} {}", grade.name))));
+        }
     }
-    header.push_str(",Total 3rd,Total 4th\n");
+    header.push('\n');
     out.push_str(&header);
+
+    let counts = |out: &mut String, values: &[i64]| {
+        for value in values {
+            out.push_str(&format!(",{value}"));
+        }
+    };
 
     for (index, row) in dashboard.rows.iter().enumerate() {
         out.push_str(&format!(
@@ -428,16 +501,18 @@ pub fn to_csv(context: &ReportContext<'_>) -> String {
             escape_csv(&row.worker.series_name),
         ));
         for cell in &row.cells {
-            out.push_str(&format!(",{},{}", cell.counts.grade3, cell.counts.grade4));
+            counts(&mut out, &cell.counts);
         }
-        out.push_str(&format!(",{},{}\n", row.total.grade3, row.total.grade4));
+        counts(&mut out, &row.total);
+        out.push('\n');
     }
 
     out.push_str(",TOTAL,");
     for cell in &dashboard.reason_totals {
-        out.push_str(&format!(",{},{}", cell.counts.grade3, cell.counts.grade4));
+        counts(&mut out, &cell.counts);
     }
-    out.push_str(&format!(",{},{}\n", dashboard.grand_total.grade3, dashboard.grand_total.grade4));
+    counts(&mut out, &dashboard.grand_total);
+    out.push('\n');
 
     out
 }
@@ -454,9 +529,19 @@ fn escape_csv(value: &str) -> String {
 mod tests {
     use super::*;
     use crate::models::{
-        Dashboard, DashboardCell, DashboardRow, GradeCounts, RangeQuery, Reason, Worker,
+        Dashboard, DashboardCell, DashboardRow, Grade, RangeQuery, Reason, Worker,
     };
     use crate::repo::DateRange;
+
+    fn grade(id: i64, name: &str) -> Grade {
+        Grade {
+            id,
+            name: name.to_string(),
+            created_date: "2026-08-01 08:00:00".into(),
+            modified_date: "2026-08-01 08:00:00".into(),
+            entry_count: 0,
+        }
+    }
 
     fn reason(id: i64, name: &str) -> Reason {
         Reason {
@@ -489,31 +574,32 @@ mod tests {
             DashboardRow {
                 worker: worker(1, "Ramesh"),
                 cells: vec![
-                    DashboardCell { reason_id: 1, counts: GradeCounts { grade3: 2, grade4: 1 } },
-                    DashboardCell { reason_id: 2, counts: GradeCounts { grade3: 0, grade4: 3 } },
+                    DashboardCell { reason_id: 1, counts: vec![2, 1] },
+                    DashboardCell { reason_id: 2, counts: vec![0, 3] },
                 ],
-                total: GradeCounts { grade3: 2, grade4: 4 },
+                total: vec![2, 4],
             },
             DashboardRow {
                 worker: worker(2, "Suresh"),
                 cells: vec![
-                    DashboardCell { reason_id: 1, counts: GradeCounts { grade3: 5, grade4: 0 } },
-                    DashboardCell { reason_id: 2, counts: GradeCounts { grade3: 1, grade4: 1 } },
+                    DashboardCell { reason_id: 1, counts: vec![5, 0] },
+                    DashboardCell { reason_id: 2, counts: vec![1, 1] },
                 ],
-                total: GradeCounts { grade3: 6, grade4: 1 },
+                total: vec![6, 1],
             },
         ];
 
         Dashboard {
             from: "2026-08-01".into(),
             to: "2026-08-31".into(),
+            grades: vec![grade(3, "Grade 3"), grade(4, "Grade 4")],
             reasons,
             rows,
             reason_totals: vec![
-                DashboardCell { reason_id: 1, counts: GradeCounts { grade3: 7, grade4: 1 } },
-                DashboardCell { reason_id: 2, counts: GradeCounts { grade3: 1, grade4: 4 } },
+                DashboardCell { reason_id: 1, counts: vec![7, 1] },
+                DashboardCell { reason_id: 2, counts: vec![1, 4] },
             ],
-            grand_total: GradeCounts { grade3: 8, grade4: 5 },
+            grand_total: vec![8, 5],
         }
     }
 
@@ -571,19 +657,136 @@ mod tests {
         });
 
         assert!(csv.starts_with('\u{feff}'), "Excel needs the BOM to read UTF-8");
-        assert!(csv.contains("Sr,Worker,Item / Series,Loader 3rd,Loader 4th,Glazing 3rd,Glazing 4th"));
+        assert!(csv.contains(
+            "Sr,Worker,Item / Series,Loader Grade 3,Loader Grade 4,\
+             Glazing Grade 3,Glazing Grade 4,Total Grade 3,Total Grade 4"
+        ));
         assert!(csv.contains("1,Ramesh Patel,Toilet 3007,2,1,0,3,2,4"));
         assert!(csv.contains("2,Suresh Patel,Toilet 3007,5,0,1,1,6,1"));
         // Column totals then the grand total.
         assert!(csv.contains(",TOTAL,,7,1,1,4,8,5"));
     }
 
+    /// A third grade is a third column in every group, so the same register
+    /// widens rather than changing shape.
+    #[test]
+    fn a_third_grade_widens_every_group() {
+        let mut dashboard = dashboard();
+        dashboard.grades.push(grade(5, "Grade 5"));
+        for row in &mut dashboard.rows {
+            row.total.push(0);
+            for cell in &mut row.cells {
+                cell.counts.push(1);
+                row.total[2] += 1;
+            }
+        }
+        for cell in &mut dashboard.reason_totals {
+            cell.counts.push(2);
+        }
+        dashboard.grand_total.push(4);
+
+        let range = range();
+        let csv = to_csv(&ReportContext {
+            dashboard: &dashboard,
+            range: &range,
+            series_name: None,
+            generated_at: "2026-08-23 12:00:00".to_string(),
+        });
+
+        assert!(csv.contains("Loader Grade 3,Loader Grade 4,Loader Grade 5"));
+        assert!(csv.contains("1,Ramesh Patel,Toilet 3007,2,1,1,0,3,1,2,4,2"));
+        assert!(csv.contains(",TOTAL,,7,1,2,1,4,2,8,5,4"));
+
+        let bytes = to_pdf(&ReportContext {
+            dashboard: &dashboard,
+            range: &range,
+            series_name: None,
+            generated_at: "2026-08-23 12:00:00".to_string(),
+        });
+        assert!(bytes.starts_with(b"%PDF-1.4"));
+    }
+
+    /// "Grade 3" is far too wide for a twenty-point box; the paper register's
+    /// own `3rd` is not.
+    #[test]
+    fn grade_sub_headings_fit_their_box() {
+        assert_eq!(sub_heading("Grade 3", 1), "3rd");
+        assert_eq!(sub_heading("Grade 4", 2), "4th");
+        assert_eq!(sub_heading("Grade 1", 1), "1st");
+        assert_eq!(sub_heading("Grade 12", 1), "12th");
+        assert_eq!(sub_heading("Seconds", 3), "SECO");
+        assert_eq!(sub_heading("કાચું", 2), "G2");
+    }
+
+    /// Writes one file per grade count into `SHEET_OUT`, for the same reason
+    /// the scanning sheet has one: column geometry is easier to check by
+    /// looking at it than by asserting coordinates.
+    #[test]
+    #[ignore = "writes files for eyeballing; run with --ignored"]
+    fn write_sample_pdfs() {
+        let directory = std::env::var("SHEET_OUT").expect("SHEET_OUT");
+        let range = range();
+
+        for extra in 0..3 {
+            let mut dashboard = dashboard();
+            for step in 0..extra {
+                dashboard.grades.push(grade(5 + step as i64, &format!("Grade {}", 5 + step)));
+                for row in &mut dashboard.rows {
+                    row.total.push(0);
+                    for cell in &mut row.cells {
+                        cell.counts.push(0);
+                    }
+                }
+                for cell in &mut dashboard.reason_totals {
+                    cell.counts.push(0);
+                }
+                dashboard.grand_total.push(0);
+            }
+
+            let count = dashboard.grades.len();
+            let path = format!("{directory}/month-sheet-{count}-grades.pdf");
+            std::fs::write(
+                &path,
+                to_pdf(&ReportContext {
+                    dashboard: &dashboard,
+                    range: &range,
+                    series_name: None,
+                    generated_at: "2026-08-23 12:00:00".to_string(),
+                }),
+            )
+            .unwrap();
+            println!("wrote {path}");
+        }
+    }
+
     #[test]
     fn a_wide_sheet_steps_up_to_a3() {
-        // Ten reasons still fit A4; thirty would squeeze the boxes past
-        // legibility, so the page grows instead.
-        assert_eq!(Layout::plan(10).page_w, A4_LANDSCAPE.0);
-        assert_eq!(Layout::plan(30).page_w, A3_LANDSCAPE.0);
-        assert!(Layout::plan(30).box_w >= 14.0);
+        // Ten reasons still fit A4 at two grades; thirty would squeeze the
+        // boxes past legibility, so the page grows instead.
+        assert_eq!(Layout::plan(10, 2).page_w, A4_LANDSCAPE.0);
+        assert_eq!(Layout::plan(30, 2).page_w, A3_LANDSCAPE.0);
+        assert!(Layout::plan(30, 2).box_w >= 14.0);
+
+        // A grade is another column in every group, so it costs the same width
+        // as several more reasons would.
+        assert_eq!(Layout::plan(10, 3).page_w, A3_LANDSCAPE.0);
+    }
+
+    /// The grid is ruled from `table_left` to `table_right`, so a table wider
+    /// than its page does not spill — it is clipped, and the last reasons come
+    /// out blank. Enough reasons and grades together reach that width, so the
+    /// boxes have to narrow instead of the table growing.
+    #[test]
+    fn the_grid_always_fits_its_page() {
+        for reasons in [1, 5, 10, 20, 30] {
+            for grades in 1..=crate::barcode::MAX_GRADE_ID as usize {
+                let layout = Layout::plan(reasons, grades);
+                assert!(
+                    layout.table_right() <= layout.page_w - MARGIN_X + 0.01,
+                    "{reasons} reasons x {grades} grades ran {}pt past the page edge",
+                    layout.table_right() - (layout.page_w - MARGIN_X)
+                );
+            }
+        }
     }
 }

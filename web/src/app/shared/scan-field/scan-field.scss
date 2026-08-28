@@ -1,0 +1,97 @@
+@use 'base/tokens' as *;
+
+.scanbox {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.scanbox__label {
+  align-items: center;
+  color: $text-muted;
+  display: flex;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  font-weight: 600;
+  gap: $space-sm;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  i {
+    color: var(--grade-accent, #{$navy-500});
+    font-size: 1.6rem;
+  }
+}
+
+// The one control on the screen a scanner talks to, so it is sized to be
+// obviously the target and wide enough to show a whole code.
+.scanbox__input {
+  background: $surface-sunken;
+  border: 1px solid $border-strong;
+  border-radius: $radius-md;
+  color: $text-primary;
+  flex: 1 1 26rem;
+  font-family: $font-mono;
+  font-size: $fs-md;
+  letter-spacing: 0.08em;
+  min-width: 22rem;
+  padding: $space-sm $space-md;
+
+  &::placeholder {
+    color: $text-faint;
+    font-family: $font-body;
+    font-size: $fs-base;
+    letter-spacing: 0;
+  }
+
+  &:focus {
+    border-color: $navy-300;
+    box-shadow: 0 0 0 0.3rem rgba(63, 111, 168, 0.22);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+}
+
+.scanbox__result {
+  align-items: center;
+  display: flex;
+  font-size: $fs-base;
+  gap: $space-sm;
+  min-width: 0;
+
+  strong {
+    font-weight: 600;
+  }
+
+  &--ok {
+    color: $green-400;
+  }
+
+  &--problem {
+    color: $amber-400;
+  }
+}
+
+.scanbox__dismiss {
+  background: none;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  font-family: $font-body;
+  font-size: $fs-sm;
+  text-decoration: underline;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.scanbox__hint {
+  color: $text-faint;
+  font-size: $fs-sm;
+}

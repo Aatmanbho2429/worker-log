@@ -21,12 +21,8 @@
   gap: $space-xs;
   padding: $space-lg;
 
-  &--grade3 {
-    border-top-color: $navy-300;
-  }
-
-  &--grade4 {
-    border-top-color: $red-500;
+  &--grade {
+    border-top-color: var(--grade-edge, #{$navy-300});
   }
 
   &--muted {
@@ -78,7 +74,7 @@
 // The bar sits behind the numbers rather than beside them, so the row stays
 // scannable at a glance without a chart library.
 .breakdown__bar {
-  background: linear-gradient(90deg, rgba(112, 152, 203, 0.22), rgba(112, 152, 203, 0.04));
+  background: linear-gradient(90deg, var(--grade-soft, #{rgba($navy-300, 0.22)}), transparent);
   border-radius: 0 $radius-sm $radius-sm 0;
   bottom: 0.4rem;
   left: 0;
@@ -107,12 +103,10 @@
   margin: 0 0.3rem;
 }
 
-.breakdown__g3 {
-  color: $navy-200;
-}
-
-.breakdown__g4 {
-  color: $red-400;
+// Each count in its grade's own colour, so the split reads without a legend —
+// the same colours the waste screen's buttons and the Grades list use.
+.breakdown__count {
+  color: var(--grade-bright, #{$navy-200});
   font-weight: 600;
 }
 
@@ -178,6 +172,22 @@
   font-size: $fs-md;
   font-weight: 600;
   text-align: right;
+}
+
+// The entry history lists one entry at a time, so its grade is a label rather
+// than a column — but the same colour as everywhere else.
+.entry-grade {
+  background: var(--grade-soft, #{rgba(112, 152, 203, 0.16)});
+  border: 1px solid var(--grade-edge, #{$navy-400});
+  border-radius: $radius-pill;
+  color: var(--grade-bright, #{$navy-200});
+  display: inline-block;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.9rem;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .numeric {

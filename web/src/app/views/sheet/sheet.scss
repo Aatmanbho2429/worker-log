@@ -29,8 +29,8 @@
   }
 
   thead th {
-    background: $navy-900;
-    color: #ffffff;
+    background: $band-strong;
+    color: $band-text;
     font-family: $font-display;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -63,13 +63,13 @@
 
   thead .sheet__sr,
   thead .sheet__worker {
-    background: $navy-900;
+    background: $band-strong;
     z-index: 3;
   }
 }
 
 .sheet__group {
-  background: $navy-800 !important;
+  background: $band !important;
   font-size: $fs-xs;
   text-align: center;
 
@@ -79,15 +79,15 @@
 }
 
 .sheet__sub {
-  background: $navy-900 !important;
-  color: $text-secondary !important;
+  background: $band-strong !important;
+  color: rgba(255, 255, 255, 0.72) !important;
   font-size: $fs-xs;
   font-weight: 500 !important;
   text-align: center;
   width: 3.6rem;
 
   &--total {
-    color: #ffffff !important;
+    color: $band-text !important;
   }
 
   &--edge {
@@ -109,28 +109,28 @@
   }
 
   &--total {
-    background: rgba(112, 152, 203, 0.08);
+    background: $wash-inset;
     font-weight: 600;
   }
 }
 
 tbody tr:nth-child(even) {
   td {
-    background: rgba(255, 255, 255, 0.018);
+    background: $wash-hover;
   }
 
   .sheet__sr,
   .sheet__worker {
-    background: #0d1828;
+    background: $surface-hover;
   }
 }
 
 tbody tr:hover td {
-  background: rgba(112, 152, 203, 0.07);
+  background: $wash-hover;
 }
 
 tfoot td {
-  background: $navy-800 !important;
+  background: $band !important;
   font-family: $font-display;
   font-weight: 600;
   letter-spacing: 0.04em;

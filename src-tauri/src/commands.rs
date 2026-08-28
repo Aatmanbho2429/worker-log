@@ -11,14 +11,13 @@ use tauri::{AppHandle, State};
 use crate::error::{AppError, AppResult};
 use crate::events::{ChangeScope, emit_changed, emit_changed_with};
 use crate::models::{
-    Dashboard, Grade, LogEntryRequest, RangeQuery, Reason, ReasonUpsert, SeriesOfProduct,
-    SeriesUpsert,
+    Dashboard, Grade, GradeUpsert, LogEntryRequest, RangeQuery, Reason, ReasonUpsert,
+    SeriesOfProduct, SeriesUpsert,
     Worker, WorkerLog, WorkerUpsert,
 };
-use crate::barcode::Scan;
 use crate::barcode_sheet::{self, Sheet};
 use crate::report::{ReportContext, to_csv, to_pdf};
-use crate::repo::{DateRange, logs, reasons, series, workers};
+use crate::repo::{DateRange, barcodes, grades, logs, reasons, series, workers};
 use crate::state::AppState;
 use crate::{now, seed};
 
@@ -92,6 +91,8 @@ pub fn list_reasons(state: State<'_, AppState>) -> AppResult<Vec<Reason>> {
     reasons::list(&connection)
 }
 
+/// A new reason is a new column of grade buttons for every worker, so it
+/// brings a new barcode for each of them.
 #[tauri::command]
 pub fn create_reason(
     app: AppHandle,
@@ -100,7 +101,9 @@ pub fn create_reason(
 ) -> AppResult<Reason> {
     let created = {
         let connection = state.conn()?;
-        reasons::create(&connection, payload)?
+        let created = reasons::create(&connection, payload)?;
+        barcodes::sync(&connection)?;
+        created
     };
     emit_changed(&app, ChangeScope::Reasons);
     Ok(created)
@@ -131,6 +134,76 @@ pub fn delete_reason(app: AppHandle, state: State<'_, AppState>, id: i64) -> App
     Ok(())
 }
 
+// ---------------------------------------------------------------- grades ---
+
+#[tauri::command]
+pub fn list_grades(state: State<'_, AppState>) -> AppResult<Vec<Grade>> {
+    let connection = state.conn()?;
+    grades::list(&connection)
+}
+
+/// A new grade is a new button in every worker's row, under every reason, so
+/// it brings a barcode for each of those.
+#[tauri::command]
+pub fn create_grade(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    payload: GradeUpsert,
+) -> AppResult<Grade> {
+    let created = {
+        let connection = state.conn()?;
+        let created = grades::create(&connection, payload)?;
+        barcodes::sync(&connection)?;
+        created
+    };
+    emit_changed(&app, ChangeScope::Grades);
+    Ok(created)
+}
+
+#[tauri::command]
+pub fn update_grade(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+    payload: GradeUpsert,
+) -> AppResult<Grade> {
+    let updated = {
+        let connection = state.conn()?;
+        grades::update(&connection, id, payload)?
+    };
+    emit_changed(&app, ChangeScope::Grades);
+    Ok(updated)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GradeDeleteImpact {
+    pub grade: Grade,
+    /// Printed barcodes that would stop working, so the confirm dialog can say
+    /// that a fresh sheet is needed.
+    pub barcodes: i64,
+}
+
+#[tauri::command]
+pub fn grade_delete_impact(state: State<'_, AppState>, id: i64) -> AppResult<GradeDeleteImpact> {
+    let connection = state.conn()?;
+    Ok(GradeDeleteImpact {
+        grade: grades::get(&connection, id)?,
+        barcodes: grades::barcode_count(&connection, id)?,
+    })
+}
+
+#[tauri::command]
+pub fn delete_grade(app: AppHandle, state: State<'_, AppState>, id: i64) -> AppResult<()> {
+    {
+        let connection = state.conn()?;
+        grades::delete(&connection, id)?;
+    }
+    // A column leaves the grid and a barcode leaves the sheet.
+    emit_changed(&app, ChangeScope::Everything);
+    Ok(())
+}
+
 // --------------------------------------------------------------- workers ---
 
 #[tauri::command]
@@ -142,6 +215,8 @@ pub fn list_workers(
     workers::list(&connection, series_id.filter(|id| *id > 0))
 }
 
+/// A new worker gets a barcode for every button they now have — one per
+/// reason per grade — so they can be scanned as soon as a sheet is printed.
 #[tauri::command]
 pub fn create_worker(
     app: AppHandle,
@@ -150,7 +225,9 @@ pub fn create_worker(
 ) -> AppResult<Worker> {
     let created = {
         let connection = state.conn()?;
-        workers::create(&connection, payload)?
+        let created = workers::create(&connection, payload)?;
+        barcodes::sync(&connection)?;
+        created
     };
     emit_changed(&app, ChangeScope::Workers);
     Ok(created)
@@ -265,59 +342,34 @@ pub fn barcode_sheet(state: State<'_, AppState>, series_id: Option<i64>) -> AppR
 /// Records the entry a scanned barcode stands for.
 ///
 /// The barcode is the grade button, so a scan does exactly what a tap does:
-/// one `worker_log` row, one `data-changed` event, the same validation. The
-/// decode lives in Rust so the screen, the printed sheet and the reader can
-/// never disagree about what a code means.
+/// one `worker_log` row, one `data-changed` event, the same validation. What
+/// the code means is the row it was printed from rather than anything the
+/// front end decodes, so the sheet, the PDF and the reader cannot disagree.
 #[tauri::command]
 pub fn record_scan(
     app: AppHandle,
     state: State<'_, AppState>,
     code: String,
 ) -> AppResult<ScanReceipt> {
-    let scan = Scan::parse(&code)?;
-
-    let (entry, worker, reason) = {
+    let entry = {
         let connection = state.conn()?;
+        let button = barcodes::find(&connection, &code)?;
 
-        // Resolve both sides first, so a sheet printed before a worker was
-        // removed fails with something the operator can act on rather than a
-        // foreign key error.
-        let worker = workers::get(&connection, scan.worker_id).map_err(|error| match error {
-            AppError::NotFound(_) => AppError::NotFound(
-                "That barcode is for a worker who is no longer on the register. \
-                 Print a fresh sheet."
-                    .to_string(),
-            ),
-            other => other,
-        })?;
-        let reason = reasons::get(&connection, scan.reason_id).map_err(|error| match error {
-            AppError::NotFound(_) => AppError::NotFound(
-                "That barcode is for a reason that has since been deleted. \
-                 Print a fresh sheet."
-                    .to_string(),
-            ),
-            other => other,
-        })?;
-
-        let entry = logs::add_entry(
+        logs::add_entry(
             &connection,
             &LogEntryRequest {
-                worker_id: scan.worker_id,
-                reason_id: scan.reason_id,
-                grade: scan.grade,
+                worker_id: button.worker_id,
+                reason_id: button.reason_id,
+                grade_id: button.grade_id,
             },
-        )?;
-        (entry, worker, reason)
+        )?
     };
 
     emit_changed(&app, ChangeScope::Waste);
 
-    Ok(ScanReceipt {
-        entry,
-        worker_name: format!("{} {}", worker.first_name, worker.last_name).trim().to_string(),
-        reason_name: reason.name,
-        grade: scan.grade,
-    })
+    // `WorkerLog` already carries the worker, reason and grade names the
+    // confirmation shows, so the receipt is the entry plus nothing.
+    Ok(ScanReceipt { entry })
 }
 
 /// What the scanning screen shows back after a successful scan.
@@ -325,9 +377,6 @@ pub fn record_scan(
 #[serde(rename_all = "camelCase")]
 pub struct ScanReceipt {
     pub entry: WorkerLog,
-    pub worker_name: String,
-    pub reason_name: String,
-    pub grade: Grade,
 }
 
 /// Writes the scanning sheet to `path` for printing.

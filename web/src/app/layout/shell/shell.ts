@@ -36,6 +36,7 @@ export class Shell implements OnDestroy {
         { label: 'Workers', icon: 'pi pi-users', route: '/workers' },
         { label: 'Series of product', icon: 'pi pi-box', route: '/series' },
         { label: 'Reasons', icon: 'pi pi-tags', route: '/reasons' },
+        { label: 'Grades', icon: 'pi pi-sliders-h', route: '/grades' },
         { label: 'Settings', icon: 'pi pi-cog', route: '/settings' },
       ],
     },

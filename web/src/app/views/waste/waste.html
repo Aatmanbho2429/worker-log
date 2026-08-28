@@ -28,20 +28,20 @@
     />
   </div>
 
+  <div class="card card--pad">
+    <app-scan-field (recorded)="onScanned($event)" />
+  </div>
+
   <div class="tally">
-    <div class="tally__item">
-      <span class="tally__label">Grade 3 · this reason</span>
-      <span class="tally__value tabular">{{ reasonTally().grade3 }}</span>
-    </div>
-    <div class="tally__item tally__item--danger">
-      <span class="tally__label">Grade 4 · this reason</span>
-      <span class="tally__value tabular">{{ reasonTally().grade4 }}</span>
-    </div>
+    @for (grade of grades(); track grade.id; let i = $index) {
+      <div class="tally__item" [class]="gradeToneClass(i)">
+        <span class="tally__label">{{ grade.name }} · this reason</span>
+        <span class="tally__value tabular">{{ tallyFor(i) }}</span>
+      </div>
+    }
     <div class="tally__item tally__item--muted">
-      <span class="tally__label">All reasons · grade 3 / 4</span>
-      <span class="tally__value tabular">
-        {{ grandTotal().grade3 }} <span class="tally__slash">/</span> {{ grandTotal().grade4 }}
-      </span>
+      <span class="tally__label">All reasons · every grade</span>
+      <span class="tally__value tabular">{{ grandTotalLabel() }}</span>
     </div>
   </div>
 
@@ -55,11 +55,7 @@
           (click)="selectReason(reason)"
         >
           <span class="reasons__name">{{ reason.name }}</span>
-          <span class="reasons__count tabular">
-            {{ dashboard()?.reasonTotals?.[i]?.grade3 ?? 0 }}/{{
-              dashboard()?.reasonTotals?.[i]?.grade4 ?? 0
-            }}
-          </span>
+          <span class="reasons__count tabular">{{ reasonCount(i) }}</span>
         </button>
       }
     </nav>
@@ -89,6 +85,13 @@
         @for (row of [1, 2, 3, 4, 5, 6]; track row) {
           <p-skeleton height="5.6rem" borderRadius="6px" />
         }
+      </div>
+    } @else if (!grades().length) {
+      <div class="empty">
+        <i class="pi pi-sliders-h"></i>
+        <span class="empty__title">No grades set up</span>
+        <p>Add at least one grade before logging waste against it.</p>
+        <p-button label="Go to grades" icon="pi pi-arrow-right" routerLink="/grades" />
       </div>
     } @else if (!reasons().length) {
       <div class="empty">
@@ -124,42 +127,44 @@
               </div>
             </div>
 
-            @for (grade of [3, 4]; track grade) {
-              <div
-                class="grade"
-                [class.grade--four]="grade === 4"
-                [class.grade--empty]="countFor(row, $any(grade)) === 0"
-              >
-                <button
-                  type="button"
-                  class="grade__undo"
-                  [disabled]="countFor(row, $any(grade)) === 0 || isBusy(row, $any(grade))"
-                  [pTooltip]="'Remove one grade ' + grade + ' entry'"
-                  tooltipPosition="top"
-                  (click)="undo(row, $any(grade))"
-                  [attr.aria-label]="
-                    'Remove one grade ' + grade + ' entry for ' + workerFullName(row.worker)
-                  "
+            <div class="tapper__grades">
+              @for (grade of grades(); track grade.id; let g = $index) {
+                <div
+                  class="grade"
+                  [class]="gradeToneClass(g)"
+                  [class.grade--empty]="countFor(row, g) === 0"
                 >
-                  <i class="pi pi-minus"></i>
-                </button>
+                  <button
+                    type="button"
+                    class="grade__undo"
+                    [disabled]="countFor(row, g) === 0 || isBusy(row, grade)"
+                    [pTooltip]="'Remove one ' + grade.name + ' entry'"
+                    tooltipPosition="top"
+                    (click)="undo(row, g)"
+                    [attr.aria-label]="
+                      'Remove one ' + grade.name + ' entry for ' + workerFullName(row.worker)
+                    "
+                  >
+                    <i class="pi pi-minus"></i>
+                  </button>
 
-                <span class="grade__count tabular">{{ countFor(row, $any(grade)) }}</span>
+                  <span class="grade__count tabular">{{ countFor(row, g) }}</span>
 
-                <button
-                  type="button"
-                  class="grade__add"
-                  [disabled]="isBusy(row, $any(grade))"
-                  (click)="add(row, $any(grade))"
-                  [attr.aria-label]="
-                    'Add one grade ' + grade + ' entry for ' + workerFullName(row.worker)
-                  "
-                >
-                  <span class="grade__label">Grade {{ grade }}</span>
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            }
+                  <button
+                    type="button"
+                    class="grade__add"
+                    [disabled]="isBusy(row, grade)"
+                    (click)="add(row, g)"
+                    [attr.aria-label]="
+                      'Add one ' + grade.name + ' entry for ' + workerFullName(row.worker)
+                    "
+                  >
+                    <span class="grade__label">{{ grade.name }}</span>
+                    <i class="pi pi-plus"></i>
+                  </button>
+                </div>
+              }
+            </div>
 
             <div class="tapper__total">
               <span class="tapper__total-label">Row</span>

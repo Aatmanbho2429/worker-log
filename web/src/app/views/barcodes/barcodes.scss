@@ -1,25 +1,23 @@
 @use 'base/tokens' as *;
 
+// The grid is the only thing that scrolls, so the page itself fills the shell
+// exactly and never does. That keeps the scan feedback and the controls
+// permanently in view, and lets the grid's own header row and name columns
+// stay pinned while the operator moves around inside it.
 .scan {
   display: flex;
   flex-direction: column;
   gap: $space-md;
+  height: 100%;
+  min-height: 0;
 }
 
-// ---------------------------------------------------------------- pinned bar --
-//
-// The sheet below runs to several screens. Feedback and controls stay put so
-// the operator never has to scroll back to find out whether a scan landed.
+// ------------------------------------------------------------- status bar --
 
 .scan__bar {
-  background: $surface-page;
   display: flex;
   flex-direction: column;
   gap: $space-sm;
-  padding-bottom: $space-sm;
-  position: sticky;
-  top: 0;
-  z-index: 3;
 }
 
 .scan__status {
@@ -90,16 +88,12 @@
 }
 
 .scan__state-grade {
-  color: $navy-200;
+  color: var(--grade-bright, #{$navy-200});
   font-family: $font-body;
   font-size: $fs-sm;
   font-weight: 500;
   letter-spacing: 0;
   margin-left: $space-sm;
-
-  &--g4 {
-    color: $red-400;
-  }
 }
 
 .scan__recent {
@@ -119,15 +113,11 @@
   display: grid;
   font-size: $fs-sm;
   gap: $space-md;
-  grid-template-columns: 7.5rem 1fr 1fr 3rem;
+  grid-template-columns: 7.5rem 1fr 1fr minmax(5rem, auto);
 
   // The newest entry is the one being confirmed, so it stays brightest.
   &:first-child {
     color: $green-400;
-  }
-
-  &--g4 .scan__recent-grade {
-    color: $red-400;
   }
 }
 
@@ -137,8 +127,12 @@
 }
 
 .scan__recent-grade {
+  color: var(--grade-bright, #{$navy-200});
   font-weight: 700;
+  overflow: hidden;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scan__recent-empty {
@@ -170,6 +164,17 @@
   font-size: $fs-base;
   margin: 0;
   padding: $space-lg;
+}
+
+// The box the reader types into. It sits under the status panel rather than
+// inside it: the panel is already three columns wide at its narrowest, and a
+// scan box squeezed into a fourth would be the smallest target on a screen
+// whose whole job is scanning.
+.scan__box {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: $space-sm $space-lg;
 }
 
 // ------------------------------------------------------------- jump links --
@@ -211,155 +216,202 @@
   }
 }
 
-// ----------------------------------------------------------------- reason --
+// ------------------------------------------------------------------- grid --
+//
+// The paper register's layout: workers down the left, a column per grade under
+// each reason across the top, a barcode in every box. Far wider than any
+// screen, so the identity columns and the two header rows stay pinned while
+// the rest scrolls under them — the same trick the month sheet uses, and the
+// reason a barcode is never scaled to fit: one narrower than it was proofed at
+// is one that stops scanning.
 
-.reason {
+// Widths are shared between the columns and their sticky offsets, so the two
+// cannot drift apart.
+$col-sr: 4.4rem;
+$col-worker: 15rem;
+$col-series: 11rem;
+$col-cell: 14.4rem;
+$head-group: 3rem;
+
+.matrix {
   background: $surface-card;
   border: 1px solid $border-default;
   border-radius: $radius-md;
-  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
-
-.reason__name {
-  align-items: baseline;
-  background: $surface-header;
-  border-bottom: 1px solid $border-default;
-  color: $text-primary;
-  display: flex;
-  font-family: $font-display;
-  font-size: $fs-md;
-  font-weight: 600;
-  gap: $space-sm;
-  letter-spacing: 0.12em;
-  margin: 0;
-  padding: $space-sm $space-lg;
-  text-transform: uppercase;
-}
-
-.reason__count {
-  color: $text-faint;
-  font-family: $font-body;
-  font-size: $fs-sm;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-// ------------------------------------------------------------------- grid --
-//
-// Worker rows flow into as many columns as the window can hold without
-// shrinking a barcode: widening the window fits more per row rather than
-// stretching the bars, and a stretched barcode is one that stops scanning at
-// the size it was proofed at.
 
 .grid {
-  display: grid;
-  gap: 0;
-  grid-template-columns: repeat(auto-fill, minmax(48rem, 1fr));
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $fs-sm;
+  // Fixed layout so the declared column widths are honoured exactly. The
+  // pinned identity columns are offset by the sum of those widths, and auto
+  // layout would size the columns to their content instead — sliding the
+  // pinned ones off the columns they cover and letting barcodes show through.
+  table-layout: fixed;
+  width: calc(
+    #{$col-sr} + #{$col-worker} + #{$col-series} + (var(--grid-columns, 0) * #{$col-cell})
+  );
+
+  th,
+  td {
+    border-bottom: 1px solid $border-subtle;
+    border-right: 1px solid $border-subtle;
+    padding: 0;
+  }
 }
 
-.grid__row {
-  align-items: center;
-  border-bottom: 1px solid $border-subtle;
-  display: grid;
-  gap: $space-sm;
-  grid-template-columns: minmax(11rem, 1fr) auto auto 5.6rem;
-  padding: $space-xs $space-md;
+.col--sr {
+  width: $col-sr;
+}
+.col--worker {
+  width: $col-worker;
+}
+.col--series {
+  width: $col-series;
+}
+.col--cell {
+  width: $col-cell;
+}
 
-  &:hover {
+// -- header --
+
+.grid thead th {
+  background: $band-strong;
+  color: $band-text;
+  font-family: $font-display;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  position: sticky;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.grid__group {
+  height: $head-group;
+  padding: 0 $space-sm;
+  top: 0;
+  white-space: nowrap;
+
+  // A jump link aligns the reason with the left edge of the scrollport, which
+  // is behind the pinned identity columns. This gives that width back.
+  scroll-margin-left: $col-sr + $col-worker + $col-series;
+}
+
+.grid__gradehead {
+  background: $band;
+  // Sits directly under the reason names, which are pinned above it.
+  top: $head-group;
+
+  // The grade's own colour, so a column is identifiable without reading the
+  // heading. It goes on the underline rather than the text: this band stays
+  // dark navy in both themes, and the tone's text colour is picked to sit on
+  // the *page*, which on the light theme would be unreadable here.
+  border-bottom: 0.2rem solid var(--grade-edge, #{$navy-400});
+  color: $band-text;
+  font-size: $fs-xs;
+  height: 2.4rem;
+  padding: 0 $space-xs;
+  white-space: nowrap;
+}
+
+// -- identity columns --
+
+.grid__sr,
+.grid__worker,
+.grid__series {
+  left: 0;
+  position: sticky;
+  text-align: left;
+}
+
+.grid__sr {
+  color: $text-faint;
+  text-align: center;
+}
+
+.grid__worker {
+  left: $col-sr;
+}
+
+.grid__series {
+  left: $col-sr + $col-worker;
+  // The firm rule where the pinned columns end and the grid begins.
+  border-right: 1px solid $border-strong;
+  color: $text-muted;
+}
+
+// Body cells in the pinned columns need their own background — they scroll
+// over the grid, and a transparent cell would let it show through.
+.grid tbody {
+  .grid__sr,
+  .grid__worker,
+  .grid__series {
+    background: $surface-card;
+    font-size: $fs-sm;
+    padding: 0 $space-sm;
+    z-index: 1;
+  }
+
+  .grid__worker {
+    color: $text-primary;
+    font-weight: 600;
+  }
+
+  .grid__series {
+    font-size: $fs-xs;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  tr:hover {
+    .grid__sr,
+    .grid__worker,
+    .grid__series {
+      background: $surface-hover;
+    }
+  }
+}
+
+// The corner: pinned both ways, so it needs `top` of its own — the identity
+// rule above only pins it sideways — and it has to sit above both bands.
+.grid thead {
+  .grid__sr,
+  .grid__worker,
+  .grid__series {
+    padding: 0 $space-sm;
+    top: 0;
+    z-index: 3;
+  }
+}
+
+// -- barcode boxes --
+
+.grid__cell {
+  background: $surface-sunken;
+  padding: 0.3rem;
+
+  .grid tbody tr:hover & {
     background: $surface-hover;
   }
 }
 
-.grid__worker {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.grid__name {
-  color: $text-primary;
-  font-size: $fs-base;
-  font-weight: 600;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grid__series {
-  color: $text-faint;
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.grid__tally {
-  display: flex;
-  gap: $space-xs;
-  justify-content: flex-end;
-}
-
-// Scans counted this session. Dim at zero so a row that has been used stands
-// out from one that has not.
-.grid__scanned {
-  background: $surface-sunken;
-  border: 1px solid $border-subtle;
-  border-radius: $radius-sm;
-  color: $text-faint;
-  font-size: $fs-sm;
-  font-weight: 700;
-  min-width: 2.4rem;
-  padding: 0.1rem 0;
-  text-align: center;
-
-  &--on {
-    background: $navy-600;
-    border-color: $navy-400;
-    color: $text-primary;
-  }
-
-  &--g4#{&}--on {
-    background: $red-700;
-    border-color: $red-500;
-  }
-}
-
-// ------------------------------------------------------------------- tile --
-//
-// A deliberate white island in a dark app. Scanners expect dark bars on a light
-// field; inverted barcodes read poorly on cheap laser readers and not at all on
-// some, so the tile keeps paper's contrast whatever the UI does.
-
+// The one thing on the page that ignores the theme. Scanners expect dark bars
+// on a light field; inverted barcodes read poorly on cheap laser readers and
+// not at all on some, so the box keeps paper's contrast whichever theme is on.
 .tile {
   align-items: center;
   background: #ffffff;
-  border: 1px solid $border-default;
-  border-bottom: 0.25rem solid $navy-500;
   border-radius: $radius-sm;
+  // The one thing on a white tile carrying the grade's colour, so a row of them
+  // is told apart at a glance.
+  border-bottom: 0.25rem solid var(--grade-accent, #{$navy-500});
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0.2rem 0.4rem 0.1rem;
-
-  &--g4 {
-    border-bottom-color: $red-500;
-  }
-}
-
-// The grade and the printed digits share a line under the bars, so a tile is
-// only as wide as the barcode it carries.
-.tile__caption {
-  align-items: baseline;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.tile__grade {
-  color: #0b1524;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  padding: 0.2rem 0.3rem 0.1rem;
 }
 
 .tile__bars {
@@ -378,9 +430,31 @@
   shape-rendering: crispEdges;
 }
 
+// The printed digits and this session's count share the line under the bars —
+// the count sitting where the tally would be written on the paper sheet.
+.tile__caption {
+  align-items: baseline;
+  display: flex;
+  gap: 0.4rem;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .tile__code {
-  color: #8296ae;
+  color: #{$ink-400};
   font-family: $font-mono;
   font-size: 0.85rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+}
+
+.tile__count {
+  color: #{$ink-300};
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 1.4rem;
+  text-align: right;
+
+  &--on {
+    color: var(--grade-accent, #{$navy-500});
+  }
 }

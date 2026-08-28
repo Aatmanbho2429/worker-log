@@ -50,6 +50,16 @@ export class ScanService {
   }
 
   private accept(event: KeyboardEvent): void {
+    // Whatever holds the caret owns the reader. A screen with a scan box on it
+    // records through that box, and this listener is only the fallback for a
+    // scan made while nothing is focused — otherwise both would fire and one
+    // pass of the reader would be logged twice. It also means a scan aimed at
+    // the search box stays in the search box, rather than being recorded and
+    // filling the search with digits.
+    if (isEditable(event.target)) {
+      return;
+    }
+
     const now = Date.now();
     const gap = now - this.lastKeyAt;
     this.lastKeyAt = now;
@@ -92,4 +102,17 @@ export class ScanService {
       this.timer = null;
     }
   }
+}
+
+/** Whether keystrokes aimed at `target` are already going somewhere. */
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable
+  );
 }

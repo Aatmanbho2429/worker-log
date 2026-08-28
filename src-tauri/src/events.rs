@@ -19,6 +19,7 @@ pub enum ChangeScope {
     Workers,
     Series,
     Reasons,
+    Grades,
     /// A reseed replaced effectively everything.
     Everything,
 }

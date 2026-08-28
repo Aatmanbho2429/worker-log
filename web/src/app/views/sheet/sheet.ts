@@ -5,18 +5,26 @@ import { currentMonthRange, formatRange } from '../../core/date-range';
 import { ExportFormat, ExportService } from '../../core/export.service';
 import { NotifyService } from '../../core/notify.service';
 import { WasteLogService } from '../../core/waste-log.service';
-import { Dashboard, RangeFilter, SeriesOfProduct, workerFullName } from '../../models';
+import {
+  Dashboard,
+  Grade,
+  RangeFilter,
+  SeriesOfProduct,
+  sumCounts,
+  workerFullName,
+} from '../../models';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { RangeFilterBar } from '../../shared/range-filter/range-filter';
+import { ScanField } from '../../shared/scan-field/scan-field';
 
 /**
- * The paper register on screen: workers down, a 3rd/4th pair per reason
- * across, totals on every edge. Read-only — this is the sheet that gets
+ * The paper register on screen: workers down, a group of grade columns per
+ * reason across, totals on every edge. Read-only — this is the sheet that gets
  * checked before it is exported.
  */
 @Component({
   selector: 'app-sheet',
-  imports: [PrimengComponentsModule, RangeFilterBar],
+  imports: [PrimengComponentsModule, RangeFilterBar, ScanField],
   templateUrl: './sheet.html',
   styleUrl: './sheet.scss',
 })
@@ -36,9 +44,10 @@ export class Sheet {
   protected readonly rows = computed(() => this.dashboard()?.rows ?? []);
   protected readonly rangeLabel = computed(() => formatRange(this.filter()));
 
-  protected readonly hasData = computed(() =>
-    this.rows().some((row) => row.total.grade3 + row.total.grade4 > 0),
-  );
+  /** The sub-columns inside every reason's group, and inside Total. */
+  protected readonly grades = computed<Grade[]>(() => this.dashboard()?.grades ?? []);
+
+  protected readonly hasData = computed(() => this.rows().some((row) => sumCounts(row.total) > 0));
 
   constructor() {
     void this.loadSeries();
@@ -68,6 +77,27 @@ export class Sheet {
   /** Blank rather than `0`, the way an unused box on the paper sheet is. */
   protected box(value: number): string {
     return value === 0 ? '' : `${value}`;
+  }
+
+  /**
+   * The narrow heading over one grade's column.
+   *
+   * The column is a few characters wide, which "Grade 3" is not — and the
+   * paper register this mirrors rules those columns `3rd` and `4th`, so a name
+   * ending in a number is written the same way. The PDF abbreviates
+   * identically; the full names are in the group heading's tooltip.
+   */
+  protected shortGrade(grade: Grade, position: number): string {
+    const trailing = /(\d+)\s*$/.exec(grade.name)?.[1];
+    if (trailing) {
+      const number = Number(trailing);
+      const suffix =
+        number % 100 >= 11 && number % 100 <= 13
+          ? 'th'
+          : ({ 1: 'st', 2: 'nd', 3: 'rd' }[number % 10] ?? 'th');
+      return `${number}${suffix}`;
+    }
+    return grade.name.trim().slice(0, 4).toUpperCase() || `G${position + 1}`;
   }
 
   protected readonly workerFullName = workerFullName;

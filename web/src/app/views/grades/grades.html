@@ -1,0 +1,135 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Grades</h1>
+      <p class="page__subtitle">
+        How a broken piece is sorted. Each grade is a button on the waste screen, a column on the
+        month sheet, and a barcode on the scanning sheet.
+      </p>
+    </div>
+    <div class="page__actions">
+      <p-button icon="pi pi-plus" label="Add grade" (onClick)="openNew()" />
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card__head">
+      <h2 class="card__title">Column order</h2>
+      <span class="master__count">{{ items().length }} grade(s)</span>
+    </div>
+
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2]; track row) {
+          <p-skeleton height="3.6rem" borderRadius="4px" />
+        }
+      </div>
+    } @else if (!items().length) {
+      <div class="empty">
+        <i class="pi pi-sliders-h"></i>
+        <span class="empty__title">No grades yet</span>
+        <p>Add a grade for each way a broken piece is sorted.</p>
+        <p-button icon="pi pi-plus" label="Add grade" (onClick)="openNew()" />
+      </div>
+    } @else {
+      <p-table [value]="items()" styleClass="p-datatable-sm">
+        <ng-template #header>
+          <tr>
+            <th class="master__sr">Sr</th>
+            <th>Name</th>
+            <th class="numeric">Entries logged</th>
+            <th>Added</th>
+            <th style="width: 10rem"></th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-item let-i="rowIndex">
+          <tr>
+            <td class="master__sr tabular">{{ i + 1 }}</td>
+            <td class="master__name">
+              <span class="grade-chip" [class]="gradeToneClass(i)">
+                <span class="grade-chip__swatch"></span>
+                {{ item.name }}
+              </span>
+            </td>
+            <td class="numeric tabular">{{ item.entryCount }}</td>
+            <td class="master__meta tabular">{{ item.createdDate }}</td>
+            <td>
+              <div class="master__actions">
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  [text]="true"
+                  pTooltip="Rename"
+                  tooltipPosition="top"
+                  (onClick)="openEdit(item)"
+                />
+                <p-button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  pTooltip="Delete"
+                  tooltipPosition="top"
+                  (onClick)="remove(item)"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</section>
+
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="dialogOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '32rem' }"
+  [header]="editing() ? 'Rename grade' : 'Add grade'"
+>
+  <div class="field">
+    <label class="field__label" for="grade-name">Name</label>
+    <input
+      pInputText
+      id="grade-name"
+      autocomplete="off"
+      placeholder="e.g. Grade 5"
+      [ngModel]="name()"
+      (ngModelChange)="name.set($event)"
+      (keyup.enter)="save()"
+    />
+    @if (nameInvalid()) {
+      <span class="field__error">A name is required.</span>
+    }
+    @if (!editing()) {
+      <span class="field__hint">
+        A new grade adds a button to every worker's row and a barcode for every worker and reason.
+        Print a fresh scanning sheet afterwards.
+      </span>
+    } @else {
+      <span class="field__hint">
+        Renaming is safe — every entry already logged keeps pointing at this grade.
+      </span>
+    }
+  </div>
+
+  <ng-template #footer>
+    <div class="dialog__footer">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="saving()"
+        (onClick)="dialogOpen.set(false)"
+      />
+      <p-button
+        [label]="editing() ? 'Save' : 'Add'"
+        icon="pi pi-check"
+        [loading]="saving()"
+        (onClick)="save()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>

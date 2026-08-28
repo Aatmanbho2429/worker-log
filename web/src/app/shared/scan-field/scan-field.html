@@ -1,0 +1,48 @@
+<div class="scanbox">
+  <label class="scanbox__label" for="scan-code">
+    <i class="pi pi-qrcode"></i>
+    Scan
+  </label>
+
+  <input
+    #box
+    id="scan-code"
+    class="scanbox__input tabular"
+    type="text"
+    inputmode="numeric"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="Scan a barcode, or type the digits under it"
+    [value]="code()"
+    (input)="onInput(box.value)"
+    (keyup.enter)="submit()"
+  />
+
+  <p-button
+    icon="pi pi-check"
+    label="Record"
+    [disabled]="!ready()"
+    [loading]="busy()"
+    (onClick)="submit()"
+  />
+
+  @if (!showResult()) {
+    <!-- The host screen reports the outcome itself. -->
+  } @else if (problem(); as issue) {
+    <div class="scanbox__result scanbox__result--problem" role="alert">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ issue }}</span>
+      <button type="button" class="scanbox__dismiss" (click)="dismiss()">Dismiss</button>
+    </div>
+  } @else if (last(); as entry) {
+    <div class="scanbox__result scanbox__result--ok" role="status">
+      <i class="pi pi-check-circle"></i>
+      <span>
+        <strong>{{ entry.workerName }}</strong>
+        · {{ entry.reasonName }} · {{ entry.gradeName }}
+      </span>
+    </div>
+  } @else {
+    <span class="scanbox__hint">Each scan records one entry.</span>
+  }
+</div>
