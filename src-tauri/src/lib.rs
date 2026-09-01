@@ -1,3 +1,4 @@
+mod auth;
 mod barcode;
 mod barcode_sheet;
 mod commands;
@@ -10,6 +11,7 @@ mod report;
 mod repo;
 mod seed;
 mod state;
+mod supabase;
 
 use chrono::Local;
 use tauri::Manager;
@@ -81,6 +83,14 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
+            commands::device_id,
+            auth::auth_register,
+            auth::auth_login,
+            auth::auth_restore,
+            auth::auth_logout,
+            auth::auth_forgot_password,
+            auth::auth_change_password,
+            auth::auth_payments,
             commands::list_series,
             commands::create_series,
             commands::update_series,

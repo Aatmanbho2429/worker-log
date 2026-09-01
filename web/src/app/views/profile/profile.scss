@@ -1,0 +1,166 @@
+@use 'base/tokens' as *;
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-lg;
+}
+
+// The account and the licence sit side by side; the payment history runs the
+// full width underneath, because it is the part with columns to line up.
+.profile__columns {
+  display: grid;
+  gap: $space-lg;
+  grid-template-columns: 1fr 1fr;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ------------------------------------------------------------- account ---
+
+.profile__identity {
+  align-items: center;
+  display: flex;
+  gap: $space-lg;
+  margin-bottom: $space-lg;
+}
+
+.profile__avatar {
+  align-items: center;
+  background: linear-gradient(140deg, $navy-500, $navy-700);
+  border: 1px solid $navy-400;
+  border-radius: $radius-pill;
+  color: $ink-0;
+  display: flex;
+  flex: 0 0 auto;
+  font-family: $font-display;
+  font-size: $fs-lg;
+  height: 5.6rem;
+  justify-content: center;
+  letter-spacing: 0.06em;
+  width: 5.6rem;
+}
+
+.profile__name {
+  font-size: $fs-lg;
+}
+
+.profile__company {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.profile__facts {
+  display: grid;
+  gap: $space-sm $space-lg;
+  grid-template-columns: max-content 1fr;
+
+  dt {
+    color: $text-muted;
+    font-size: $fs-xs;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    color: $text-primary;
+    overflow-wrap: anywhere;
+  }
+}
+
+.profile__device {
+  font-family: $font-mono;
+  font-size: $fs-sm;
+}
+
+.profile__bound {
+  align-items: flex-start;
+  color: $text-muted;
+  display: flex;
+  font-size: $fs-sm;
+  gap: $space-sm;
+  margin-top: $space-lg;
+
+  i {
+    color: $text-accent;
+    margin-top: 0.2rem;
+  }
+}
+
+// -------------------------------------------------------- subscription ---
+
+.profile__plan-head {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $space-lg;
+}
+
+.profile__eyebrow {
+  color: $text-faint;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.profile__plan {
+  font-size: $fs-lg;
+}
+
+.profile__days {
+  align-items: baseline;
+  display: flex;
+  gap: $space-sm;
+}
+
+.profile__days-count {
+  color: $text-accent;
+  font-family: $font-display;
+  font-size: $fs-2xl;
+  line-height: 1;
+}
+
+.profile__days-label {
+  color: $text-muted;
+  font-size: $fs-sm;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+// A run-out licence is the one number on this page that has to be read as bad
+// news rather than as a count.
+.profile__days--out .profile__days-count {
+  color: $red-500;
+}
+
+.profile__bar {
+  background: $wash-inset;
+  border-radius: $radius-pill;
+  height: 0.6rem;
+  margin: $space-md 0 $space-lg;
+  overflow: hidden;
+}
+
+.profile__bar-fill {
+  background: $text-accent;
+  display: block;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.profile__facts + p-message {
+  display: block;
+  margin-top: $space-lg;
+}
+
+// ----------------------------------------------------------- payments ---
+
+.profile__reference {
+  font-family: $font-mono;
+  font-size: $fs-sm;
+}

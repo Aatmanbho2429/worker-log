@@ -1,0 +1,13 @@
+@use 'base/tokens' as *;
+
+// The page chrome is shared with the sign-in screen and lives in
+// `styles/components/_auth.scss`. What is left here is the one thing only the
+// register form does: run two columns of fields.
+
+.auth__card {
+  // The grid gutter already spaces the fields apart; the last row would
+  // otherwise push the actions down by a whole field's margin.
+  .field:last-of-type {
+    margin-bottom: $space-md;
+  }
+}

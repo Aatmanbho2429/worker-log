@@ -67,6 +67,16 @@ export const WasteLogPreset = definePreset(Aura, {
       paddingX: '0.9rem',
       paddingY: '0.65rem',
       borderRadius: '6px',
+
+      // The large variant the account screens wear. Aura's own `lg` is smaller
+      // than the base size above once the app's 62.5% root is taken into
+      // account, so it has to be spelled out or `pSize="large"` would shrink
+      // the field it was asked to grow.
+      lg: {
+        fontSize: '1.5rem',
+        paddingX: '1.2rem',
+        paddingY: '1rem',
+      },
     },
 
     colorScheme: {

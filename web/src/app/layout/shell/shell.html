@@ -2,22 +2,42 @@
   <header class="shell__brand">
     <div class="shell__mark"><i class="pi pi-shield"></i></div>
     <div class="shell__wordmark">
-      <span class="shell__name">Waste Log</span>
-      <span class="shell__tagline">Sanitaryware</span>
+      <span class="shell__name">{{ 'common.brandName' | translate }}</span>
+      <span class="shell__tagline">{{ 'common.brandTagline' | translate }}</span>
     </div>
   </header>
 
   <div class="shell__topbar">
     <div class="shell__context">
       <i class="pi pi-building"></i>
-      <span>Production waste register</span>
+      <span>{{ user()?.companyName || ('shell.context' | translate) }}</span>
     </div>
-    <div class="shell__clock tabular">{{ clock() }}</div>
+
+    <div class="shell__session">
+      <div class="shell__clock tabular">{{ clock() }}</div>
+
+      @if (user(); as account) {
+        <a class="shell__user" routerLink="/profile" [attr.title]="fullName()">
+          <span class="shell__user-avatar">{{ initials() }}</span>
+          <span class="shell__user-name">{{ fullName() }}</span>
+        </a>
+
+        <p-button
+          icon="pi pi-sign-out"
+          severity="secondary"
+          [text]="true"
+          [rounded]="true"
+          [pTooltip]="'shell.signOut' | translate"
+          tooltipPosition="bottom"
+          (onClick)="signOut()"
+        />
+      }
+    </div>
   </div>
 
   <nav class="shell__nav">
     @for (section of sections; track section.label) {
-      <span class="shell__section">{{ section.label }}</span>
+      <span class="shell__section">{{ section.label | translate }}</span>
       @for (item of section.items; track item.route) {
         <a
           class="shell__link"
@@ -26,7 +46,7 @@
           [routerLinkActiveOptions]="{ exact: false }"
         >
           <i [class]="item.icon"></i>
-          <span>{{ item.label }}</span>
+          <span>{{ item.label | translate }}</span>
         </a>
       }
     }

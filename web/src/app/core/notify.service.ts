@@ -13,7 +13,7 @@ export class NotifyService {
     this.messages.clear();
     this.messages.add({
       severity: 'success',
-      summary: this.translate.instant('lblSuccess'),
+      summary: this.translate.instant('common.success'),
       detail,
       life: 2500,
     });
@@ -23,7 +23,7 @@ export class NotifyService {
     this.messages.clear();
     this.messages.add({
       severity: 'info',
-      summary: this.translate.instant('lblInfo'),
+      summary: this.translate.instant('common.info'),
       detail,
       life: 3000,
     });
@@ -33,7 +33,7 @@ export class NotifyService {
     this.messages.clear();
     this.messages.add({
       severity: 'warn',
-      summary: this.translate.instant('lblWarn'),
+      summary: this.translate.instant('common.warn'),
       detail,
       life: 4000,
     });
@@ -43,7 +43,7 @@ export class NotifyService {
     this.messages.clear();
     this.messages.add({
       severity: 'error',
-      summary: this.translate.instant('lblError'),
+      summary: this.translate.instant('common.error'),
       detail,
       life: 6000,
     });

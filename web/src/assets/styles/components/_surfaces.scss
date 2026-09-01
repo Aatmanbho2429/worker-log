@@ -112,6 +112,26 @@
   text-transform: uppercase;
 }
 
+// PrimeNG's password wrapper is inline-flex, so on its own it shrinks to the
+// input's default width and sits narrower than every field beside it.
+.field .p-password,
+.field .p-password input {
+  width: 100%;
+}
+
+// `p-password` is a component, and unlike the `pInputText` directive it takes
+// no `pSize` input — a `pSize` written on the element is an inert attribute.
+// The large size is handed to its inner input by class instead, reading the
+// same theme tokens `pSize="large"` would have. The right-hand padding is left
+// alone, because that is what holds the field clear of the reveal icon.
+// Qualified by the element: PrimeNG injects its own sheet at runtime, so a
+// bare class of the same specificity would lose on document order.
+input.field__input--lg {
+  font-size: var(--p-form-field-lg-font-size);
+  padding-block: var(--p-form-field-lg-padding-y);
+  padding-inline-start: var(--p-form-field-lg-padding-x);
+}
+
 .field__hint {
   color: $text-faint;
   font-size: $fs-xs;

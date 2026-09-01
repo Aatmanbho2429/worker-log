@@ -86,6 +86,56 @@
   letter-spacing: 0.06em;
 }
 
+// Clock, who is signed in, and the way out, at the right of the topbar.
+.shell__session {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+}
+
+.shell__user {
+  align-items: center;
+  border: 1px solid $border-default;
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  display: flex;
+  gap: $space-sm;
+  max-width: 24rem;
+  padding: 0.3rem 1.2rem 0.3rem 0.3rem;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+}
+
+.shell__user-avatar {
+  align-items: center;
+  background: linear-gradient(140deg, $navy-500, $navy-700);
+  border-radius: $radius-pill;
+  color: $ink-0;
+  display: flex;
+  flex: 0 0 auto;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  height: 3rem;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  width: 3rem;
+}
+
+.shell__user-name {
+  font-size: $fs-sm;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .shell__nav {
   background: $surface-sunken;
   border-right: 1px solid $border-default;

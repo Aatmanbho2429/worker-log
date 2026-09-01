@@ -1,0 +1,222 @@
+<div class="auth">
+  <aside class="auth__brand">
+    <div class="auth__brand-head">
+      <div class="auth__mark"><i class="pi pi-shield"></i></div>
+      <div class="auth__wordmark">
+        <span class="auth__name">{{ 'common.brandName' | translate }}</span>
+        <span class="auth__tagline">{{ 'common.brandTagline' | translate }}</span>
+      </div>
+    </div>
+
+    <h2 class="auth__pitch">{{ 'auth.register.pitch' | translate }}</h2>
+
+    <ul class="auth__points">
+      <li class="auth__point">
+        <i class="pi pi-desktop"></i>
+        <span>{{ 'auth.register.point1Title' | translate }}</span>
+        <p>{{ 'auth.register.point1Body' | translate }}</p>
+      </li>
+      <li class="auth__point">
+        <i class="pi pi-bolt"></i>
+        <span>{{ 'auth.register.point2Title' | translate }}</span>
+        <p>{{ 'auth.register.point2Body' | translate }}</p>
+      </li>
+      <li class="auth__point">
+        <i class="pi pi-database"></i>
+        <span>{{ 'auth.register.point3Title' | translate }}</span>
+        <p>{{ 'auth.register.point3Body' | translate }}</p>
+      </li>
+    </ul>
+  </aside>
+
+  <div class="auth__pane">
+    <form class="auth__card auth__card--wide" (ngSubmit)="submit()" novalidate>
+      <header class="auth__head">
+        <h1 class="auth__title">{{ 'auth.register.title' | translate }}</h1>
+        <p class="auth__subtitle">{{ 'auth.register.subtitle' | translate }}</p>
+      </header>
+
+      <div class="auth__device">
+        <i class="pi pi-lock"></i>
+        <div>
+          <span class="auth__device-title">{{ 'auth.register.deviceTitle' | translate }}</span>
+          <p>{{ 'auth.register.deviceBody' | translate }}</p>
+        </div>
+      </div>
+
+      <div class="auth__grid">
+        <div class="field">
+          <label class="field__label" for="first-name">{{
+            'auth.fieldFirstName' | translate
+          }}</label>
+          <input
+            pInputText
+            id="first-name"
+            autocomplete="given-name"
+            pSize="large"
+            [placeholder]="'auth.placeholderFirstName' | translate"
+            [ngModel]="form().firstName"
+            name="firstName"
+            (ngModelChange)="patch('firstName', $event)"
+            (blur)="touch('firstName')"
+          />
+          @if (problem('firstName'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="last-name">{{ 'auth.fieldLastName' | translate }}</label>
+          <input
+            pInputText
+            id="last-name"
+            autocomplete="family-name"
+            pSize="large"
+            [placeholder]="'auth.placeholderLastName' | translate"
+            [ngModel]="form().lastName"
+            name="lastName"
+            (ngModelChange)="patch('lastName', $event)"
+            (blur)="touch('lastName')"
+          />
+          @if (problem('lastName'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="phone">{{ 'auth.fieldPhone' | translate }}</label>
+          <p-inputgroup>
+            <p-inputgroup-addon>{{ 'auth.phonePrefix' | translate }}</p-inputgroup-addon>
+            <input
+              pInputText
+              id="phone"
+              inputmode="tel"
+              autocomplete="tel-national"
+              pSize="large"
+              [placeholder]="'auth.placeholderPhone' | translate"
+              [ngModel]="form().phone"
+              name="phone"
+              (ngModelChange)="patch('phone', $event)"
+              (blur)="touch('phone')"
+            />
+          </p-inputgroup>
+          @if (problem('phone'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          } @else {
+            <span class="field__hint">{{ 'auth.hintPhone' | translate }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="email">{{ 'auth.fieldEmail' | translate }}</label>
+          <input
+            pInputText
+            id="email"
+            type="email"
+            autocomplete="email"
+            pSize="large"
+            [placeholder]="'auth.placeholderEmail' | translate"
+            [ngModel]="form().email"
+            name="email"
+            (ngModelChange)="patch('email', $event)"
+            (blur)="touch('email')"
+          />
+          @if (problem('email'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          } @else {
+            <span class="field__hint">{{ 'auth.hintEmail' | translate }}</span>
+          }
+        </div>
+
+        <div class="field auth__span">
+          <label class="field__label" for="company">{{ 'auth.fieldCompany' | translate }}</label>
+          <input
+            pInputText
+            id="company"
+            autocomplete="organization"
+            pSize="large"
+            [placeholder]="'auth.placeholderCompany' | translate"
+            [ngModel]="form().companyName"
+            name="companyName"
+            (ngModelChange)="patch('companyName', $event)"
+            (blur)="touch('companyName')"
+          />
+          @if (problem('companyName'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="password">{{ 'auth.fieldPassword' | translate }}</label>
+          <p-password
+            inputId="password"
+            autocomplete="new-password"
+            inputStyleClass="field__input--lg"
+            [placeholder]="'auth.placeholderPassword' | translate"
+            [feedback]="false"
+            [toggleMask]="true"
+            [ngModel]="form().password"
+            name="password"
+            (ngModelChange)="patch('password', $event)"
+            (onBlur)="touch('password')"
+          />
+
+          @if (form().password) {
+            <div [class]="'meter meter--' + scoreTone()">
+              @for (step of [1, 2, 3, 4]; track step) {
+                <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
+              }
+            </div>
+          }
+
+          @if (problem('password'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          } @else if (form().password) {
+            <span class="meter__label">{{ scoreLabel() | translate }}</span>
+          } @else {
+            <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="confirm-password">{{
+            'auth.fieldConfirmPassword' | translate
+          }}</label>
+          <p-password
+            inputId="confirm-password"
+            autocomplete="new-password"
+            inputStyleClass="field__input--lg"
+            [placeholder]="'auth.placeholderConfirmPassword' | translate"
+            [feedback]="false"
+            [toggleMask]="true"
+            [ngModel]="form().confirmPassword"
+            name="confirmPassword"
+            (ngModelChange)="patch('confirmPassword', $event)"
+            (onBlur)="touch('confirmPassword')"
+          />
+          @if (problem('confirmPassword'); as message) {
+            <span class="field__error">{{ message | translate }}</span>
+          } @else {
+            <span class="field__hint">{{ 'auth.hintConfirmPassword' | translate }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="auth__actions">
+        <p-button
+          type="submit"
+          [label]="'auth.register.submit' | translate"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          styleClass="auth__submit"
+          [loading]="saving()"
+        />
+      </div>
+
+      <p class="auth__foot">
+        {{ 'auth.register.footPrompt' | translate }}
+        <a class="auth__link" routerLink="/login">{{ 'auth.register.footLink' | translate }}</a>
+      </p>
+    </form>
+  </div>
+</div>

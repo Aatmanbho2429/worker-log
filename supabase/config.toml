@@ -1,0 +1,16 @@
+# Only read by the Supabase CLI. If you deploy by pasting into the dashboard,
+# this file does nothing — turn Verify JWT off there instead.
+project_id = "worker-log"
+
+# The account functions are called before anybody is signed in, so none of them
+# can require a verified JWT. Each does its own checking: `register` and
+# `forgot-password` validate their input, and `login` verifies the password
+# before it decides anything.
+[functions.register]
+verify_jwt = false
+
+[functions.login]
+verify_jwt = false
+
+[functions.forgot-password]
+verify_jwt = false

@@ -36,6 +36,24 @@ pub fn app_info(state: State<'_, AppState>) -> AppInfo {
     }
 }
 
+/// A stable identifier for this PC, used to bind an account to one machine.
+///
+/// `machine_uid` reads what the operating system already keeps — the
+/// `IOPlatformUUID` on macOS, `MachineGuid` in the registry on Windows,
+/// `/etc/machine-id` on Linux. It survives reinstalling the app and clearing
+/// its data, which is the whole point: a licence that could be moved by
+/// deleting a file would not be a licence.
+///
+/// It is deliberately not something the front end can supply. The value is
+/// read here and travels to the account backend from the Rust side, so a
+/// tampered-with front end cannot claim to be a different machine.
+#[tauri::command]
+pub fn device_id() -> AppResult<String> {
+    machine_uid::get().map_err(|err| {
+        AppError::Internal(format!("could not read this machine's identifier: {err}"))
+    })
+}
+
 // ---------------------------------------------------------------- series ---
 
 #[tauri::command]

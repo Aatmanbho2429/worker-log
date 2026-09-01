@@ -1,0 +1,263 @@
+<section class="page">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">{{ 'profile.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'profile.subtitle' | translate }}</p>
+    </div>
+    <div class="page__actions">
+      <p-button
+        icon="pi pi-key"
+        [label]="'profile.resetPassword' | translate"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="openPasswordDialog()"
+      />
+    </div>
+  </header>
+
+  <div class="profile__columns">
+    <!-- ------------------------------------------------------ account -->
+    <div class="card card--pad">
+      @if (user(); as account) {
+        <div class="profile__identity">
+          <span class="profile__avatar">{{ initials() }}</span>
+          <div>
+            <h2 class="profile__name">{{ fullName() }}</h2>
+            <p class="profile__company">{{ account.companyName }}</p>
+          </div>
+        </div>
+
+        <dl class="profile__facts">
+          <dt>{{ 'profile.labelEmail' | translate }}</dt>
+          <dd>{{ account.email }}</dd>
+
+          <dt>{{ 'profile.labelPhone' | translate }}</dt>
+          <dd class="tabular">+91 {{ formatPhone(account.phone) }}</dd>
+
+          <dt>{{ 'profile.labelCompany' | translate }}</dt>
+          <dd>{{ account.companyName }}</dd>
+
+          <dt>{{ 'profile.labelRegistered' | translate }}</dt>
+          <dd>{{ date(account.createdDate) }}</dd>
+
+          <dt>{{ 'profile.labelLicensedPc' | translate }}</dt>
+          <dd class="profile__device">
+            @if (account.deviceId; as device) {
+              {{ shortDeviceId(device) }}
+            } @else {
+              <span class="master__na">{{ 'profile.deviceUnclaimed' | translate }}</span>
+            }
+          </dd>
+        </dl>
+
+        <p class="profile__bound">
+          <i class="pi pi-lock"></i>
+          <span>{{ 'profile.boundNote' | translate }}</span>
+        </p>
+      }
+    </div>
+
+    <!-- ------------------------------------------------- subscription -->
+    <div class="card card--pad">
+      @if (subscription(); as plan) {
+        <div class="profile__plan-head">
+          <div>
+            <span class="profile__eyebrow">{{ 'profile.subscription' | translate }}</span>
+            <h2 class="profile__plan">{{ plan.plan }}</h2>
+          </div>
+          <p-tag
+            [value]="subscriptionLabel(plan.status) | translate"
+            [severity]="subscriptionSeverity(plan.status)"
+          />
+        </div>
+
+        <div class="profile__days" [class.profile__days--out]="plan.status === 'expired'">
+          <span class="profile__days-count tabular">{{ plan.daysLeft }}</span>
+          <span class="profile__days-label">
+            {{ (plan.daysLeft === 1 ? 'profile.dayLeft' : 'profile.daysLeft') | translate }}
+          </span>
+        </div>
+
+        <div class="profile__bar">
+          <span class="profile__bar-fill" [style.width.%]="termUsed()"></span>
+        </div>
+
+        <dl class="profile__facts">
+          <dt>{{ 'profile.labelStarted' | translate }}</dt>
+          <dd>{{ date(plan.startedOn) }}</dd>
+
+          <dt>
+            {{
+              (plan.status === 'expired' ? 'profile.labelExpired' : 'profile.labelRenews')
+                | translate
+            }}
+          </dt>
+          <dd>{{ date(plan.renewsOn) }}</dd>
+
+          <dt>{{ 'profile.labelPaidToDate' | translate }}</dt>
+          <dd class="tabular">{{ money(paidTotal(), totalCurrency()) }}</dd>
+        </dl>
+
+        @if (plan.status === 'expired') {
+          <p-message severity="error" [text]="'profile.expiredMessage' | translate" />
+        } @else if (plan.status === 'expiring') {
+          <p-message
+            severity="warn"
+            [text]="'profile.expiringMessage' | translate: { days: plan.daysLeft }"
+          />
+        }
+      }
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------ payment history -->
+  <div class="card">
+    <div class="card__head">
+      <h2 class="card__title">{{ 'profile.paymentHistory' | translate }}</h2>
+      <span class="master__count">{{
+        'profile.paymentCount' | translate: { count: payments().length }
+      }}</span>
+    </div>
+
+    @if (loading()) {
+      <div class="skeletons">
+        @for (row of [1, 2, 3]; track row) {
+          <p-skeleton height="3.6rem" borderRadius="4px" />
+        }
+      </div>
+    } @else if (!payments().length) {
+      <div class="empty">
+        <i class="pi pi-receipt"></i>
+        <span class="empty__title">{{ 'profile.noPayments' | translate }}</span>
+        <p>{{ 'profile.noPaymentsBody' | translate }}</p>
+      </div>
+    } @else {
+      <p-table [value]="payments()" styleClass="p-datatable-sm">
+        <ng-template #header>
+          <tr>
+            <th>{{ 'profile.columnDate' | translate }}</th>
+            <th>{{ 'profile.columnReference' | translate }}</th>
+            <th>{{ 'profile.columnPlan' | translate }}</th>
+            <th>{{ 'profile.columnPeriod' | translate }}</th>
+            <th>{{ 'profile.columnMethod' | translate }}</th>
+            <th class="numeric">{{ 'profile.columnAmount' | translate }}</th>
+            <th>{{ 'profile.columnStatus' | translate }}</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-payment>
+          <tr>
+            <td class="tabular">{{ date(payment.paidOn) }}</td>
+            <td class="profile__reference">{{ payment.reference }}</td>
+            <td>{{ payment.plan }}</td>
+            <td class="master__meta">
+              {{ date(payment.periodFrom) }} — {{ date(payment.periodTo) }}
+            </td>
+            <td>{{ payment.method }}</td>
+            <td class="numeric tabular">{{ money(payment.amount, payment.currency) }}</td>
+            <td>
+              <p-tag
+                [value]="payment.status | titlecase"
+                [severity]="paymentSeverity(payment.status)"
+              />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</section>
+
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="dialogOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '38rem' }"
+  [header]="'profile.changePasswordHeader' | translate"
+>
+  <div class="field">
+    <label class="field__label" for="current-password">{{
+      'profile.fieldCurrentPassword' | translate
+    }}</label>
+    <p-password
+      inputId="current-password"
+      autocomplete="current-password"
+      [placeholder]="'profile.placeholderCurrentPassword' | translate"
+      [feedback]="false"
+      [toggleMask]="true"
+      [ngModel]="form().currentPassword"
+      (ngModelChange)="patch('currentPassword', $event)"
+    />
+    @if (currentError(); as message) {
+      <span class="field__error">{{ message | translate }}</span>
+    }
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="new-password">{{
+      'profile.fieldNewPassword' | translate
+    }}</label>
+    <p-password
+      inputId="new-password"
+      autocomplete="new-password"
+      [placeholder]="'profile.placeholderNewPassword' | translate"
+      [feedback]="false"
+      [toggleMask]="true"
+      [ngModel]="form().newPassword"
+      (ngModelChange)="patch('newPassword', $event)"
+    />
+
+    @if (form().newPassword) {
+      <div [class]="'meter meter--' + scoreTone()">
+        @for (step of [1, 2, 3, 4]; track step) {
+          <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
+        }
+      </div>
+    }
+
+    @if (newError(); as message) {
+      <span class="field__error">{{ message | translate }}</span>
+    } @else if (form().newPassword) {
+      <span class="meter__label">{{ scoreLabel() | translate }}</span>
+    } @else {
+      <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
+    }
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="confirm-new-password">{{
+      'profile.fieldConfirmNewPassword' | translate
+    }}</label>
+    <p-password
+      inputId="confirm-new-password"
+      autocomplete="new-password"
+      [placeholder]="'profile.placeholderConfirmNewPassword' | translate"
+      [feedback]="false"
+      [toggleMask]="true"
+      [ngModel]="form().confirmPassword"
+      (ngModelChange)="patch('confirmPassword', $event)"
+    />
+    @if (confirmError(); as message) {
+      <span class="field__error">{{ message | translate }}</span>
+    }
+  </div>
+
+  <ng-template #footer>
+    <div class="dialog__footer">
+      <p-button
+        [label]="'common.cancel' | translate"
+        severity="secondary"
+        [text]="true"
+        [disabled]="saving()"
+        (onClick)="dialogOpen.set(false)"
+      />
+      <p-button
+        [label]="'profile.changePasswordSubmit' | translate"
+        icon="pi pi-check"
+        [loading]="saving()"
+        (onClick)="savePassword()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>

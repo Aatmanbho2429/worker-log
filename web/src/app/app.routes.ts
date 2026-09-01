@@ -1,11 +1,27 @@
 import { Routes } from '@angular/router';
 
+import { authGuard, guestGuard } from './core/auth.guard';
 import { Shell } from './layout/shell/shell';
 
 export const routes: Routes = [
+  // The account screens stand outside the shell: there is nothing to navigate
+  // to until somebody is signed in.
+  {
+    path: 'login',
+    title: 'Sign in — Ceramic Waste Log',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./views/auth/login/login').then((m) => m.Login),
+  },
+  {
+    path: 'register',
+    title: 'Create your account — Ceramic Waste Log',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./views/auth/register/register').then((m) => m.Register),
+  },
   {
     path: '',
     component: Shell,
+    canActivateChild: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'waste' },
       {
@@ -37,6 +53,11 @@ export const routes: Routes = [
         path: 'series',
         title: 'Series of product — Ceramic Waste Log',
         loadComponent: () => import('./views/series/series').then((m) => m.Series),
+      },
+      {
+        path: 'profile',
+        title: 'Profile — Ceramic Waste Log',
+        loadComponent: () => import('./views/profile/profile').then((m) => m.Profile),
       },
       {
         path: 'settings',

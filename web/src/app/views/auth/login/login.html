@@ -1,0 +1,161 @@
+<div class="auth">
+  <aside class="auth__brand">
+    <div class="auth__brand-head">
+      <div class="auth__mark"><i class="pi pi-shield"></i></div>
+      <div class="auth__wordmark">
+        <span class="auth__name">{{ 'common.brandName' | translate }}</span>
+        <span class="auth__tagline">{{ 'common.brandTagline' | translate }}</span>
+      </div>
+    </div>
+
+    <h2 class="auth__pitch">{{ 'auth.login.pitch' | translate }}</h2>
+
+    <ul class="auth__points">
+      <li class="auth__point">
+        <i class="pi pi-desktop"></i>
+        <span>{{ 'auth.login.point1Title' | translate }}</span>
+        <p>{{ 'auth.login.point1Body' | translate }}</p>
+      </li>
+      <li class="auth__point">
+        <i class="pi pi-clock"></i>
+        <span>{{ 'auth.login.point2Title' | translate }}</span>
+        <p>{{ 'auth.login.point2Body' | translate }}</p>
+      </li>
+    </ul>
+  </aside>
+
+  <div class="auth__pane">
+    <form class="auth__card auth__card--narrow" (ngSubmit)="submit()" novalidate>
+      <header class="auth__head">
+        <h1 class="auth__title">{{ 'auth.login.title' | translate }}</h1>
+        <p class="auth__subtitle">{{ 'auth.login.subtitle' | translate }}</p>
+      </header>
+
+      <div class="field">
+        <label class="field__label" for="login-email">{{ 'auth.fieldEmail' | translate }}</label>
+        <input
+          pInputText
+          id="login-email"
+          type="email"
+          autocomplete="username"
+          pSize="large"
+          [placeholder]="'auth.placeholderLoginEmail' | translate"
+          [ngModel]="email()"
+          name="email"
+          (ngModelChange)="email.set($event)"
+        />
+        @if (emailError(); as message) {
+          <span class="field__error">{{ message | translate }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <div class="auth__aside">
+          <label class="field__label" for="login-password">{{
+            'auth.fieldPassword' | translate
+          }}</label>
+          <button class="auth__link" type="button" (click)="openForgot()">
+            {{ 'auth.forgot.link' | translate }}
+          </button>
+        </div>
+        <p-password
+          inputId="login-password"
+          autocomplete="current-password"
+          inputStyleClass="field__input--lg"
+          [placeholder]="'auth.placeholderLoginPassword' | translate"
+          [feedback]="false"
+          [toggleMask]="true"
+          [ngModel]="password()"
+          name="password"
+          (ngModelChange)="password.set($event)"
+        />
+        @if (passwordError(); as message) {
+          <span class="field__error">{{ message | translate }}</span>
+        }
+      </div>
+
+      <div class="auth__actions">
+        <p-button
+          type="submit"
+          [label]="'auth.login.submit' | translate"
+          icon="pi pi-sign-in"
+          styleClass="auth__submit"
+          [loading]="signingIn()"
+        />
+      </div>
+
+      <p class="auth__foot">
+        {{ 'auth.login.footPrompt' | translate }}
+        <a class="auth__link" routerLink="/register">{{ 'auth.login.footLink' | translate }}</a>
+      </p>
+    </form>
+  </div>
+</div>
+
+<p-dialog
+  [visible]="forgotOpen()"
+  (visibleChange)="forgotOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '38rem' }"
+  [header]="'auth.forgot.header' | translate"
+>
+  @if (forgotResult(); as result) {
+    <p class="forgot__done">
+      <i class="pi pi-check-circle"></i>
+      <span
+        >{{ 'auth.forgot.sent' | translate }} <strong>{{ result.sentTo }}</strong
+        >.</span
+      >
+    </p>
+
+    <p class="forgot__note">{{ 'auth.forgot.next' | translate }}</p>
+  } @else {
+    <p class="forgot__note">
+      {{ 'auth.forgot.prompt' | translate }}
+    </p>
+
+    <div class="field">
+      <label class="field__label" for="forgot-email">{{ 'auth.fieldEmail' | translate }}</label>
+      <input
+        pInputText
+        id="forgot-email"
+        type="email"
+        autocomplete="email"
+        [placeholder]="'auth.placeholderLoginEmail' | translate"
+        [ngModel]="forgotEmail()"
+        name="forgotEmail"
+        (ngModelChange)="forgotEmail.set($event)"
+      />
+      @if (forgotError(); as message) {
+        <span class="field__error">{{ message | translate }}</span>
+      }
+    </div>
+  }
+
+  <ng-template #footer>
+    <div class="dialog__footer">
+      @if (forgotResult()) {
+        <p-button
+          [label]="'common.done' | translate"
+          icon="pi pi-check"
+          (onClick)="closeForgot()"
+        />
+      } @else {
+        <p-button
+          [label]="'common.cancel' | translate"
+          severity="secondary"
+          [text]="true"
+          [disabled]="forgotSending()"
+          (onClick)="forgotOpen.set(false)"
+        />
+        <p-button
+          [label]="'auth.forgot.submit' | translate"
+          icon="pi pi-send"
+          [loading]="forgotSending()"
+          (onClick)="sendNewPassword()"
+        />
+      }
+    </div>
+  </ng-template>
+</p-dialog>

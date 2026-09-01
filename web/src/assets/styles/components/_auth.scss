@@ -1,0 +1,332 @@
+@use 'base/tokens' as *;
+
+// The chrome the sign-in and register pages share: a fixed navy panel that
+// says what the app is, and a scrolling pane holding the form.
+//
+// These two screens sit outside the shell — there is no sidebar to navigate to
+// before you are signed in — so they own the whole window and their own
+// scrolling. `html, body` are `overflow: hidden`, so the pane, not the page, is
+// what moves.
+
+.auth {
+  display: grid;
+  grid-template-columns: 44rem 1fr;
+  height: 100vh;
+}
+
+// -------------------------------------------------------------- the panel ---
+
+.auth__brand {
+  background: linear-gradient(160deg, $navy-700, $navy-950 70%);
+  border-right: 1px solid $navy-600;
+  color: $navy-100;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xl;
+  justify-content: center;
+  overflow: hidden;
+  padding: $space-2xl;
+  position: relative;
+
+  // A faint wash off the top corner, so the flat navy has some depth to it.
+  &::after {
+    background: radial-gradient(circle at 20% 0%, rgba(112, 152, 203, 0.28), transparent 60%);
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.auth__brand-head {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+}
+
+.auth__mark {
+  align-items: center;
+  background: linear-gradient(140deg, $navy-500, $navy-700);
+  border: 1px solid $navy-400;
+  border-radius: $radius-md;
+  display: flex;
+  height: 4.4rem;
+  justify-content: center;
+  width: 4.4rem;
+
+  i {
+    color: $navy-100;
+    font-size: 2.2rem;
+  }
+}
+
+.auth__wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.auth__name {
+  color: $ink-0;
+  font-family: $font-display;
+  font-size: $fs-md;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.auth__tagline {
+  color: $navy-200;
+  font-size: $fs-xs;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.auth__pitch {
+  color: $ink-0;
+  font-size: $fs-2xl;
+  line-height: 1.15;
+  max-width: 14ch;
+  text-transform: uppercase;
+}
+
+.auth__points {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  list-style: none;
+}
+
+.auth__point {
+  color: $navy-100;
+  display: grid;
+  font-size: $fs-base;
+  gap: 0 $space-md;
+  grid-template-columns: 2.4rem 1fr;
+
+  i {
+    color: $navy-300;
+    font-size: 1.8rem;
+    margin-top: 0.2rem;
+  }
+
+  span {
+    color: $ink-0;
+    font-weight: 600;
+  }
+
+  p {
+    color: $navy-200;
+    font-size: $fs-sm;
+    grid-column: 2;
+  }
+}
+
+// --------------------------------------------------------------- the form ---
+
+.auth__pane {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  padding: $space-2xl;
+}
+
+.auth__card {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  padding: $space-xl;
+  width: 100%;
+}
+
+.auth__card--narrow {
+  max-width: 42rem;
+}
+
+.auth__card--wide {
+  max-width: 60rem;
+}
+
+.auth__head {
+  margin-bottom: $space-xl;
+}
+
+.auth__title {
+  font-size: $fs-xl;
+  text-transform: uppercase;
+}
+
+.auth__subtitle {
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-top: $space-xs;
+}
+
+.auth__grid {
+  display: grid;
+  gap: 0 $space-lg;
+  grid-template-columns: 1fr 1fr;
+}
+
+// The account screens run their inputs at `pSize="large"`, and the label above
+// one wants a little more room than it does on a dense masters dialog.
+.auth__card .field__label,
+.auth__card .auth__aside .field__label {
+  font-size: $fs-xs;
+  letter-spacing: 0.12em;
+}
+
+.auth__card .field {
+  margin-bottom: $space-xl;
+}
+
+.auth__span {
+  grid-column: 1 / -1;
+}
+
+.auth__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  margin-top: $space-sm;
+}
+
+// PrimeNG renders the button inside its own template, so a class the component
+// stylesheet scopes would never reach it. Handed through `styleClass` instead.
+.auth__submit {
+  justify-content: center;
+  width: 100%;
+}
+
+.auth__foot {
+  border-top: 1px solid $border-subtle;
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-top: $space-xl;
+  padding-top: $space-lg;
+  text-align: center;
+}
+
+.auth__link {
+  background: none;
+  border: none;
+  color: $text-accent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.auth__aside {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $space-lg;
+}
+
+// The licence notice on the register form. It is the one thing on the page an
+// operator cannot undo later, so it gets a heading of its own rather than being
+// another line of small print.
+.auth__device {
+  align-items: flex-start;
+  background: $wash-inset;
+  border-left: 0.3rem solid $text-accent;
+  border-radius: $radius-md;
+  display: flex;
+  gap: $space-md;
+  margin-bottom: $space-xl;
+  padding: $space-md $space-lg;
+
+  > i {
+    color: $text-accent;
+    font-size: 1.8rem;
+    margin-top: 0.2rem;
+  }
+
+  p {
+    color: $text-muted;
+    font-size: $fs-sm;
+    margin-top: 0.2rem;
+    max-width: 56ch;
+  }
+}
+
+.auth__device-title {
+  color: $text-secondary;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+// ------------------------------------------------------- password meter ---
+//
+// Four segments under the password field. Shared with the profile's change
+// password dialog, which is why it lives here rather than in the register
+// component's own sheet.
+
+.meter {
+  display: flex;
+  gap: $space-xs;
+  margin-top: $space-xs;
+}
+
+.meter__step {
+  background: $border-subtle;
+  border-radius: $radius-pill;
+  flex: 1;
+  height: 0.4rem;
+  transition: background 0.2s ease;
+}
+
+// The tone comes from the container, so the lit segments always agree with the
+// word printed under them.
+.meter--weak .meter__step--on {
+  background: $red-500;
+}
+
+.meter--fair .meter__step--on {
+  background: $amber-500;
+}
+
+.meter--good .meter__step--on,
+.meter--strong .meter__step--on {
+  background: $green-500;
+}
+
+.meter__label {
+  color: $text-faint;
+  font-size: $fs-xs;
+  margin-top: $space-xs;
+}
+
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .auth__brand {
+    display: none;
+  }
+
+  .auth__pane {
+    align-items: flex-start;
+    padding: $space-lg;
+  }
+
+  .auth__grid {
+    grid-template-columns: 1fr;
+  }
+}

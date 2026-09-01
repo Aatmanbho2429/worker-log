@@ -36,6 +36,11 @@
   --text-muted: #{$ink-500};
   --text-faint: #{$ink-450};
 
+  // Navy used *as text* — links, and the numbers worth picking out. It has to
+  // be read at both ends of the ramp, so the two schemes take it from opposite
+  // ends rather than sharing one value.
+  --text-accent: #{$navy-500};
+
   --shadow-card: 0 0.1rem 0.3rem rgba(15, 23, 42, 0.08);
   --shadow-raised: 0 0.8rem 2.4rem rgba(15, 23, 42, 0.14);
 
@@ -68,6 +73,8 @@
   --text-secondary: #c3cede;
   --text-muted: #8296ae;
   --text-faint: #5b6d84;
+
+  --text-accent: #{$navy-300};
 
   --shadow-card: 0 0.2rem 1.2rem rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.55);
