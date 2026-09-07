@@ -47,7 +47,7 @@
 
   &:focus {
     border-color: $navy-300;
-    box-shadow: 0 0 0 0.3rem rgba(63, 111, 168, 0.22);
+    box-shadow: 0 0 0 0.3rem rgba($navy-400, 0.22);
     outline: none;
   }
 

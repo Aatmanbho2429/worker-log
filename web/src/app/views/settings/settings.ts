@@ -1,9 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
 import { NotifyService } from '../../core/notify.service';
-import { AppInfo, WasteLogService } from '../../core/waste-log.service';
+import { AppInfo } from '../../models';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
+import { SettingsService } from '../../services/settings/settings.service';
 
 /**
  * Where the register lives, and the demo data loader.
@@ -18,9 +20,10 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   styleUrl: './settings.scss',
 })
 export class Settings {
-  private readonly api = inject(WasteLogService);
+  private readonly settingsApi = inject(SettingsService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly info = signal<AppInfo | null>(null);
   protected readonly seeding = signal(false);
@@ -39,13 +42,11 @@ export class Settings {
    */
   protected reseed(): void {
     this.confirm.confirm({
-      header: 'Replace all data with demo data',
-      message:
-        'This deletes every worker, series and logged waste entry, then loads a ' +
-        'fresh demo month. Your reason columns are kept. This cannot be undone.',
+      header: this.translate.instant('settings.reseedHeader'),
+      message: this.translate.instant('settings.reseedMessage'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Replace everything',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.translate.instant('settings.replaceEverything'),
+      rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
       accept: () => void this.run(true),
@@ -55,12 +56,12 @@ export class Settings {
   private async run(force: boolean): Promise<void> {
     this.seeding.set(true);
     try {
-      const summary = await this.api.seedDemoData(force);
+      const summary = await this.settingsApi.seedDemoData(force);
       this.notify.success(summary);
     } catch (error) {
       // A refusal because data already exists comes back as `conflict`, and
       // reads as a warning telling the operator to use Replace instead.
-      this.notify.fromCommand(error, 'Could not load the demo data.');
+      this.notify.fromCommand(error, this.translate.instant('settings.seedFailed'));
     } finally {
       this.seeding.set(false);
     }
@@ -68,9 +69,9 @@ export class Settings {
 
   private async load(): Promise<void> {
     try {
-      this.info.set(await this.api.appInfo());
+      this.info.set(await this.settingsApi.appInfo());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not read the application details.');
+      this.notify.fromCommand(error, this.translate.instant('settings.infoFailed'));
     }
   }
 }

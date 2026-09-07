@@ -9,11 +9,12 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
-import { WasteLogService } from '../../core/waste-log.service';
 import { WorkerLog } from '../../models';
-import { isCommandError } from '../../core/tauri.service';
+import { isCommandError } from '../../core/zone-wrapper/zone-wrapper.service';
 import { PrimengComponentsModule } from '../primeng-components-module';
+import { BarcodeService } from '../../services/barcode/barcode.service';
 
 /**
  * The digits a waste-log barcode carries — see `barcode.rs`. A scanner that has
@@ -42,7 +43,8 @@ const CODE_LENGTH = 12;
   styleUrl: './scan-field.scss',
 })
 export class ScanField {
-  private readonly api = inject(WasteLogService);
+  private readonly barcode = inject(BarcodeService);
+  private readonly translate = inject(TranslateService);
 
   /**
    * Whether to report the outcome inline. A screen with a confirmation panel of
@@ -97,12 +99,12 @@ export class ScanField {
     this.inFlight.update((n) => n + 1);
 
     try {
-      const { entry } = await this.api.recordScan(code);
+      const { entry } = await this.barcode.recordScan(code);
       this.problem.set(null);
       this.last.set(entry);
       this.recorded.emit(entry);
     } catch (error) {
-      const message = messageOf(error, 'That barcode could not be recorded.');
+      const message = messageOf(error, this.translate.instant('scanField.failed'));
       this.last.set(null);
       this.problem.set(message);
       this.failed.emit(message);

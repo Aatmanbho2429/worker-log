@@ -1,7 +1,7 @@
 <div class="scanbox">
   <label class="scanbox__label" for="scan-code">
     <i class="pi pi-qrcode"></i>
-    Scan
+    {{ 'scanField.label' | translate }}
   </label>
 
   <input
@@ -12,7 +12,7 @@
     inputmode="numeric"
     autocomplete="off"
     spellcheck="false"
-    placeholder="Scan a barcode, or type the digits under it"
+    [placeholder]="'scanField.placeholder' | translate"
     [value]="code()"
     (input)="onInput(box.value)"
     (keyup.enter)="submit()"
@@ -20,7 +20,7 @@
 
   <p-button
     icon="pi pi-check"
-    label="Record"
+    [label]="'scanField.record' | translate"
     [disabled]="!ready()"
     [loading]="busy()"
     (onClick)="submit()"
@@ -32,7 +32,9 @@
     <div class="scanbox__result scanbox__result--problem" role="alert">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ issue }}</span>
-      <button type="button" class="scanbox__dismiss" (click)="dismiss()">Dismiss</button>
+      <button type="button" class="scanbox__dismiss" (click)="dismiss()">
+        {{ 'scanField.dismiss' | translate }}
+      </button>
     </div>
   } @else if (last(); as entry) {
     <div class="scanbox__result scanbox__result--ok" role="status">
@@ -43,6 +45,6 @@
       </span>
     </div>
   } @else {
-    <span class="scanbox__hint">Each scan records one entry.</span>
+    <span class="scanbox__hint">{{ 'scanField.hint' | translate }}</span>
   }
 </div>

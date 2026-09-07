@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/auth.service';
 import { NotifyService } from '../../../core/notify.service';
 import { TranslateService } from '@ngx-translate/core';
 import { PasswordReset, emailProblem } from '../../../models/auth';
+import { ROUTE_REGISTER, ROUTE_WASTE } from '../../../models/constants';
 import { PrimengComponentsModule } from '../../../shared/primeng-components-module';
 
 /**
@@ -27,6 +28,8 @@ export class Login {
   private readonly notify = inject(NotifyService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+
+  protected readonly ROUTE_REGISTER = ROUTE_REGISTER;
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -71,7 +74,7 @@ export class Login {
       this.notify.success(
         this.translate.instant('auth.login.welcome', { name: session.user.firstName }),
       );
-      await this.router.navigate(['/waste']);
+      await this.router.navigate([ROUTE_WASTE]);
     } catch (error) {
       this.notify.fromCommand(error, this.translate.instant('auth.login.failed'));
     } finally {

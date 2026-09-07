@@ -1,21 +1,18 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Reasons</h1>
-      <p class="page__subtitle">
-        The columns of the sheet — where a piece was lost. Their order here is the order they appear
-        on the month sheet and the PDF.
-      </p>
+      <h1 class="page__title">{{ 'reasons.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'reasons.subtitle' | translate }}</p>
     </div>
     <div class="page__actions">
-      <p-button icon="pi pi-plus" label="Add reason" (onClick)="openNew()" />
+      <p-button icon="pi pi-plus" [label]="'reasons.addReason' | translate" (onClick)="openNew()" />
     </div>
   </header>
 
   <div class="card">
     <div class="card__head">
-      <h2 class="card__title">Column order</h2>
-      <span class="master__count">{{ items().length }} reason(s)</span>
+      <h2 class="card__title">{{ 'common.columnOrder' | translate }}</h2>
+      <span class="master__count">{{ 'reasons.countLabel' | translate: { count: items().length } }}</span>
     </div>
 
     @if (loading()) {
@@ -27,9 +24,9 @@
     } @else if (!items().length) {
       <div class="empty">
         <i class="pi pi-tags"></i>
-        <span class="empty__title">No reasons yet</span>
-        <p>Add a column for each place a piece can break.</p>
-        <p-button icon="pi pi-plus" label="Add reason" (onClick)="openNew()" />
+        <span class="empty__title">{{ 'reasons.noReasonsTitle' | translate }}</span>
+        <p>{{ 'reasons.noReasonsBody' | translate }}</p>
+        <p-button icon="pi pi-plus" [label]="'reasons.addReason' | translate" (onClick)="openNew()" />
       </div>
     } @else {
       <ul class="reasons-list">
@@ -50,7 +47,7 @@
                 severity="secondary"
                 [text]="true"
                 [disabled]="first || reordering()"
-                pTooltip="Move left on the sheet"
+                [pTooltip]="'reasons.moveLeft' | translate"
                 tooltipPosition="top"
                 (onClick)="move(i, -1)"
               />
@@ -59,7 +56,7 @@
                 severity="secondary"
                 [text]="true"
                 [disabled]="last || reordering()"
-                pTooltip="Move right on the sheet"
+                [pTooltip]="'reasons.moveRight' | translate"
                 tooltipPosition="top"
                 (onClick)="move(i, 1)"
               />
@@ -70,7 +67,7 @@
                 icon="pi pi-pencil"
                 severity="secondary"
                 [text]="true"
-                pTooltip="Rename"
+                [pTooltip]="'common.rename' | translate"
                 tooltipPosition="top"
                 (onClick)="openEdit(reason)"
               />
@@ -78,7 +75,7 @@
                 icon="pi pi-trash"
                 severity="danger"
                 [text]="true"
-                pTooltip="Delete"
+                [pTooltip]="'common.delete' | translate"
                 tooltipPosition="top"
                 (onClick)="remove(reason)"
               />
@@ -96,38 +93,36 @@
   [modal]="true"
   [draggable]="false"
   [style]="{ width: '32rem' }"
-  [header]="editing() ? 'Rename reason' : 'Add reason'"
+  [header]="(editing() ? 'reasons.renameHeader' : 'reasons.addReason') | translate"
 >
   <div class="field">
-    <label class="field__label" for="reason-name">Name</label>
+    <label class="field__label" for="reason-name">{{ 'common.name' | translate }}</label>
     <input
       pInputText
       id="reason-name"
       autocomplete="off"
-      placeholder="e.g. Loader"
+      [placeholder]="'reasons.namePlaceholder' | translate"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
       (keyup.enter)="save()"
     />
     @if (nameInvalid()) {
-      <span class="field__error">A name is required.</span>
+      <span class="field__error">{{ 'validation.nameRequired' | translate }}</span>
     }
-    <span class="field__hint">
-      Keep it short — it has to fit a narrow column on the printed sheet.
-    </span>
+    <span class="field__hint">{{ 'reasons.nameHint' | translate }}</span>
   </div>
 
   <ng-template #footer>
     <div class="dialog__footer">
       <p-button
-        label="Cancel"
+        [label]="'common.cancel' | translate"
         severity="secondary"
         [text]="true"
         [disabled]="saving()"
         (onClick)="dialogOpen.set(false)"
       />
       <p-button
-        [label]="editing() ? 'Save' : 'Add'"
+        [label]="(editing() ? 'common.save' : 'common.add') | translate"
         icon="pi pi-check"
         [loading]="saving()"
         (onClick)="save()"

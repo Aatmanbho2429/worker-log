@@ -177,7 +177,7 @@
 // The entry history lists one entry at a time, so its grade is a label rather
 // than a column — but the same colour as everywhere else.
 .entry-grade {
-  background: var(--grade-soft, #{rgba(112, 152, 203, 0.16)});
+  background: var(--grade-soft, #{rgba($navy-300, 0.16)});
   border: 1px solid var(--grade-edge, #{$navy-400});
   border-radius: $radius-pill;
   color: var(--grade-bright, #{$navy-200});

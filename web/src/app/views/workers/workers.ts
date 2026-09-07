@@ -1,10 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { SeriesService } from '../../services/series/series.service';
+import { WorkerService } from '../../services/worker/worker.service';
 import { SeriesOfProduct, Worker, WorkerPayload, workerFullName } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
@@ -25,10 +28,13 @@ const EMPTY_FORM: FormState = { firstName: '', lastName: '', phone: '', seriesOf
   styleUrl: './workers.scss',
 })
 export class Workers {
-  private readonly api = inject(WasteLogService);
+  private readonly worker = inject(WorkerService);
+  private readonly seriesApi = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly items = signal<Worker[]>([]);
   protected readonly series = signal<SeriesOfProduct[]>([]);
@@ -47,7 +53,7 @@ export class Workers {
   );
 
   protected readonly seriesFilterOptions = computed(() => [
-    { label: 'All series', value: null },
+    { label: this.translate.instant('rangeFilter.allSeries'), value: null },
     ...this.seriesOptions(),
   ]);
 
@@ -80,7 +86,7 @@ export class Workers {
   constructor() {
     void this.load();
 
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'workers', 'series')) {
         void this.load();
       }
@@ -89,7 +95,7 @@ export class Workers {
 
   protected openNew(): void {
     if (!this.series().length) {
-      this.notify.warn('Add a series of product first — every worker belongs to one.');
+      this.notify.warn(this.translate.instant('workers.needSeriesWarning'));
       return;
     }
     this.editing.set(null);
@@ -134,16 +140,18 @@ export class Workers {
 
     try {
       const worker = editing
-        ? await this.api.updateWorker(editing.id, payload)
-        : await this.api.createWorker(payload);
+        ? await this.worker.update(editing.id, payload)
+        : await this.worker.create(payload);
 
       this.notify.success(
-        editing ? `Updated ${workerFullName(worker)}.` : `Added ${workerFullName(worker)}.`,
+        this.translate.instant(editing ? 'workers.updatedSuccess' : 'workers.addedSuccess', {
+          name: workerFullName(worker),
+        }),
       );
       this.dialogOpen.set(false);
       await this.load();
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not save the worker.');
+      this.notify.fromCommand(error, this.translate.instant('workers.saveFailed'));
     } finally {
       this.saving.set(false);
     }
@@ -156,33 +164,35 @@ export class Workers {
   protected async remove(worker: Worker): Promise<void> {
     let loggedEntries: number;
     try {
-      ({ loggedEntries } = await this.api.workerDeleteImpact(worker.id));
+      ({ loggedEntries } = await this.worker.deleteImpact(worker.id));
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not check the worker before deleting.');
+      this.notify.fromCommand(error, this.translate.instant('workers.impactFailed'));
       return;
     }
 
     const name = workerFullName(worker);
     const warning = loggedEntries
-      ? ` This also deletes ${loggedEntries} logged waste ` +
-        `entr${loggedEntries === 1 ? 'y' : 'ies'}, which will change past reports.`
+      ? this.translate.instant(
+          loggedEntries === 1 ? 'workers.entrySingular' : 'workers.entryPlural',
+          { count: loggedEntries },
+        )
       : '';
 
     this.confirm.confirm({
-      header: 'Delete worker',
-      message: `Delete ${name}?${warning} This cannot be undone.`,
+      header: this.translate.instant('workers.deleteHeader'),
+      message: this.translate.instant('workers.deleteMessage', { name, warning }),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.translate.instant('common.delete'),
+      rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
       accept: async () => {
         try {
-          await this.api.deleteWorker(worker.id);
-          this.notify.success(`Deleted ${name}.`);
+          await this.worker.delete(worker.id);
+          this.notify.success(this.translate.instant('workers.deletedSuccess', { name }));
           await this.load();
         } catch (error) {
-          this.notify.fromCommand(error, 'Could not delete the worker.');
+          this.notify.fromCommand(error, this.translate.instant('workers.deleteFailed'));
         }
       },
     });
@@ -194,20 +204,20 @@ export class Workers {
     this.loading.set(true);
 
     const [series, workers] = await Promise.allSettled([
-      this.api.listSeries(),
-      this.api.listWorkers(),
+      this.seriesApi.list(),
+      this.worker.list(),
     ]);
 
     if (series.status === 'fulfilled') {
       this.series.set(series.value);
     } else {
-      this.notify.fromCommand(series.reason, 'Could not load the product series.');
+      this.notify.fromCommand(series.reason, this.translate.instant('waste.seriesFailed'));
     }
 
     if (workers.status === 'fulfilled') {
       this.items.set(workers.value);
     } else {
-      this.notify.fromCommand(workers.reason, 'Could not load the workers.');
+      this.notify.fromCommand(workers.reason, this.translate.instant('workers.loadFailed'));
     }
 
     this.loading.set(false);

@@ -1,19 +1,12 @@
 <div class="filter">
   <div class="filter__presets">
-    @for (
-      preset of [
-        { key: 'today', label: 'Today' },
-        { key: 'thisMonth', label: 'This month' },
-        { key: 'lastMonth', label: 'Last month' },
-      ];
-      track preset.key
-    ) {
+    @for (preset of presets; track preset.key) {
       <button
         type="button"
         class="filter__preset"
-        [class.filter__preset--active]="isPreset($any(preset.key))"
+        [class.filter__preset--active]="isPreset(preset.key)"
         [disabled]="busy()"
-        (click)="applyPreset($any(preset.key))"
+        (click)="applyPreset(preset.key)"
       >
         {{ preset.label }}
       </button>
@@ -22,7 +15,7 @@
 
   <div class="filter__dates">
     <label class="filter__field">
-      <span class="filter__label">From</span>
+      <span class="filter__label">{{ 'rangeFilter.from' | translate }}</span>
       <p-datepicker
         [ngModel]="fromDate()"
         (ngModelChange)="setFrom($event)"
@@ -35,7 +28,7 @@
     </label>
 
     <label class="filter__field">
-      <span class="filter__label">To</span>
+      <span class="filter__label">{{ 'rangeFilter.to' | translate }}</span>
       <p-datepicker
         [ngModel]="toDate()"
         (ngModelChange)="setTo($event)"
@@ -48,7 +41,7 @@
     </label>
 
     <label class="filter__field">
-      <span class="filter__label">Series</span>
+      <span class="filter__label">{{ 'rangeFilter.series' | translate }}</span>
       <p-select
         [options]="seriesOptions()"
         [ngModel]="value().seriesId"

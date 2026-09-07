@@ -1,6 +1,3 @@
-/** Mirrors `events::DATA_CHANGED` in Rust. */
-export const DATA_CHANGED = 'worker-log://data-changed';
-
 /** Mirrors `events::ChangeScope`. */
 export type ChangeScope =
   | 'waste'

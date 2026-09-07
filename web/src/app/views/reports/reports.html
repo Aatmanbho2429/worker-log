@@ -1,14 +1,14 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Reports</h1>
-      <p class="page__subtitle">Check the month, then export the sheet — {{ rangeLabel() }}</p>
+      <h1 class="page__title">{{ 'reports.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'reports.subtitle' | translate }} {{ rangeLabel() }}</p>
     </div>
 
     <div class="page__actions">
       <p-button
         icon="pi pi-file-excel"
-        label="Export CSV"
+        [label]="'reports.exportCsv' | translate"
         severity="secondary"
         [outlined]="true"
         [disabled]="loading() || exporting()"
@@ -16,7 +16,7 @@
       />
       <p-button
         icon="pi pi-file-pdf"
-        label="Export PDF"
+        [label]="'sheet.exportPdf' | translate"
         [disabled]="loading() || exporting()"
         [loading]="exporting()"
         (onClick)="download('pdf')"
@@ -35,7 +35,7 @@
 
   <div class="stats">
     <article class="stat">
-      <span class="stat__label">Total pieces lost</span>
+      <span class="stat__label">{{ 'reports.totalPiecesLost' | translate }}</span>
       <span class="stat__value tabular">{{ totalPieces() }}</span>
     </article>
     @for (grade of grades(); track grade.id; let i = $index) {
@@ -45,20 +45,20 @@
       </article>
     }
     <article class="stat stat--muted">
-      <span class="stat__label">Workers with waste</span>
+      <span class="stat__label">{{ 'reports.workersWithWaste' | translate }}</span>
       <span class="stat__value tabular">{{ workersWithWaste() }}</span>
     </article>
   </div>
 
   <div class="split">
     <div class="card">
-      <div class="card__head"><h2 class="card__title">By reason</h2></div>
+      <div class="card__head"><h2 class="card__title">{{ 'reports.byReason' | translate }}</h2></div>
 
       @if (!breakdown().length || totalPieces() === 0) {
         <div class="empty">
           <i class="pi pi-chart-bar"></i>
-          <span class="empty__title">No waste logged</span>
-          <p>Nothing was recorded in this period.</p>
+          <span class="empty__title">{{ 'reports.noWasteLogged' | translate }}</span>
+          <p>{{ 'reports.nothingRecorded' | translate }}</p>
         </div>
       } @else {
         <ul class="breakdown">
@@ -83,12 +83,12 @@
     </div>
 
     <div class="card">
-      <div class="card__head"><h2 class="card__title">Highest waste</h2></div>
+      <div class="card__head"><h2 class="card__title">{{ 'reports.highestWaste' | translate }}</h2></div>
 
       @if (!topWorkers().length) {
         <div class="empty">
           <i class="pi pi-users"></i>
-          <span class="empty__title">No waste logged</span>
+          <span class="empty__title">{{ 'reports.noWasteLogged' | translate }}</span>
         </div>
       } @else {
         <ul class="top">
@@ -117,15 +117,15 @@
 
   <div class="card">
     <div class="card__head">
-      <h2 class="card__title">Entry history</h2>
-      <span class="card__hint">{{ entries().length }} entr(ies) in this period</span>
+      <h2 class="card__title">{{ 'reports.entryHistory' | translate }}</h2>
+      <span class="card__hint">{{ 'reports.entryCount' | translate: { count: entries().length } }}</span>
     </div>
 
     @if (!entries().length) {
       <div class="empty">
         <i class="pi pi-history"></i>
-        <span class="empty__title">No entries</span>
-        <p>Taps recorded in this period will be listed here.</p>
+        <span class="empty__title">{{ 'reports.noEntries' | translate }}</span>
+        <p>{{ 'reports.noEntriesBody' | translate }}</p>
       </div>
     } @else {
       <p-table
@@ -138,10 +138,10 @@
       >
         <ng-template #header>
           <tr>
-            <th>Logged at</th>
-            <th>Worker</th>
-            <th>Reason</th>
-            <th class="numeric">Grade</th>
+            <th>{{ 'reports.loggedAt' | translate }}</th>
+            <th>{{ 'sheet.worker' | translate }}</th>
+            <th>{{ 'reports.reason' | translate }}</th>
+            <th class="numeric">{{ 'reports.grade' | translate }}</th>
           </tr>
         </ng-template>
 

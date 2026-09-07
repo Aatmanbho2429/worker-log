@@ -83,7 +83,7 @@
     background: $navy-500;
     border-color: $navy-300;
     color: $band-text;
-    box-shadow: 0 0 0 0.2rem rgba(63, 111, 168, 0.28);
+    box-shadow: 0 0 0 0.2rem rgba($navy-400, 0.28);
   }
 }
 
@@ -103,7 +103,7 @@
   padding: 0.1rem 0.7rem;
 
   .reasons__chip--active & {
-    background: rgba(0, 0, 0, 0.24);
+    background: $wash-on-accent;
     color: $band-text;
   }
 }
@@ -227,7 +227,7 @@
   transition: all 0.12s ease;
 
   &:hover:not(:disabled) {
-    background: var(--grade-soft, #{rgba(224, 49, 49, 0.16)});
+    background: var(--grade-soft, #{rgba($red-500, 0.16)});
     color: var(--grade-bright, #{$red-300});
   }
 

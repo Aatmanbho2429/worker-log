@@ -1,25 +1,22 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Settings</h1>
-      <p class="page__subtitle">Where the register is kept, and demo data for trying things out.</p>
+      <h1 class="page__title">{{ 'settings.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'settings.subtitle' | translate }}</p>
     </div>
   </header>
 
   <div class="card card--pad">
-    <h2 class="card__title settings__heading">Application</h2>
+    <h2 class="card__title settings__heading">{{ 'settings.application' | translate }}</h2>
 
     <dl class="settings__facts">
-      <dt>Version</dt>
+      <dt>{{ 'settings.version' | translate }}</dt>
       <dd class="tabular">{{ info()?.version ?? '—' }}</dd>
 
-      <dt>Database file</dt>
+      <dt>{{ 'settings.databaseFile' | translate }}</dt>
       <dd class="settings__path">{{ info()?.databasePath ?? '—' }}</dd>
     </dl>
 
-    <p class="settings__note">
-      Everything is stored in that one file. Copy it to back the register up, or to move it to
-      another machine.
-    </p>
+    <p class="settings__note">{{ 'settings.note' | translate }}</p>
   </div>
 </section>

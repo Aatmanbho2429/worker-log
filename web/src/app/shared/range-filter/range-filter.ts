@@ -1,4 +1,5 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import { fromIsoDate, monthRangeOf, toIsoDate } from '../../core/date-range';
 import { RangeFilter, SeriesOfProduct } from '../../models';
@@ -17,6 +18,8 @@ type Preset = 'today' | 'thisMonth' | 'lastMonth';
   styleUrl: './range-filter.scss',
 })
 export class RangeFilterBar {
+  private readonly translate = inject(TranslateService);
+
   readonly value = input.required<RangeFilter>();
   readonly series = input<SeriesOfProduct[]>([]);
   readonly busy = input(false);
@@ -26,8 +29,14 @@ export class RangeFilterBar {
   protected readonly fromDate = computed(() => fromIsoDate(this.value().from));
   protected readonly toDate = computed(() => fromIsoDate(this.value().to));
 
+  protected readonly presets: { key: Preset; label: string }[] = [
+    { key: 'today', label: this.translate.instant('rangeFilter.today') },
+    { key: 'thisMonth', label: this.translate.instant('rangeFilter.thisMonth') },
+    { key: 'lastMonth', label: this.translate.instant('rangeFilter.lastMonth') },
+  ];
+
   protected readonly seriesOptions = computed(() => [
-    { label: 'All series', value: null },
+    { label: this.translate.instant('rangeFilter.allSeries'), value: null },
     ...this.series().map((item) => ({ label: item.name, value: item.id })),
   ]);
 

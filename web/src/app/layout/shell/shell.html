@@ -17,7 +17,7 @@
       <div class="shell__clock tabular">{{ clock() }}</div>
 
       @if (user(); as account) {
-        <a class="shell__user" routerLink="/profile" [attr.title]="fullName()">
+        <a class="shell__user" [routerLink]="ROUTE_PROFILE" [attr.title]="fullName()">
           <span class="shell__user-avatar">{{ initials() }}</span>
           <span class="shell__user-name">{{ fullName() }}</span>
         </a>

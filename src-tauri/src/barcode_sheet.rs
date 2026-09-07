@@ -13,53 +13,16 @@
 use std::collections::HashMap;
 
 use rusqlite::Connection;
-use serde::Serialize;
 
-use crate::barcode::{QUIET_ZONE, Symbol, encode};
+use crate::barcode::{QUIET_ZONE, encode};
 use crate::error::AppResult;
-use crate::models::Grade;
+use crate::models::{
+    BarcodeGradeTile, BarcodeReasonSheet, BarcodeSheet, BarcodeSymbol, BarcodeWorkerRow,
+};
 use crate::pdf::{BLACK, Canvas, Document, Font, Rgb, WHITE};
 use crate::repo::{barcodes, grades, reasons, series, workers};
 
-/// One grade's barcode in a worker's row: the button it stands in for.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GradeTile {
-    pub grade_id: i64,
-    pub grade_name: String,
-    pub symbol: Symbol,
-}
-
-/// One worker's row under a reason, a tile per grade.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorkerRow {
-    pub worker_id: i64,
-    pub name: String,
-    pub series_name: String,
-    pub tiles: Vec<GradeTile>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ReasonSheet {
-    pub reason_id: i64,
-    pub reason_name: String,
-    pub rows: Vec<WorkerRow>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Sheet {
-    /// The grade columns, in the order every row lays its tiles out.
-    pub grades: Vec<Grade>,
-    pub reasons: Vec<ReasonSheet>,
-    /// The series the sheet was narrowed to, if any.
-    pub series_name: Option<String>,
-    pub generated_at: String,
-}
-
-pub fn build(connection: &Connection, series_id: Option<i64>) -> AppResult<Sheet> {
+pub fn build(connection: &Connection, series_id: Option<i64>) -> AppResult<BarcodeSheet> {
     let series_name = match series_id {
         Some(id) => Some(series::get(connection, id)?.name),
         None => None,
@@ -85,7 +48,7 @@ pub fn build(connection: &Connection, series_id: Option<i64>) -> AppResult<Sheet
             let tiles = grades
                 .iter()
                 .filter_map(|grade| {
-                    codes.get(&(worker.id, grade.id)).map(|code| GradeTile {
+                    codes.get(&(worker.id, grade.id)).map(|code| BarcodeGradeTile {
                         grade_id: grade.id,
                         grade_name: grade.name.clone(),
                         symbol: encode(code),
@@ -93,17 +56,17 @@ pub fn build(connection: &Connection, series_id: Option<i64>) -> AppResult<Sheet
                 })
                 .collect::<Vec<_>>();
 
-            rows.push(WorkerRow {
+            rows.push(BarcodeWorkerRow {
                 worker_id: worker.id,
                 name: format!("{} {}", worker.first_name, worker.last_name).trim().to_string(),
                 series_name: worker.series_name.clone(),
                 tiles,
             });
         }
-        sheets.push(ReasonSheet { reason_id: reason.id, reason_name: reason.name, rows });
+        sheets.push(BarcodeReasonSheet { reason_id: reason.id, reason_name: reason.name, rows });
     }
 
-    Ok(Sheet { grades, reasons: sheets, series_name, generated_at: crate::now() })
+    Ok(BarcodeSheet { grades, reasons: sheets, series_name, generated_at: crate::now() })
 }
 
 // ------------------------------------------------------------------- pdf ---
@@ -241,7 +204,7 @@ struct Column<'a> {
 /// Black on white with generous quiet zones, because this is scanned off paper
 /// under shop lighting rather than admired — the screen keeps the app's own
 /// palette, the paper does not.
-pub fn to_pdf(sheet: &Sheet) -> Vec<u8> {
+pub fn to_pdf(sheet: &BarcodeSheet) -> Vec<u8> {
     let mut document = Document::new(PAGE_WIDTH, PAGE_HEIGHT, "Waste log scanning sheet");
 
     // Every reason lists every worker, so the first one fixes the running order
@@ -301,9 +264,9 @@ pub fn to_pdf(sheet: &Sheet) -> Vec<u8> {
 }
 
 /// `(reason_id, worker_id, grade_id)` to the symbol printed in that box.
-type ButtonIndex<'a> = HashMap<(i64, i64, i64), &'a Symbol>;
+type ButtonIndex<'a> = HashMap<(i64, i64, i64), &'a BarcodeSymbol>;
 
-fn index_by_button(sheet: &Sheet) -> ButtonIndex<'_> {
+fn index_by_button(sheet: &BarcodeSheet) -> ButtonIndex<'_> {
     let mut index = HashMap::new();
     for reason in &sheet.reasons {
         for row in &reason.rows {
@@ -315,7 +278,7 @@ fn index_by_button(sheet: &Sheet) -> ButtonIndex<'_> {
     index
 }
 
-fn title_block(canvas: &mut Canvas, sheet: &Sheet, page: usize, pages: usize) {
+fn title_block(canvas: &mut Canvas, sheet: &BarcodeSheet, page: usize, pages: usize) {
     canvas.text(MARGIN, MARGIN + 13.0, 15.0, Font::Bold, BLACK, "REJECT / SCRAP REPORT");
 
     let scope = sheet.series_name.as_deref().unwrap_or("All series");
@@ -376,8 +339,8 @@ fn worker_header(canvas: &mut Canvas, layout: &Layout, run: &[Column<'_>]) {
 fn draw_band(
     canvas: &mut Canvas,
     layout: &Layout,
-    sheet: &Sheet,
-    reason: &ReasonSheet,
+    sheet: &BarcodeSheet,
+    reason: &BarcodeReasonSheet,
     run: &[Column<'_>],
     barcodes: &ButtonIndex<'_>,
     index: usize,
@@ -463,7 +426,7 @@ fn grid_rules(canvas: &mut Canvas, layout: &Layout, columns: usize, bands: usize
 
 /// Draws one barcode standing on end: every module becomes a stripe across the
 /// column, and the symbol's length runs down the row.
-fn draw_symbol(canvas: &mut Canvas, symbol: &Symbol, x: f64, y: f64, width: f64, length: f64) {
+fn draw_symbol(canvas: &mut Canvas, symbol: &BarcodeSymbol, x: f64, y: f64, width: f64, length: f64) {
     let module = length / f64::from(symbol.module_count);
     let mut pen = y + f64::from(QUIET_ZONE) * module;
 
@@ -481,6 +444,7 @@ fn draw_symbol(canvas: &mut Canvas, symbol: &Symbol, x: f64, y: f64, width: f64,
 mod tests {
     use super::*;
     use crate::barcode::Scan;
+    use crate::models::Grade;
 
     fn grade(id: i64, name: &str) -> Grade {
         Grade {
@@ -494,22 +458,22 @@ mod tests {
 
     /// A register big enough to spill onto a second page for a reason, which is
     /// where a pagination bug shows up rather than on a tidy single page.
-    fn sheet(workers: i64, reason_count: i64, grade_ids: &[i64]) -> Sheet {
+    fn sheet(workers: i64, reason_count: i64, grade_ids: &[i64]) -> BarcodeSheet {
         let grades: Vec<Grade> =
             grade_ids.iter().map(|id| grade(*id, &format!("Grade {id}"))).collect();
 
         let reasons = (1..=reason_count)
-            .map(|reason_id| ReasonSheet {
+            .map(|reason_id| BarcodeReasonSheet {
                 reason_id,
                 reason_name: format!("Reason {reason_id}"),
                 rows: (1..=workers)
-                    .map(|worker_id| WorkerRow {
+                    .map(|worker_id| BarcodeWorkerRow {
                         worker_id,
                         name: format!("Worker {worker_id}"),
                         series_name: "Toilet 3007".to_string(),
                         tiles: grades
                             .iter()
-                            .map(|grade| GradeTile {
+                            .map(|grade| BarcodeGradeTile {
                                 grade_id: grade.id,
                                 grade_name: grade.name.clone(),
                                 symbol: encode(
@@ -524,7 +488,7 @@ mod tests {
             })
             .collect();
 
-        Sheet {
+        BarcodeSheet {
             grades,
             reasons,
             series_name: None,

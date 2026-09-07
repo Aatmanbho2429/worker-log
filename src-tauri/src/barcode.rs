@@ -35,9 +35,8 @@
 //! and the Grades screen refuses past — a factory sorting breakages into ten
 //! grades wants a wider payload, not a silently unprintable button.
 
-use serde::Serialize;
-
 use crate::error::{AppError, AppResult};
+use crate::models::BarcodeSymbol;
 
 /// Widths of the bars and spaces of every Code 128 symbol, indexed by value.
 ///
@@ -99,22 +98,6 @@ const MAX_REASON_ID: i64 = 9_999;
 pub const MAX_GRADE_ID: i64 = 9;
 
 const MARKER: char = '3';
-
-/// The bars of one barcode, ready to be drawn as rectangles.
-///
-/// `modules` alternates bar, space, bar, space ... starting with a bar, each
-/// entry a width in modules. The renderer decides what a module is worth in
-/// pixels or points, which is the only thing that differs between the screen
-/// and the PDF.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Symbol {
-    /// The digits encoded, shown as human-readable text under the bars.
-    pub code: String,
-    pub modules: Vec<u8>,
-    /// Total width including both quiet zones, so callers can scale to fit.
-    pub module_count: u32,
-}
 
 impl Scan {
     /// The 12-digit payload this entry is carried by.
@@ -197,7 +180,7 @@ fn check_digit(body: &str) -> u8 {
 ///
 /// Panics only on input this module does not generate; every caller passes a
 /// stored `barcode.barcode`, which `Scan::payload` built as 12 digits.
-pub fn encode(digits: &str) -> Symbol {
+pub fn encode(digits: &str) -> BarcodeSymbol {
     debug_assert!(digits.len() % 2 == 0 && digits.bytes().all(|b| b.is_ascii_digit()));
 
     let mut values = vec![START_C];
@@ -220,7 +203,7 @@ pub fn encode(digits: &str) -> Symbol {
     let modules: Vec<u8> = values.iter().flat_map(|&value| PATTERNS[value]).copied().collect();
     let module_count = modules.iter().map(|&width| u32::from(width)).sum::<u32>() + QUIET_ZONE * 2;
 
-    Symbol { code: digits.to_string(), modules, module_count }
+    BarcodeSymbol { code: digits.to_string(), modules, module_count }
 }
 
 #[cfg(test)]

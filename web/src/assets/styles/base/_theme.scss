@@ -49,12 +49,19 @@
   --wash-hover: rgba(15, 23, 42, 0.04);
   --wash-inset: rgba(15, 23, 42, 0.06);
 
+  // A dark scrim for a count or badge sitting *on* a saturated accent fill
+  // (the active reason chip, say) rather than on the page surface — the fill
+  // stays the same navy in both themes, so this does too.
+  --wash-on-accent: rgba(0, 0, 0, 0.24);
+
   // Header bands. These keep the brand navy in both themes: it is what makes
   // the sheet read as the register it replaces rather than as a spreadsheet.
-  // Text on a band is therefore always the light one.
+  // Text on a band is therefore always the light one; `-muted` is the same at
+  // lower opacity, for a sub-label that should recede next to it.
   --band: #{$navy-800};
   --band-strong: #{$navy-900};
   --band-text: #{$ink-0};
+  --band-text-muted: #{rgba($ink-0, 0.72)};
 }
 
 .app-dark {
@@ -81,8 +88,10 @@
 
   --wash-hover: rgba(255, 255, 255, 0.03);
   --wash-inset: rgba(0, 0, 0, 0.32);
+  --wash-on-accent: rgba(0, 0, 0, 0.24);
 
   --band: #{$navy-800};
   --band-strong: #{$navy-900};
   --band-text: #{$ink-0};
+  --band-text-muted: #{rgba($ink-0, 0.72)};
 }

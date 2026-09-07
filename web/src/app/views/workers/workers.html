@@ -1,11 +1,11 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Workers</h1>
-      <p class="page__subtitle">Everyone waste can be logged against.</p>
+      <h1 class="page__title">{{ 'workers.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'workers.subtitle' | translate }}</p>
     </div>
     <div class="page__actions">
-      <p-button icon="pi pi-plus" label="Add worker" (onClick)="openNew()" />
+      <p-button icon="pi pi-plus" [label]="'workers.addWorker' | translate" (onClick)="openNew()" />
     </div>
   </header>
 
@@ -18,7 +18,7 @@
             <input
               pInputText
               type="search"
-              placeholder="Search name or phone"
+              [placeholder]="'workers.searchPlaceholder' | translate"
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
             />
@@ -33,7 +33,9 @@
             appendTo="body"
           />
         </div>
-        <span class="master__count">{{ filtered().length }} of {{ items().length }}</span>
+        <span class="master__count">{{
+          'common.countOf' | translate: { count: filtered().length, total: items().length }
+        }}</span>
       </div>
     </div>
 
@@ -47,17 +49,16 @@
       <div class="empty">
         <i class="pi pi-users"></i>
         <span class="empty__title">
-          {{ search() || seriesFilter() ? 'No match' : 'No workers yet' }}
+          {{ (search() || seriesFilter() ? 'common.noMatch' : 'workers.noWorkersTitle') | translate }}
         </span>
         <p>
           {{
-            search() || seriesFilter()
-              ? 'Nothing matches the current filters.'
-              : 'Add the people on the line to start logging waste.'
+            (search() || seriesFilter() ? 'workers.noMatchBody' : 'workers.noWorkersBody')
+              | translate
           }}
         </p>
         @if (!search() && !seriesFilter()) {
-          <p-button icon="pi pi-plus" label="Add worker" (onClick)="openNew()" />
+          <p-button icon="pi pi-plus" [label]="'workers.addWorker' | translate" (onClick)="openNew()" />
         }
       </div>
     } @else {
@@ -69,10 +70,10 @@
       >
         <ng-template #header>
           <tr>
-            <th class="master__sr">Sr</th>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Series of product</th>
+            <th class="master__sr">{{ 'common.sr' | translate }}</th>
+            <th>{{ 'common.name' | translate }}</th>
+            <th>{{ 'auth.fieldPhone' | translate }}</th>
+            <th>{{ 'series.title' | translate }}</th>
             <th style="width: 10rem"></th>
           </tr>
         </ng-template>
@@ -85,7 +86,7 @@
               @if (worker.phone) {
                 {{ worker.phone }}
               } @else {
-                <span class="master__na">not given</span>
+                <span class="master__na">{{ 'workers.notGiven' | translate }}</span>
               }
             </td>
             <td><p-tag [value]="worker.seriesName" severity="secondary" /></td>
@@ -95,7 +96,7 @@
                   icon="pi pi-pencil"
                   severity="secondary"
                   [text]="true"
-                  pTooltip="Edit"
+                  [pTooltip]="'common.edit' | translate"
                   tooltipPosition="top"
                   (onClick)="openEdit(worker)"
                 />
@@ -103,7 +104,7 @@
                   icon="pi pi-trash"
                   severity="danger"
                   [text]="true"
-                  pTooltip="Delete"
+                  [pTooltip]="'common.delete' | translate"
                   tooltipPosition="top"
                   (onClick)="remove(worker)"
                 />
@@ -122,11 +123,11 @@
   [modal]="true"
   [draggable]="false"
   [style]="{ width: '40rem' }"
-  [header]="editing() ? 'Edit worker' : 'Add worker'"
+  [header]="(editing() ? 'workers.editHeader' : 'workers.addWorker') | translate"
 >
   <div class="form__grid">
     <div class="field">
-      <label class="field__label" for="first-name">First name</label>
+      <label class="field__label" for="first-name">{{ 'auth.fieldFirstName' | translate }}</label>
       <input
         pInputText
         id="first-name"
@@ -135,12 +136,12 @@
         (ngModelChange)="patch('firstName', $event)"
       />
       @if (firstNameInvalid()) {
-        <span class="field__error">A first name is required.</span>
+        <span class="field__error">{{ 'workers.firstNameRequired' | translate }}</span>
       }
     </div>
 
     <div class="field">
-      <label class="field__label" for="last-name">Last name</label>
+      <label class="field__label" for="last-name">{{ 'auth.fieldLastName' | translate }}</label>
       <input
         pInputText
         id="last-name"
@@ -149,26 +150,26 @@
         (ngModelChange)="patch('lastName', $event)"
       />
       @if (lastNameInvalid()) {
-        <span class="field__error">A last name is required.</span>
+        <span class="field__error">{{ 'workers.lastNameRequired' | translate }}</span>
       }
     </div>
 
     <div class="field form__span">
-      <label class="field__label" for="phone">Phone</label>
+      <label class="field__label" for="phone">{{ 'auth.fieldPhone' | translate }}</label>
       <input
         pInputText
         id="phone"
         autocomplete="off"
         inputmode="tel"
-        placeholder="Optional"
+        [placeholder]="'workers.phonePlaceholder' | translate"
         [ngModel]="form().phone"
         (ngModelChange)="patch('phone', $event)"
       />
-      <span class="field__hint">Digits, spaces and + - ( ) only.</span>
+      <span class="field__hint">{{ 'workers.phoneHint' | translate }}</span>
     </div>
 
     <div class="field form__span">
-      <label class="field__label" for="worker-series">Series of product</label>
+      <label class="field__label" for="worker-series">{{ 'series.title' | translate }}</label>
       <p-select
         inputId="worker-series"
         [options]="seriesOptions()"
@@ -176,11 +177,11 @@
         (ngModelChange)="patch('seriesOfProductId', $event)"
         optionLabel="label"
         optionValue="value"
-        placeholder="Select a series"
+        [placeholder]="'workers.seriesPlaceholder' | translate"
         appendTo="body"
       />
       @if (seriesInvalid()) {
-        <span class="field__error">Pick the series this worker is on.</span>
+        <span class="field__error">{{ 'workers.seriesRequired' | translate }}</span>
       }
     </div>
   </div>
@@ -188,14 +189,14 @@
   <ng-template #footer>
     <div class="dialog__footer">
       <p-button
-        label="Cancel"
+        [label]="'common.cancel' | translate"
         severity="secondary"
         [text]="true"
         [disabled]="saving()"
         (onClick)="dialogOpen.set(false)"
       />
       <p-button
-        [label]="editing() ? 'Save' : 'Add'"
+        [label]="(editing() ? 'common.save' : 'common.add') | translate"
         icon="pi pi-check"
         [loading]="saving()"
         (onClick)="save()"

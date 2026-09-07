@@ -1,10 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslateService } from '@ngx-translate/core';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
-import { ExportFormat, ExportService } from '../../core/export.service';
+import { ExportFormat, ExportService } from '../../services/export/export.service';
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { SeriesService } from '../../services/series/series.service';
+import { WasteService } from '../../services/waste/waste.service';
 import {
   Dashboard,
   Grade,
@@ -29,10 +32,13 @@ import { ScanField } from '../../shared/scan-field/scan-field';
   styleUrl: './sheet.scss',
 })
 export class Sheet {
-  private readonly api = inject(WasteLogService);
+  private readonly waste = inject(WasteService);
+  private readonly seriesApi = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly exporter = inject(ExportService);
   private readonly notify = inject(NotifyService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
@@ -54,7 +60,7 @@ export class Sheet {
     void this.load();
 
     // A read-only mirror, so anything that moves the register moves this.
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.loadSeries();
       void this.load();
     });
@@ -104,18 +110,18 @@ export class Sheet {
 
   private async loadSeries(): Promise<void> {
     try {
-      this.series.set(await this.api.listSeries());
+      this.series.set(await this.seriesApi.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the product series.');
+      this.notify.fromCommand(error, this.translate.instant('waste.seriesFailed'));
     }
   }
 
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      this.dashboard.set(await this.api.dashboard(this.filter()));
+      this.dashboard.set(await this.waste.dashboard(this.filter()));
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the month sheet.');
+      this.notify.fromCommand(error, this.translate.instant('sheet.loadFailed'));
     } finally {
       this.loading.set(false);
     }

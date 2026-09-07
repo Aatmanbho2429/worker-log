@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TranslateModule } from '@ngx-translate/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { WasteLogService } from '../../core/waste-log.service';
 import { WorkerLog } from '../../models';
+import { BarcodeService } from '../../services/barcode/barcode.service';
 import { ScanField } from './scan-field';
 
 /**
@@ -46,8 +47,8 @@ describe('ScanField', () => {
     recordScan = vi.fn().mockResolvedValue({ entry: entry() });
 
     await TestBed.configureTestingModule({
-      imports: [ScanField],
-      providers: [{ provide: WasteLogService, useValue: { recordScan } }],
+      imports: [ScanField, TranslateModule.forRoot()],
+      providers: [{ provide: BarcodeService, useValue: { recordScan } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ScanField);

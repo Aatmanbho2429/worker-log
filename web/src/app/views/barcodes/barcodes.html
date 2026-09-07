@@ -8,14 +8,14 @@
         <div class="scan__state scan__state--problem">
           <i class="pi pi-exclamation-triangle"></i>
           <div>
-            <span class="scan__state-label">Not recorded</span>
+            <span class="scan__state-label">{{ 'barcodes.notRecorded' | translate }}</span>
             <strong>{{ issue }}</strong>
           </div>
           <p-button
             severity="secondary"
             text
             icon="pi pi-times"
-            label="Dismiss"
+            [label]="'scanField.dismiss' | translate"
             (onClick)="clearProblem()"
           />
         </div>
@@ -23,7 +23,9 @@
         <div class="scan__state scan__state--ok">
           <i class="pi pi-check-circle"></i>
           <div>
-            <span class="scan__state-label">Recorded — {{ scannedTotal() }} this session</span>
+            <span class="scan__state-label">{{
+              'barcodes.recordedLabel' | translate: { count: scannedTotal() }
+            }}</span>
             <strong>
               {{ last.worker }}
               <span class="scan__state-grade" [class]="last.tone">
@@ -36,8 +38,8 @@
         <div class="scan__state">
           <i class="pi pi-qrcode"></i>
           <div>
-            <span class="scan__state-label">Ready</span>
-            <strong>Scan a barcode to record an entry</strong>
+            <span class="scan__state-label">{{ 'barcodes.ready' | translate }}</span>
+            <strong>{{ 'barcodes.scanPrompt' | translate }}</strong>
           </div>
         </div>
       }
@@ -58,11 +60,11 @@
       <div class="scan__tools">
         <select
           class="scan__select"
-          aria-label="Series"
+          [attr.aria-label]="'rangeFilter.series' | translate"
           [ngModel]="seriesId()"
           (ngModelChange)="onSeriesChange($event)"
         >
-          <option [ngValue]="null">All series</option>
+          <option [ngValue]="null">{{ 'rangeFilter.allSeries' | translate }}</option>
           @for (item of series(); track item.id) {
             <option [ngValue]="item.id">{{ item.name }}</option>
           }
@@ -71,14 +73,14 @@
         <input
           type="search"
           class="scan__search"
-          placeholder="Find a worker"
+          [placeholder]="'waste.findWorker' | translate"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
         />
 
         <p-button
           icon="pi pi-file-pdf"
-          label="PDF"
+          [label]="'barcodes.pdf' | translate"
           severity="secondary"
           [outlined]="true"
           [loading]="exporting()"
@@ -99,8 +101,10 @@
     @if (groups().length > 1) {
       <!-- Jump links, not tabs: nothing is hidden, this only saves dragging
            across a grid wider than the screen. -->
-      <nav class="jumps" aria-label="Jump to a reason">
-        <span class="jumps__label">{{ barcodeCount() }} barcodes</span>
+      <nav class="jumps" [attr.aria-label]="'barcodes.jumpNav' | translate">
+        <span class="jumps__label">{{
+          'barcodes.barcodeCountLabel' | translate: { count: barcodeCount() }
+        }}</span>
         @for (group of groups(); track group.reasonId) {
           <button type="button" class="jumps__chip" (click)="jumpTo(group.reasonId)">
             {{ group.reasonName }}
@@ -111,10 +115,10 @@
   </header>
 
   @if (loading()) {
-    <p class="scan__empty">Building the sheet…</p>
+    <p class="scan__empty">{{ 'barcodes.buildingSheet' | translate }}</p>
   } @else if (!rows().length) {
     <p class="scan__empty">
-      {{ search() ? 'No worker matches that search.' : 'No workers to show.' }}
+      {{ (search() ? 'barcodes.noMatchWorkers' : 'barcodes.noWorkersToShow') | translate }}
     </p>
   } @else {
     <!-- The paper register's own shape: workers down the left, a column per
@@ -137,9 +141,9 @@
 
         <thead>
           <tr>
-            <th class="grid__sr" rowspan="2">Sr</th>
-            <th class="grid__worker" rowspan="2">Worker</th>
-            <th class="grid__series" rowspan="2">Item / Series</th>
+            <th class="grid__sr" rowspan="2">{{ 'common.sr' | translate }}</th>
+            <th class="grid__worker" rowspan="2">{{ 'sheet.worker' | translate }}</th>
+            <th class="grid__series" rowspan="2">{{ 'sheet.itemSeries' | translate }}</th>
             @for (group of groups(); track group.reasonId) {
               <th
                 class="grid__group"

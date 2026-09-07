@@ -1,10 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslateService } from '@ngx-translate/core';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
-import { ExportFormat, ExportService } from '../../core/export.service';
+import { ExportFormat, ExportService } from '../../services/export/export.service';
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { SeriesService } from '../../services/series/series.service';
+import { WasteService } from '../../services/waste/waste.service';
 import { gradeToneClass } from '../../core/grade-tone';
 import {
   Dashboard,
@@ -39,10 +42,13 @@ interface ReasonBreakdown {
   styleUrl: './reports.scss',
 })
 export class Reports {
-  private readonly api = inject(WasteLogService);
+  private readonly waste = inject(WasteService);
+  private readonly seriesApi = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly exporter = inject(ExportService);
   private readonly notify = inject(NotifyService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
@@ -105,7 +111,7 @@ export class Reports {
     void this.loadSeries();
     void this.load();
 
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.loadSeries();
       void this.load();
     });
@@ -118,7 +124,7 @@ export class Reports {
 
   protected async download(format: ExportFormat): Promise<void> {
     if (!this.dashboard()?.rows.length) {
-      this.notify.warn('There is nothing to export for this period.');
+      this.notify.warn(this.translate.instant('reports.nothingToExport'));
       return;
     }
 
@@ -153,9 +159,9 @@ export class Reports {
 
   private async loadSeries(): Promise<void> {
     try {
-      this.series.set(await this.api.listSeries());
+      this.series.set(await this.seriesApi.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the product series.');
+      this.notify.fromCommand(error, this.translate.instant('waste.seriesFailed'));
     }
   }
 
@@ -163,20 +169,23 @@ export class Reports {
     this.loading.set(true);
 
     const [dashboard, entries] = await Promise.allSettled([
-      this.api.dashboard(this.filter()),
-      this.api.logs(this.filter()),
+      this.waste.dashboard(this.filter()),
+      this.waste.logs(this.filter()),
     ]);
 
     if (dashboard.status === 'fulfilled') {
       this.dashboard.set(dashboard.value);
     } else {
-      this.notify.fromCommand(dashboard.reason, 'Could not load the report.');
+      this.notify.fromCommand(dashboard.reason, this.translate.instant('reports.loadFailed'));
     }
 
     if (entries.status === 'fulfilled') {
       this.entries.set(entries.value);
     } else {
-      this.notify.fromCommand(entries.reason, 'Could not load the entry history.');
+      this.notify.fromCommand(
+        entries.reason,
+        this.translate.instant('reports.historyFailed'),
+      );
     }
 
     this.loading.set(false);

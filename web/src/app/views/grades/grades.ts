@@ -1,11 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
+import { DataChangesService } from '../../core/data-changes.service';
 import { gradeToneClass } from '../../core/grade-tone';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { GradeService } from '../../services/grade/grade.service';
 import { Grade } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
@@ -26,10 +28,12 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   styleUrl: './grades.scss',
 })
 export class Grades {
-  private readonly api = inject(WasteLogService);
+  private readonly grade = inject(GradeService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly items = signal<Grade[]>([]);
   protected readonly loading = signal(true);
@@ -44,7 +48,7 @@ export class Grades {
 
   constructor() {
     // The entry count moves with every tap, so a waste change matters here too.
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'grades', 'waste')) {
         void this.load();
       }
@@ -79,16 +83,16 @@ export class Grades {
 
     try {
       if (editing) {
-        await this.api.updateGrade(editing.id, { name });
-        this.notify.success(`Renamed to "${name}".`);
+        await this.grade.update(editing.id, { name });
+        this.notify.success(this.translate.instant('common.renamedSuccess', { name }));
       } else {
-        await this.api.createGrade({ name });
-        this.notify.success(`Added "${name}". Print a fresh scanning sheet to get its barcodes.`);
+        await this.grade.create({ name });
+        this.notify.success(this.translate.instant('grades.addedSuccess', { name }));
       }
       this.dialogOpen.set(false);
       await this.load();
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not save the grade.');
+      this.notify.fromCommand(error, this.translate.instant('grades.saveFailed'));
     } finally {
       this.saving.set(false);
     }
@@ -99,43 +103,45 @@ export class Grades {
     // without a round trip that would only come back as an error toast.
     if (grade.entryCount > 0) {
       this.notify.warn(
-        `"${grade.name}" is used by ${grade.entryCount} waste entr(ies) and cannot be deleted. ` +
-          'Rename it instead so past sheets stay accurate.',
+        this.translate.instant('grades.inUseWarning', {
+          name: grade.name,
+          count: grade.entryCount,
+        }),
       );
       return;
     }
     if (this.items().length <= 1) {
-      this.notify.warn('The register needs at least one grade to log waste against.');
+      this.notify.warn(this.translate.instant('grades.lastGradeWarning'));
       return;
     }
 
     let barcodes = 0;
     try {
-      barcodes = (await this.api.gradeDeleteImpact(grade.id)).barcodes;
+      barcodes = (await this.grade.deleteImpact(grade.id)).barcodes;
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not check what deleting this grade would affect.');
+      this.notify.fromCommand(error, this.translate.instant('grades.impactFailed'));
       return;
     }
 
     const printed = barcodes
-      ? ` ${barcodes} printed barcode(s) will stop working — print a fresh scanning sheet afterwards.`
+      ? this.translate.instant('grades.deletePrinted', { count: barcodes })
       : '';
 
     this.confirm.confirm({
-      header: 'Delete grade',
-      message: `Delete "${grade.name}"? Its button leaves every worker's row.${printed}`,
+      header: this.translate.instant('grades.deleteHeader'),
+      message: this.translate.instant('grades.deleteMessage', { name: grade.name, printed }),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.translate.instant('common.delete'),
+      rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
       accept: async () => {
         try {
-          await this.api.deleteGrade(grade.id);
-          this.notify.success(`Deleted "${grade.name}".`);
+          await this.grade.delete(grade.id);
+          this.notify.success(this.translate.instant('common.deletedSuccess', { name: grade.name }));
           await this.load();
         } catch (error) {
-          this.notify.fromCommand(error, 'Could not delete the grade.');
+          this.notify.fromCommand(error, this.translate.instant('grades.deleteFailed'));
         }
       },
     });
@@ -146,9 +152,9 @@ export class Grades {
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      this.items.set(await this.api.listGrades());
+      this.items.set(await this.grade.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the grades.');
+      this.notify.fromCommand(error, this.translate.instant('grades.loadFailed'));
     } finally {
       this.loading.set(false);
     }

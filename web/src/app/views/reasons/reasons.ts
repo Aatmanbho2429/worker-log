@@ -1,10 +1,12 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { ReasonService } from '../../services/reason/reason.service';
 import { Reason } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
@@ -20,10 +22,12 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   styleUrl: './reasons.scss',
 })
 export class Reasons {
-  private readonly api = inject(WasteLogService);
+  private readonly reason = inject(ReasonService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly items = signal<Reason[]>([]);
   protected readonly loading = signal(true);
@@ -40,7 +44,7 @@ export class Reasons {
   constructor() {
     void this.load();
 
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'reasons')) {
         void this.load();
       }
@@ -73,16 +77,16 @@ export class Reasons {
 
     try {
       if (editing) {
-        await this.api.updateReason(editing.id, { name, sortOrder: editing.sortOrder });
-        this.notify.success(`Renamed to "${name}".`);
+        await this.reason.update(editing.id, { name, sortOrder: editing.sortOrder });
+        this.notify.success(this.translate.instant('common.renamedSuccess', { name }));
       } else {
-        await this.api.createReason({ name });
-        this.notify.success(`Added "${name}".`);
+        await this.reason.create({ name });
+        this.notify.success(this.translate.instant('common.addedSuccess', { name }));
       }
       this.dialogOpen.set(false);
       await this.load();
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not save the reason.');
+      this.notify.fromCommand(error, this.translate.instant('reasons.saveFailed'));
     } finally {
       this.saving.set(false);
     }
@@ -104,10 +108,10 @@ export class Reasons {
       // Sequential, not parallel: both writes touch the same table through one
       // guarded connection, and a failed second write should leave the first
       // one visible rather than racing it.
-      await this.api.updateReason(a.id, { name: a.name, sortOrder: b.sortOrder });
-      await this.api.updateReason(b.id, { name: b.name, sortOrder: a.sortOrder });
+      await this.reason.update(a.id, { name: a.name, sortOrder: b.sortOrder });
+      await this.reason.update(b.id, { name: b.name, sortOrder: a.sortOrder });
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not reorder the reasons.');
+      this.notify.fromCommand(error, this.translate.instant('reasons.reorderFailed'));
     } finally {
       this.reordering.set(false);
       await this.load();
@@ -116,22 +120,20 @@ export class Reasons {
 
   protected remove(reason: Reason): void {
     this.confirm.confirm({
-      header: 'Delete reason',
-      message:
-        `Delete "${reason.name}"? Its column disappears from the sheet. ` +
-        'If waste has already been logged against it, rename it instead.',
+      header: this.translate.instant('reasons.deleteHeader'),
+      message: this.translate.instant('reasons.deleteMessage', { name: reason.name }),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.translate.instant('common.delete'),
+      rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
       accept: async () => {
         try {
-          await this.api.deleteReason(reason.id);
-          this.notify.success(`Deleted "${reason.name}".`);
+          await this.reason.delete(reason.id);
+          this.notify.success(this.translate.instant('common.deletedSuccess', { name: reason.name }));
           await this.load();
         } catch (error) {
-          this.notify.fromCommand(error, 'Could not delete the reason.');
+          this.notify.fromCommand(error, this.translate.instant('reasons.deleteFailed'));
         }
       },
     });
@@ -140,9 +142,9 @@ export class Reasons {
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      this.items.set(await this.api.listReasons());
+      this.items.set(await this.reason.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the reasons.');
+      this.notify.fromCommand(error, this.translate.instant('reasons.loadFailed'));
     } finally {
       this.loading.set(false);
     }

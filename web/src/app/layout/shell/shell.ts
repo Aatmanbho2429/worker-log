@@ -5,6 +5,19 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/auth.service';
 import { accountFullName, accountInitials } from '../../models/auth';
+import {
+  ROUTE_BARCODES,
+  ROUTE_GRADES,
+  ROUTE_LOGIN,
+  ROUTE_PROFILE,
+  ROUTE_REASONS,
+  ROUTE_REPORTS,
+  ROUTE_SERIES,
+  ROUTE_SETTINGS,
+  ROUTE_SHEET,
+  ROUTE_WASTE,
+  ROUTE_WORKERS,
+} from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 interface NavItem {
@@ -35,29 +48,31 @@ export class Shell implements OnDestroy {
     {
       label: 'shell.sectionFloor',
       items: [
-        { label: 'shell.navWaste', icon: 'pi pi-bolt', route: '/waste' },
-        { label: 'shell.navBarcodes', icon: 'pi pi-qrcode', route: '/barcodes' },
-        { label: 'shell.navSheet', icon: 'pi pi-table', route: '/sheet' },
-        { label: 'shell.navReports', icon: 'pi pi-file-pdf', route: '/reports' },
+        { label: 'shell.navWaste', icon: 'pi pi-bolt', route: ROUTE_WASTE },
+        { label: 'shell.navBarcodes', icon: 'pi pi-qrcode', route: ROUTE_BARCODES },
+        { label: 'shell.navSheet', icon: 'pi pi-table', route: ROUTE_SHEET },
+        { label: 'shell.navReports', icon: 'pi pi-file-pdf', route: ROUTE_REPORTS },
       ],
     },
     {
       label: 'shell.sectionMasters',
       items: [
-        { label: 'shell.navWorkers', icon: 'pi pi-users', route: '/workers' },
-        { label: 'shell.navSeries', icon: 'pi pi-box', route: '/series' },
-        { label: 'shell.navReasons', icon: 'pi pi-tags', route: '/reasons' },
-        { label: 'shell.navGrades', icon: 'pi pi-sliders-h', route: '/grades' },
-        { label: 'shell.navSettings', icon: 'pi pi-cog', route: '/settings' },
+        { label: 'shell.navWorkers', icon: 'pi pi-users', route: ROUTE_WORKERS },
+        { label: 'shell.navSeries', icon: 'pi pi-box', route: ROUTE_SERIES },
+        { label: 'shell.navReasons', icon: 'pi pi-tags', route: ROUTE_REASONS },
+        { label: 'shell.navGrades', icon: 'pi pi-sliders-h', route: ROUTE_GRADES },
+        { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
       ],
     },
     {
       // The topbar chip goes to the same place, but the topbar is hidden on a
       // narrow window and the nav is not.
       label: 'shell.sectionAccount',
-      items: [{ label: 'shell.navProfile', icon: 'pi pi-user', route: '/profile' }],
+      items: [{ label: 'shell.navProfile', icon: 'pi pi-user', route: ROUTE_PROFILE }],
     },
   ];
+
+  protected readonly ROUTE_PROFILE = ROUTE_PROFILE;
 
   protected readonly user = this.auth.user;
 
@@ -93,7 +108,7 @@ export class Shell implements OnDestroy {
       rejectButtonStyleClass: 'p-button-text',
       accept: async () => {
         await this.auth.logout();
-        await this.router.navigate(['/login']);
+        await this.router.navigate([ROUTE_LOGIN]);
       },
     });
   }

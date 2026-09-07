@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("{0}")]
@@ -22,14 +20,16 @@ pub enum AppError {
 pub type AppResult<T> = Result<T, AppError>;
 
 impl AppError {
-    /// A stable tag the front end can branch on, so it can tell a validation
-    /// problem the operator can fix from a fault it should just report.
-    pub fn kind(&self) -> &'static str {
+    /// The HTTP-style status carried in `ApiResponse.statusCode`
+    /// (`.claude/rules/api-response-format.md`) — the front end shows a
+    /// 400/404/409 as an actionable warning and a 500 as a fault, the same
+    /// split the old `badRequest`/`notFound`/`conflict`/`internal` tag drew.
+    pub fn status_code(&self) -> u16 {
         match self {
-            AppError::NotFound(_) => "notFound",
-            AppError::BadRequest(_) => "badRequest",
-            AppError::Conflict(_) => "conflict",
-            AppError::Database(_) | AppError::Internal(_) => "internal",
+            AppError::BadRequest(_) => 400,
+            AppError::NotFound(_) => 404,
+            AppError::Conflict(_) => 409,
+            AppError::Database(_) | AppError::Internal(_) => 500,
         }
     }
 }
@@ -47,26 +47,5 @@ impl From<rusqlite::Error> for AppError {
             rusqlite::Error::QueryReturnedNoRows => AppError::NotFound("not found".to_string()),
             _ => AppError::Database(err),
         }
-    }
-}
-
-/// What a rejected `invoke` resolves to on the JavaScript side.
-///
-/// Tauri serialises a command's `Err` straight into the promise rejection, so
-/// this is the shape the front end's error handler reads.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CommandError {
-    pub kind: &'static str,
-    pub message: String,
-}
-
-impl Serialize for AppError {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        if matches!(self, AppError::Database(_) | AppError::Internal(_)) {
-            log::error!("command failed: {self}");
-        }
-
-        CommandError { kind: self.kind(), message: self.to_string() }.serialize(serializer)
     }
 }

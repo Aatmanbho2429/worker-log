@@ -1,14 +1,14 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Month sheet</h1>
-      <p class="page__subtitle">Every worker against every reason — {{ rangeLabel() }}</p>
+      <h1 class="page__title">{{ 'sheet.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'sheet.subtitle' | translate }} {{ rangeLabel() }}</p>
     </div>
 
     <div class="page__actions">
       <p-button
         icon="pi pi-file-excel"
-        label="CSV"
+        [label]="'sheet.csv' | translate"
         severity="secondary"
         [outlined]="true"
         [disabled]="loading() || exporting()"
@@ -16,7 +16,7 @@
       />
       <p-button
         icon="pi pi-file-pdf"
-        label="Export PDF"
+        [label]="'sheet.exportPdf' | translate"
         [disabled]="loading() || exporting()"
         [loading]="exporting()"
         (onClick)="download('pdf')"
@@ -49,14 +49,14 @@
     } @else if (!rows().length) {
       <div class="empty">
         <i class="pi pi-table"></i>
-        <span class="empty__title">Nothing to show</span>
-        <p>No workers match this period and series.</p>
+        <span class="empty__title">{{ 'sheet.nothingTitle' | translate }}</span>
+        <p>{{ 'sheet.nothingBody' | translate }}</p>
       </div>
     } @else {
       @if (!hasData()) {
         <p-message
           severity="info"
-          text="No waste has been logged for this period yet — the sheet below is empty."
+          [text]="'sheet.emptyNotice' | translate"
           styleClass="sheet__notice"
         />
       }
@@ -65,14 +65,14 @@
         <table class="sheet">
           <thead>
             <tr>
-              <th class="sheet__sr" rowspan="2">Sr</th>
-              <th class="sheet__worker" rowspan="2">Worker</th>
-              <th class="sheet__series" rowspan="2">Item / Series</th>
+              <th class="sheet__sr" rowspan="2">{{ 'common.sr' | translate }}</th>
+              <th class="sheet__worker" rowspan="2">{{ 'sheet.worker' | translate }}</th>
+              <th class="sheet__series" rowspan="2">{{ 'sheet.itemSeries' | translate }}</th>
               @for (reason of reasons(); track reason.id) {
                 <th class="sheet__group" [attr.colspan]="grades().length">{{ reason.name }}</th>
               }
               <th class="sheet__group sheet__group--total" [attr.colspan]="grades().length">
-                Total
+                {{ 'common.total' | translate }}
               </th>
             </tr>
             <tr>
@@ -123,7 +123,7 @@
           <tfoot>
             <tr>
               <td class="sheet__sr"></td>
-              <td class="sheet__worker">Total</td>
+              <td class="sheet__worker">{{ 'common.total' | translate }}</td>
               <td class="sheet__series"></td>
               @for (total of dashboard()?.reasonTotals ?? []; track total.reasonId) {
                 @for (count of total.counts; track $index; let last = $last) {

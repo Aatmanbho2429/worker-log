@@ -1,21 +1,18 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Grades</h1>
-      <p class="page__subtitle">
-        How a broken piece is sorted. Each grade is a button on the waste screen, a column on the
-        month sheet, and a barcode on the scanning sheet.
-      </p>
+      <h1 class="page__title">{{ 'grades.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'grades.subtitle' | translate }}</p>
     </div>
     <div class="page__actions">
-      <p-button icon="pi pi-plus" label="Add grade" (onClick)="openNew()" />
+      <p-button icon="pi pi-plus" [label]="'grades.addGrade' | translate" (onClick)="openNew()" />
     </div>
   </header>
 
   <div class="card">
     <div class="card__head">
-      <h2 class="card__title">Column order</h2>
-      <span class="master__count">{{ items().length }} grade(s)</span>
+      <h2 class="card__title">{{ 'common.columnOrder' | translate }}</h2>
+      <span class="master__count">{{ 'grades.countLabel' | translate: { count: items().length } }}</span>
     </div>
 
     @if (loading()) {
@@ -27,18 +24,18 @@
     } @else if (!items().length) {
       <div class="empty">
         <i class="pi pi-sliders-h"></i>
-        <span class="empty__title">No grades yet</span>
-        <p>Add a grade for each way a broken piece is sorted.</p>
-        <p-button icon="pi pi-plus" label="Add grade" (onClick)="openNew()" />
+        <span class="empty__title">{{ 'grades.noGradesTitle' | translate }}</span>
+        <p>{{ 'grades.noGradesBody' | translate }}</p>
+        <p-button icon="pi pi-plus" [label]="'grades.addGrade' | translate" (onClick)="openNew()" />
       </div>
     } @else {
       <p-table [value]="items()" styleClass="p-datatable-sm">
         <ng-template #header>
           <tr>
-            <th class="master__sr">Sr</th>
-            <th>Name</th>
-            <th class="numeric">Entries logged</th>
-            <th>Added</th>
+            <th class="master__sr">{{ 'common.sr' | translate }}</th>
+            <th>{{ 'common.name' | translate }}</th>
+            <th class="numeric">{{ 'grades.entriesLogged' | translate }}</th>
+            <th>{{ 'common.added' | translate }}</th>
             <th style="width: 10rem"></th>
           </tr>
         </ng-template>
@@ -60,7 +57,7 @@
                   icon="pi pi-pencil"
                   severity="secondary"
                   [text]="true"
-                  pTooltip="Rename"
+                  [pTooltip]="'common.rename' | translate"
                   tooltipPosition="top"
                   (onClick)="openEdit(item)"
                 />
@@ -68,7 +65,7 @@
                   icon="pi pi-trash"
                   severity="danger"
                   [text]="true"
-                  pTooltip="Delete"
+                  [pTooltip]="'common.delete' | translate"
                   tooltipPosition="top"
                   (onClick)="remove(item)"
                 />
@@ -87,45 +84,40 @@
   [modal]="true"
   [draggable]="false"
   [style]="{ width: '32rem' }"
-  [header]="editing() ? 'Rename grade' : 'Add grade'"
+  [header]="(editing() ? 'grades.renameHeader' : 'grades.addGrade') | translate"
 >
   <div class="field">
-    <label class="field__label" for="grade-name">Name</label>
+    <label class="field__label" for="grade-name">{{ 'common.name' | translate }}</label>
     <input
       pInputText
       id="grade-name"
       autocomplete="off"
-      placeholder="e.g. Grade 5"
+      [placeholder]="'grades.namePlaceholder' | translate"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
       (keyup.enter)="save()"
     />
     @if (nameInvalid()) {
-      <span class="field__error">A name is required.</span>
+      <span class="field__error">{{ 'validation.nameRequired' | translate }}</span>
     }
     @if (!editing()) {
-      <span class="field__hint">
-        A new grade adds a button to every worker's row and a barcode for every worker and reason.
-        Print a fresh scanning sheet afterwards.
-      </span>
+      <span class="field__hint">{{ 'grades.addHint' | translate }}</span>
     } @else {
-      <span class="field__hint">
-        Renaming is safe — every entry already logged keeps pointing at this grade.
-      </span>
+      <span class="field__hint">{{ 'grades.renameHint' | translate }}</span>
     }
   </div>
 
   <ng-template #footer>
     <div class="dialog__footer">
       <p-button
-        label="Cancel"
+        [label]="'common.cancel' | translate"
         severity="secondary"
         [text]="true"
         [disabled]="saving()"
         (onClick)="dialogOpen.set(false)"
       />
       <p-button
-        [label]="editing() ? 'Save' : 'Add'"
+        [label]="(editing() ? 'common.save' : 'common.add') | translate"
         icon="pi pi-check"
         [loading]="saving()"
         (onClick)="save()"

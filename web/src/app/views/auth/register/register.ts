@@ -16,6 +16,7 @@ import {
   passwordScoreKey,
   phoneProblem,
 } from '../../../models/auth';
+import { ROUTE_LOGIN, ROUTE_WASTE } from '../../../models/constants';
 import { PrimengComponentsModule } from '../../../shared/primeng-components-module';
 
 interface FormState {
@@ -60,6 +61,8 @@ export class Register {
   private readonly notify = inject(NotifyService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+
+  protected readonly ROUTE_LOGIN = ROUTE_LOGIN;
 
   protected readonly form = signal<FormState>({ ...EMPTY_FORM });
   protected readonly saving = signal(false);
@@ -134,7 +137,7 @@ export class Register {
       this.notify.success(
         this.translate.instant('auth.register.welcome', { name: session.user.firstName }),
       );
-      await this.router.navigate(['/waste']);
+      await this.router.navigate([ROUTE_WASTE]);
     } catch (error) {
       this.notify.fromCommand(error, this.translate.instant('auth.register.failed'));
     } finally {

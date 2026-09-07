@@ -1,11 +1,14 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 
 import { currentMonthRange, formatRange } from '../../core/date-range';
 import { gradeToneClass } from '../../core/grade-tone';
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { SeriesService } from '../../services/series/series.service';
+import { WasteService } from '../../services/waste/waste.service';
 import {
   Dashboard,
   DashboardRow,
@@ -17,6 +20,7 @@ import {
   sumCounts,
   workerFullName,
 } from '../../models';
+import { ROUTE_GRADES, ROUTE_REASONS, ROUTE_WORKERS } from '../../models/constants';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { RangeFilterBar } from '../../shared/range-filter/range-filter';
@@ -36,9 +40,16 @@ import { ScanField } from '../../shared/scan-field/scan-field';
   styleUrl: './waste.scss',
 })
 export class Waste {
-  private readonly api = inject(WasteLogService);
+  private readonly waste = inject(WasteService);
+  private readonly seriesApi = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
+
+  protected readonly ROUTE_GRADES = ROUTE_GRADES;
+  protected readonly ROUTE_REASONS = ROUTE_REASONS;
+  protected readonly ROUTE_WORKERS = ROUTE_WORKERS;
 
   protected readonly filter = signal<RangeFilter>(currentMonthRange());
   protected readonly dashboard = signal<Dashboard | null>(null);
@@ -107,7 +118,7 @@ export class Waste {
     // `waste`: this screen's own taps are the only source of those, its
     // optimistic state is already correct, and reloading mid-burst would fight
     // the operator.
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'workers', 'series', 'reasons', 'grades')) {
         void this.loadSeries();
         void this.load();
@@ -161,10 +172,10 @@ export class Waste {
     this.markInFlight(payload, true);
 
     try {
-      await this.api.addEntry(payload);
+      await this.waste.addEntry(payload);
     } catch (error) {
       this.adjust(row.worker.id, reason.id, gradeIndex, -1);
-      this.notify.fromCommand(error, 'Could not record that entry.');
+      this.notify.fromCommand(error, this.translate.instant('waste.entryFailed'));
     } finally {
       this.markInFlight(payload, false);
     }
@@ -182,10 +193,10 @@ export class Waste {
     this.markInFlight(payload, true);
 
     try {
-      await this.api.undoEntry(payload, this.filter());
+      await this.waste.undoEntry(payload, this.filter());
     } catch (error) {
       this.adjust(row.worker.id, reason.id, gradeIndex, +1);
-      this.notify.fromCommand(error, 'Could not remove that entry.');
+      this.notify.fromCommand(error, this.translate.instant('waste.undoFailed'));
     } finally {
       this.markInFlight(payload, false);
     }
@@ -226,9 +237,9 @@ export class Waste {
 
   private async loadSeries(): Promise<void> {
     try {
-      this.series.set(await this.api.listSeries());
+      this.series.set(await this.seriesApi.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the product series.');
+      this.notify.fromCommand(error, this.translate.instant('waste.seriesFailed'));
     }
   }
 
@@ -236,7 +247,7 @@ export class Waste {
     this.loading.set(true);
 
     try {
-      const dashboard = await this.api.dashboard(this.filter());
+      const dashboard = await this.waste.dashboard(this.filter());
       this.dashboard.set(dashboard);
 
       // Keep the operator on the same reason across a reload where we can.
@@ -245,7 +256,7 @@ export class Waste {
         this.activeReasonId.set(dashboard.reasons[0]?.id ?? null);
       }
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the waste dashboard.');
+      this.notify.fromCommand(error, this.translate.instant('waste.dashboardFailed'));
     } finally {
       this.loading.set(false);
     }

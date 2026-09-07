@@ -2,14 +2,14 @@ import { Injectable, inject } from '@angular/core';
 
 import { PasswordReset, Payment, Session } from '../models/auth';
 import {
-  AUTH_COMMANDS,
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
   RestoreResponse,
 } from '../models/auth.requests';
 import { AuthBackend } from './auth.backend';
-import { TauriService } from './tauri.service';
+import { ZoneWrapperService } from './zone-wrapper/zone-wrapper.service';
+import { TAURI_COMMANDS } from './tauri/tauri-commands.const';
 
 /**
  * Accounts, by way of Rust.
@@ -25,37 +25,37 @@ import { TauriService } from './tauri.service';
  */
 @Injectable()
 export class TauriAuthBackend extends AuthBackend {
-  private readonly tauri = inject(TauriService);
+  private readonly zoneWrapper = inject(ZoneWrapperService);
 
   deviceId(): Promise<string> {
-    return this.tauri.call<string>(AUTH_COMMANDS.deviceId);
+    return this.zoneWrapper.invoke<string>(TAURI_COMMANDS.deviceId);
   }
 
   restore(): Promise<Session | null> {
-    return this.tauri.call<RestoreResponse>(AUTH_COMMANDS.restore);
+    return this.zoneWrapper.invoke<RestoreResponse>(TAURI_COMMANDS.authRestore);
   }
 
   register(payload: RegisterRequest): Promise<Session> {
-    return this.tauri.call<Session>(AUTH_COMMANDS.register, { payload });
+    return this.zoneWrapper.invoke<Session>(TAURI_COMMANDS.authRegister, { payload });
   }
 
   login(payload: LoginRequest): Promise<Session> {
-    return this.tauri.call<Session>(AUTH_COMMANDS.login, { payload });
+    return this.zoneWrapper.invoke<Session>(TAURI_COMMANDS.authLogin, { payload });
   }
 
   logout(): Promise<void> {
-    return this.tauri.call<void>(AUTH_COMMANDS.logout);
+    return this.zoneWrapper.invoke<void>(TAURI_COMMANDS.authLogout);
   }
 
   forgotPassword(email: string): Promise<PasswordReset> {
-    return this.tauri.call<PasswordReset>(AUTH_COMMANDS.forgotPassword, { email });
+    return this.zoneWrapper.invoke<PasswordReset>(TAURI_COMMANDS.authForgotPassword, { email });
   }
 
   changePassword(payload: ChangePasswordRequest): Promise<void> {
-    return this.tauri.call<void>(AUTH_COMMANDS.changePassword, { payload });
+    return this.zoneWrapper.invoke<void>(TAURI_COMMANDS.authChangePassword, { payload });
   }
 
   payments(): Promise<Payment[]> {
-    return this.tauri.call<Payment[]>(AUTH_COMMANDS.payments);
+    return this.zoneWrapper.invoke<Payment[]>(TAURI_COMMANDS.authPayments);
   }
 }

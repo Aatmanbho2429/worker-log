@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 
-import { isCommandError } from './tauri.service';
+import { TOAST_LIFE } from '../models/constants';
+import { isCommandError } from './zone-wrapper/zone-wrapper.service';
 
 @Injectable({ providedIn: 'root' })
 export class NotifyService {
@@ -15,7 +16,7 @@ export class NotifyService {
       severity: 'success',
       summary: this.translate.instant('common.success'),
       detail,
-      life: 2500,
+      life: TOAST_LIFE.success,
     });
   }
 
@@ -25,7 +26,7 @@ export class NotifyService {
       severity: 'info',
       summary: this.translate.instant('common.info'),
       detail,
-      life: 3000,
+      life: TOAST_LIFE.info,
     });
   }
 
@@ -35,7 +36,7 @@ export class NotifyService {
       severity: 'warn',
       summary: this.translate.instant('common.warn'),
       detail,
-      life: 4000,
+      life: TOAST_LIFE.warn,
     });
   }
 
@@ -45,7 +46,7 @@ export class NotifyService {
       severity: 'error',
       summary: this.translate.instant('common.error'),
       detail,
-      life: 6000,
+      life: TOAST_LIFE.error,
     });
   }
 

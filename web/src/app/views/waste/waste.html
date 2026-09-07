@@ -1,16 +1,14 @@
 <section class="page">
   <header class="page__head">
     <div>
-      <h1 class="page__title">Waste log</h1>
-      <p class="page__subtitle">
-        Pick the reason, then tap the grade against the worker. {{ rangeLabel() }}
-      </p>
+      <h1 class="page__title">{{ 'waste.title' | translate }}</h1>
+      <p class="page__subtitle">{{ 'waste.subtitle' | translate }} {{ rangeLabel() }}</p>
     </div>
 
     <div class="page__actions">
       <p-button
         icon="pi pi-refresh"
-        label="Refresh"
+        [label]="'common.refresh' | translate"
         severity="secondary"
         [outlined]="true"
         [disabled]="loading()"
@@ -35,18 +33,18 @@
   <div class="tally">
     @for (grade of grades(); track grade.id; let i = $index) {
       <div class="tally__item" [class]="gradeToneClass(i)">
-        <span class="tally__label">{{ grade.name }} · this reason</span>
+        <span class="tally__label">{{ grade.name }} · {{ 'waste.perReasonSuffix' | translate }}</span>
         <span class="tally__value tabular">{{ tallyFor(i) }}</span>
       </div>
     }
     <div class="tally__item tally__item--muted">
-      <span class="tally__label">All reasons · every grade</span>
+      <span class="tally__label">{{ 'waste.everyGrade' | translate }}</span>
       <span class="tally__value tabular">{{ grandTotalLabel() }}</span>
     </div>
   </div>
 
   @if (reasons().length) {
-    <nav class="reasons" aria-label="Waste reasons">
+    <nav class="reasons" [attr.aria-label]="'waste.reasonsNav' | translate">
       @for (reason of reasons(); track reason.id; let i = $index) {
         <button
           type="button"
@@ -64,8 +62,10 @@
   <div class="card">
     <div class="card__head">
       <h2 class="card__title">
-        {{ activeReason()?.name ?? 'No reason selected' }}
-        <span class="card__hint">— {{ rows().length }} worker(s)</span>
+        {{ activeReason()?.name ?? ('waste.noReasonSelected' | translate) }}
+        <span class="card__hint"
+          >— {{ 'waste.workerCount' | translate: { count: rows().length } }}</span
+        >
       </h2>
 
       <p-iconfield>
@@ -73,7 +73,7 @@
         <input
           pInputText
           type="search"
-          placeholder="Find a worker"
+          [placeholder]="'waste.findWorker' | translate"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
         />
@@ -89,30 +89,28 @@
     } @else if (!grades().length) {
       <div class="empty">
         <i class="pi pi-sliders-h"></i>
-        <span class="empty__title">No grades set up</span>
-        <p>Add at least one grade before logging waste against it.</p>
-        <p-button label="Go to grades" icon="pi pi-arrow-right" routerLink="/grades" />
+        <span class="empty__title">{{ 'waste.noGradesTitle' | translate }}</span>
+        <p>{{ 'waste.noGradesBody' | translate }}</p>
+        <p-button [label]="'waste.goToGrades' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_GRADES" />
       </div>
     } @else if (!reasons().length) {
       <div class="empty">
         <i class="pi pi-tags"></i>
-        <span class="empty__title">No reasons set up</span>
-        <p>Add the reason columns from the sheet before logging waste.</p>
-        <p-button label="Go to reasons" icon="pi pi-arrow-right" routerLink="/reasons" />
+        <span class="empty__title">{{ 'waste.noReasonsTitle' | translate }}</span>
+        <p>{{ 'waste.noReasonsBody' | translate }}</p>
+        <p-button [label]="'waste.goToReasons' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_REASONS" />
       </div>
     } @else if (!rows().length) {
       <div class="empty">
         <i class="pi pi-users"></i>
-        <span class="empty__title">{{ search() ? 'No match' : 'No workers yet' }}</span>
+        <span class="empty__title">{{
+          (search() ? 'common.noMatch' : 'waste.noWorkersTitle') | translate
+        }}</span>
         <p>
-          {{
-            search()
-              ? 'No worker matches that search in the selected series.'
-              : 'Add workers before you can log waste against them.'
-          }}
+          {{ (search() ? 'waste.noMatchBody' : 'waste.noWorkersBody') | translate }}
         </p>
         @if (!search()) {
-          <p-button label="Go to workers" icon="pi pi-arrow-right" routerLink="/workers" />
+          <p-button [label]="'waste.goToWorkers' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_WORKERS" />
         }
       </div>
     } @else {
@@ -138,11 +136,12 @@
                     type="button"
                     class="grade__undo"
                     [disabled]="countFor(row, g) === 0 || isBusy(row, grade)"
-                    [pTooltip]="'Remove one ' + grade.name + ' entry'"
+                    [pTooltip]="'waste.removeTooltip' | translate: { grade: grade.name }"
                     tooltipPosition="top"
                     (click)="undo(row, g)"
                     [attr.aria-label]="
-                      'Remove one ' + grade.name + ' entry for ' + workerFullName(row.worker)
+                      'waste.removeAriaLabel'
+                        | translate: { grade: grade.name, worker: workerFullName(row.worker) }
                     "
                   >
                     <i class="pi pi-minus"></i>
@@ -156,7 +155,8 @@
                     [disabled]="isBusy(row, grade)"
                     (click)="add(row, g)"
                     [attr.aria-label]="
-                      'Add one ' + grade.name + ' entry for ' + workerFullName(row.worker)
+                      'waste.addAriaLabel'
+                        | translate: { grade: grade.name, worker: workerFullName(row.worker) }
                     "
                   >
                     <span class="grade__label">{{ grade.name }}</span>
@@ -167,7 +167,7 @@
             </div>
 
             <div class="tapper__total">
-              <span class="tapper__total-label">Row</span>
+              <span class="tapper__total-label">{{ 'waste.rowLabel' | translate }}</span>
               <span class="tapper__total-value tabular">{{ rowTotalFor(row) }}</span>
             </div>
           </li>

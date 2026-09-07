@@ -5,24 +5,25 @@
  * seat is a single machine. The device fingerprint is taken by the Rust side at
  * registration and checked again at every sign-in, so handing the email and
  * password to a colleague does not hand over the app with them.
+ *
+ * `UserAccount`, `Subscription`, `Payment`, `Session` and `PasswordReset` — the
+ * shapes that actually cross the Tauri bridge — live in `models/response/`
+ * (`.claude/rules/models.md`) and are re-exported here so this file can stay
+ * the one screens import for the account domain: the status unions below are
+ * fields on those structs, and every display/validation helper is written
+ * against them.
  */
+
+export type { UserAccount } from './response/userAccount';
+export type { Subscription } from './response/subscription';
+export type { Payment } from './response/payment';
+export type { Session } from './response/session';
+export type { PasswordReset } from './response/passwordReset';
+
+import { UserAccount } from './response/userAccount';
 
 /** `public.users.status`. Anything but `active` is refused at sign-in. */
 export type AccountStatus = 'active' | 'inactive' | 'blocked';
-
-export interface UserAccount {
-  /** The `auth.users` uuid — `public.users.id` is a foreign key onto it. */
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  companyName: string;
-  /** Fingerprint of the PC this licence is claimed by, null until claimed. */
-  deviceId: string | null;
-  status: AccountStatus;
-  createdDate: string;
-}
 
 /**
  * The four values `public.users.subscription_status` is allowed to hold, plus
@@ -31,43 +32,8 @@ export interface UserAccount {
  */
 export type SubscriptionStatus = 'trial' | 'active' | 'inactive' | 'expired' | 'expiring';
 
-export interface Subscription {
-  plan: string;
-  status: SubscriptionStatus;
-  /** ISO date the current term began. */
-  startedOn: string;
-  /** ISO date the current term runs out. */
-  renewsOn: string;
-  /** Whole days left, floored at zero once the term has run out. */
-  daysLeft: number;
-  /** Days in the current term, so the profile can draw how much is spent. */
-  termDays: number;
-}
-
 /** Mirrors `public.subscriptions.status`. */
 export type PaymentStatus = 'created' | 'pending' | 'active' | 'failed' | 'cancelled' | 'expired';
-
-/**
- * One row of `public.subscriptions`, which is the payment history — every row
- * is a purchase with a Razorpay reference, an amount and the term it bought.
- * There is no separate payments table, and there should not be one: it would
- * duplicate all of this and start disagreeing with it.
- */
-export interface Payment {
-  /** Row number for the table, not the uuid — that is not worth showing. */
-  id: number;
-  /** The Razorpay payment id, falling back to the order id before one exists. */
-  reference: string;
-  paidOn: string;
-  plan: string;
-  periodFrom: string;
-  periodTo: string;
-  amount: number;
-  /** ISO 4217, from the row. Defaults to INR in the schema. */
-  currency: string;
-  method: string;
-  status: PaymentStatus;
-}
 
 /**
  * The statuses that mean money actually changed hands. `created`, `pending` and
@@ -75,27 +41,6 @@ export interface Payment {
  * off before one — so the profile's running total counts neither.
  */
 export const SETTLED_PAYMENT_STATUSES: readonly PaymentStatus[] = ['active', 'expired'];
-
-/** What a successful register or sign-in hands back. */
-export interface Session {
-  user: UserAccount;
-  subscription: Subscription;
-}
-
-// The request shapes that used to live here are in `auth.requests.ts`, with
-// the rest of what crosses the Tauri bridge.
-
-/**
- * The result of a forgotten-password request.
- *
- * The password itself is deliberately not in here. It is set and mailed by the
- * `forgot-password` edge function, which takes an email address and no proof of
- * anything — returning what it set would let anyone take over any account by
- * asking for it.
- */
-export interface PasswordReset {
-  sentTo: string;
-}
 
 // ------------------------------------------------------------ validation ---
 //

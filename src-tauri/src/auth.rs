@@ -17,90 +17,17 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
+use crate::models::{
+    ApiResponse, ChangePasswordRequest, LoginRequest, PasswordReset, Payment, RegisterRequest,
+    Session, Subscription, UserAccount,
+};
 use crate::supabase;
 
-// ------------------------------------------------------------- the models --
-//
-// Serialised camelCase, because these cross into TypeScript. They mirror
-// `web/src/app/models/auth.ts` field for field.
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserAccount {
-    pub id: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub phone: String,
-    pub company_name: String,
-    pub device_id: Option<String>,
-    pub status: String,
-    pub created_date: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Subscription {
-    pub plan: String,
-    pub status: String,
-    pub started_on: String,
-    pub renews_on: String,
-    pub days_left: i64,
-    pub term_days: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Payment {
-    pub id: i64,
-    pub reference: String,
-    pub paid_on: String,
-    pub plan: String,
-    pub period_from: String,
-    pub period_to: String,
-    pub amount: f64,
-    pub currency: String,
-    pub method: String,
-    pub status: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Session {
-    pub user: UserAccount,
-    pub subscription: Subscription,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PasswordReset {
-    pub sent_to: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RegisterRequest {
-    pub first_name: String,
-    pub last_name: String,
-    pub phone: String,
-    pub email: String,
-    pub password: String,
-    pub company_name: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChangePasswordRequest {
-    pub current_password: String,
-    pub new_password: String,
-}
+// The account models — `UserAccount`, `Subscription`, `Payment`, `Session`,
+// `PasswordReset`, `RegisterRequest`, `LoginRequest`, `ChangePasswordRequest`
+// — live in `models/request/` and `models/response/`. Serialised camelCase,
+// because they cross into TypeScript: they mirror `web/src/app/models/auth.ts`
+// field for field.
 
 // --------------------------------------------------------- the wire shapes --
 //
@@ -388,8 +315,7 @@ async fn build_session(profile: ProfileRow, access_token: &str) -> Session {
 /// The insert needs the service role key, so it goes through the `register`
 /// edge function — which is also where this PC is checked against every other
 /// account, something no client could do for itself.
-#[tauri::command]
-pub async fn auth_register(app: AppHandle, payload: RegisterRequest) -> AppResult<Session> {
+async fn auth_register_impl(app: AppHandle, payload: RegisterRequest) -> AppResult<Session> {
     let body = serde_json::json!({
         "firstName": payload.first_name,
         "lastName": payload.last_name,
@@ -405,11 +331,15 @@ pub async fn auth_register(app: AppHandle, payload: RegisterRequest) -> AppResul
 
     // Registering does not sign anybody in — the function creates the account
     // and nothing else.
-    auth_login(app, LoginRequest { email: payload.email, password: payload.password }).await
+    auth_login_impl(app, LoginRequest { email: payload.email, password: payload.password }).await
 }
 
 #[tauri::command]
-pub async fn auth_login(app: AppHandle, payload: LoginRequest) -> AppResult<Session> {
+pub async fn auth_register(app: AppHandle, payload: RegisterRequest) -> ApiResponse<Session> {
+    auth_register_impl(app, payload).await.into()
+}
+
+async fn auth_login_impl(app: AppHandle, payload: LoginRequest) -> AppResult<Session> {
     let email = payload.email.trim().to_lowercase();
     let tokens = sign_in(&email, &payload.password).await?;
 
@@ -427,14 +357,18 @@ pub async fn auth_login(app: AppHandle, payload: LoginRequest) -> AppResult<Sess
     Ok(build_session(profile, &tokens.access_token).await)
 }
 
+#[tauri::command]
+pub async fn auth_login(app: AppHandle, payload: LoginRequest) -> ApiResponse<Session> {
+    auth_login_impl(app, payload).await.into()
+}
+
 /// The signed-in session left over from last time, if there is one.
 ///
 /// The stored access token is usually stale — they last an hour — so a failure
 /// to read the profile is taken as "expired" and the refresh token is spent
 /// before giving up. The licence is re-checked on the way back in, so a token
 /// file copied onto another machine does not outlive the binding.
-#[tauri::command]
-pub async fn auth_restore(app: AppHandle) -> AppResult<Option<Session>> {
+async fn auth_restore_impl(app: AppHandle) -> AppResult<Option<Session>> {
     let Some(stored) = load_tokens(&app) else {
         return Ok(None);
     };
@@ -475,13 +409,21 @@ pub async fn auth_restore(app: AppHandle) -> AppResult<Option<Session>> {
 }
 
 #[tauri::command]
-pub async fn auth_logout(app: AppHandle) -> AppResult<()> {
+pub async fn auth_restore(app: AppHandle) -> ApiResponse<Option<Session>> {
+    auth_restore_impl(app).await.into()
+}
+
+async fn auth_logout_impl(app: AppHandle) -> AppResult<()> {
     clear_tokens(&app);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn auth_forgot_password(email: String) -> AppResult<PasswordReset> {
+pub async fn auth_logout(app: AppHandle) -> ApiResponse<()> {
+    auth_logout_impl(app).await.into()
+}
+
+async fn auth_forgot_password_impl(email: String) -> AppResult<PasswordReset> {
     supabase::call_function(
         "forgot-password",
         &serde_json::json!({ "email": email.trim().to_lowercase() }),
@@ -490,16 +432,17 @@ pub async fn auth_forgot_password(email: String) -> AppResult<PasswordReset> {
     .await
 }
 
+#[tauri::command]
+pub async fn auth_forgot_password(email: String) -> ApiResponse<PasswordReset> {
+    auth_forgot_password_impl(email).await.into()
+}
+
 /// Changing a password, having first proved the current one.
 ///
 /// GoTrue will change a password on the strength of the session alone, so the
 /// current one is checked here by signing in with it — otherwise the field
 /// would be decoration.
-#[tauri::command]
-pub async fn auth_change_password(
-    app: AppHandle,
-    payload: ChangePasswordRequest,
-) -> AppResult<()> {
+async fn auth_change_password_impl(app: AppHandle, payload: ChangePasswordRequest,) -> AppResult<()> {
     let Some(stored) = load_tokens(&app) else {
         return Err(AppError::NotFound("You are not signed in.".into()));
     };
@@ -520,9 +463,13 @@ pub async fn auth_change_password(
     Ok(())
 }
 
-/// The payment history: every `subscriptions` row, newest first.
 #[tauri::command]
-pub async fn auth_payments(app: AppHandle) -> AppResult<Vec<Payment>> {
+pub async fn auth_change_password(app: AppHandle, payload: ChangePasswordRequest,) -> ApiResponse<()> {
+    auth_change_password_impl(app, payload).await.into()
+}
+
+/// The payment history: every `subscriptions` row, newest first.
+async fn auth_payments_impl(app: AppHandle) -> AppResult<Vec<Payment>> {
     let Some(stored) = load_tokens(&app) else {
         return Err(AppError::NotFound("You are not signed in.".into()));
     };
@@ -556,4 +503,9 @@ pub async fn auth_payments(app: AppHandle) -> AppResult<Vec<Payment>> {
             status: row.status,
         })
         .collect())
+}
+
+#[tauri::command]
+pub async fn auth_payments(app: AppHandle) -> ApiResponse<Vec<Payment>> {
+    auth_payments_impl(app).await.into()
 }

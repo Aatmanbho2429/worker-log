@@ -215,7 +215,7 @@
 
       <p class="auth__foot">
         {{ 'auth.register.footPrompt' | translate }}
-        <a class="auth__link" routerLink="/login">{{ 'auth.register.footLink' | translate }}</a>
+        <a class="auth__link" [routerLink]="ROUTE_LOGIN">{{ 'auth.register.footLink' | translate }}</a>
       </p>
     </form>
   </div>

@@ -1,10 +1,12 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
+import { DataChangesService } from '../../core/data-changes.service';
 import { NotifyService } from '../../core/notify.service';
-import { WasteLogService } from '../../core/waste-log.service';
+import { SeriesService } from '../../services/series/series.service';
 import { SeriesOfProduct } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
@@ -16,10 +18,12 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   styleUrl: './series.scss',
 })
 export class Series {
-  private readonly api = inject(WasteLogService);
+  private readonly series = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   protected readonly items = signal<SeriesOfProduct[]>([]);
   protected readonly loading = signal(true);
@@ -44,7 +48,7 @@ export class Series {
     void this.load();
 
     // The worker count per series moves when workers change, not just series.
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'series', 'workers')) {
         void this.load();
       }
@@ -77,16 +81,16 @@ export class Series {
 
     try {
       if (editing) {
-        await this.api.updateSeries(editing.id, { name });
-        this.notify.success(`Renamed to "${name}".`);
+        await this.series.update(editing.id, { name });
+        this.notify.success(this.translate.instant('common.renamedSuccess', { name }));
       } else {
-        await this.api.createSeries({ name });
-        this.notify.success(`Added "${name}".`);
+        await this.series.create({ name });
+        this.notify.success(this.translate.instant('common.addedSuccess', { name }));
       }
       this.dialogOpen.set(false);
       await this.load();
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not save the series.');
+      this.notify.fromCommand(error, this.translate.instant('series.saveFailed'));
     } finally {
       this.saving.set(false);
     }
@@ -97,27 +101,29 @@ export class Series {
     // round trip that would only come back as an error toast.
     if (item.workerCount > 0) {
       this.notify.warn(
-        `"${item.name}" still has ${item.workerCount} worker(s) assigned. ` +
-          'Move them to another series first.',
+        this.translate.instant('series.inUseWarning', {
+          name: item.name,
+          count: item.workerCount,
+        }),
       );
       return;
     }
 
     this.confirm.confirm({
-      header: 'Delete series',
-      message: `Delete "${item.name}"? This cannot be undone.`,
+      header: this.translate.instant('series.deleteHeader'),
+      message: this.translate.instant('series.deleteMessage', { name: item.name }),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.translate.instant('common.delete'),
+      rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-text',
       accept: async () => {
         try {
-          await this.api.deleteSeries(item.id);
-          this.notify.success(`Deleted "${item.name}".`);
+          await this.series.delete(item.id);
+          this.notify.success(this.translate.instant('common.deletedSuccess', { name: item.name }));
           await this.load();
         } catch (error) {
-          this.notify.fromCommand(error, 'Could not delete the series.');
+          this.notify.fromCommand(error, this.translate.instant('series.deleteFailed'));
         }
       },
     });
@@ -126,9 +132,9 @@ export class Series {
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      this.items.set(await this.api.listSeries());
+      this.items.set(await this.series.list());
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not load the product series.');
+      this.notify.fromCommand(error, this.translate.instant('waste.seriesFailed'));
     } finally {
       this.loading.set(false);
     }

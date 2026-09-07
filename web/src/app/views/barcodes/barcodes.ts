@@ -1,17 +1,20 @@
 import { Component, DestroyRef, NgZone, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { openPath } from '@tauri-apps/plugin-opener';
 
+import { DataChangesService } from '../../core/data-changes.service';
 import { gradeToneClass } from '../../core/grade-tone';
 import { NotifyService } from '../../core/notify.service';
 import { ScanService } from '../../core/scan.service';
-import { WasteLogService } from '../../core/waste-log.service';
 import { BarcodeSheet, BarcodeSymbol, Grade, SeriesOfProduct, WorkerLog } from '../../models';
 import { affects } from '../../models/events';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { ScanField } from '../../shared/scan-field/scan-field';
+import { BarcodeService } from '../../services/barcode/barcode.service';
+import { SeriesService } from '../../services/series/series.service';
 
 /** An entry the reader just recorded, kept briefly so the operator sees it. */
 interface Recorded {
@@ -76,11 +79,14 @@ interface Group {
   styleUrl: './barcodes.scss',
 })
 export class Barcodes {
-  private readonly api = inject(WasteLogService);
+  private readonly barcode = inject(BarcodeService);
+  private readonly seriesApi = inject(SeriesService);
+  private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
   private readonly scanner = inject(ScanService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly zone = inject(NgZone);
+  private readonly translate = inject(TranslateService);
 
   protected readonly sheet = signal<BarcodeSheet | null>(null);
   protected readonly series = signal<SeriesOfProduct[]>([]);
@@ -203,7 +209,7 @@ export class Barcodes {
     // A worker added, a reason renamed or a grade created changes what belongs
     // on the sheet. Waste taps do not: they change counts, and the sheet shows
     // no totals.
-    this.api.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
+    this.dataChanges.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((change) => {
       if (affects(change, 'workers', 'reasons', 'series', 'grades')) {
         void this.load();
       }
@@ -214,13 +220,13 @@ export class Barcodes {
     this.loading.set(true);
     try {
       const [sheet, series] = await Promise.all([
-        this.api.barcodeSheet(this.seriesId()),
-        this.api.listSeries(),
+        this.barcode.sheet(this.seriesId()),
+        this.seriesApi.list(),
       ]);
       this.sheet.set(sheet);
       this.series.set(series);
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not build the scanning sheet.');
+      this.notify.fromCommand(error, this.translate.instant('barcodes.loadFailed'));
     } finally {
       this.loading.set(false);
     }
@@ -247,9 +253,9 @@ export class Barcodes {
    */
   private async onScan(code: string): Promise<void> {
     try {
-      this.onRecorded(await this.api.recordScan(code).then(({ entry }) => entry));
+      this.onRecorded(await this.barcode.recordScan(code).then(({ entry }) => entry));
     } catch (error) {
-      this.problem.set(messageOf(error, 'That barcode could not be recorded.'));
+      this.problem.set(messageOf(error, this.translate.instant('scanField.failed')));
     }
   }
 
@@ -328,11 +334,11 @@ export class Barcodes {
         return;
       }
 
-      const written = await this.api.exportBarcodesPdf(this.seriesId(), path);
-      this.notify.success(`Saved to ${written}`);
+      const written = await this.barcode.exportPdf(this.seriesId(), path);
+      this.notify.success(this.translate.instant('common.savedTo', { path: written }));
       await this.reveal(written);
     } catch (error) {
-      this.notify.fromCommand(error, 'Could not write the scanning sheet.');
+      this.notify.fromCommand(error, this.translate.instant('barcodes.writeFailed'));
     } finally {
       this.exporting.set(false);
     }
@@ -342,7 +348,7 @@ export class Barcodes {
     try {
       await this.zone.runOutsideAngular(() => openPath(path));
     } catch {
-      this.notify.info('The sheet was saved, but could not be opened automatically.');
+      this.notify.info(this.translate.instant('barcodes.openFailed'));
     }
   }
 
