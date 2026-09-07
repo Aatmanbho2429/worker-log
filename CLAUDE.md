@@ -6,9 +6,6 @@ as. Ships as a native app — Tauri 2 shell, Angular 21 UI, Rust core, one SQLit
 file. No server to run, no browser, no network for the register itself (there
 is a small Supabase-backed account/licensing layer — see below).
 
-Standing conventions that should always be enforced (the Tauri IPC boundary,
-colour tokens, auth-DTO sync, data-model guards) live in `.claude/rules/` rather
-than here — see those files for the specifics and reasoning.
 
 ## Commands
 
@@ -111,8 +108,7 @@ Standalone components with signals, PrimeNG 21 Aura preset. Structure:
   `auth/register`, `profile`).
 - `shared/` — reusable pieces (`scan-field`, `range-filter`) used across views.
 - `models/` — DTOs shared with Rust; the account ones (`auth.ts`,
-  `auth.requests.ts`) mirror `src-tauri/src/auth.rs`'s structs field-for-field
-  (`.claude/rules/auth-model-sync.md`).
+  `auth.requests.ts`) mirror `src-tauri/src/auth.rs`'s structs field-for-field.
 
 Every screen shares one date range (defaults to the current month) and an
 optional series filter — that state lives above the view level, not per-screen.
@@ -122,20 +118,17 @@ optional series filter — that state lives above the view level, not per-screen
 Every colour is a CSS custom property in
 `web/src/assets/styles/base/_theme.scss` (`:root` = light, `.app-dark` = dark),
 aliased to Sass names in `_tokens.scss`. Never hardcode a colour in a component
-stylesheet — see `.claude/rules/theming.md` and README's "Theming" section.
+stylesheet.
 
 ### Accounts / licensing (Supabase)
 
 All users are in supabase. This is a seperate database from the sqlliet local database.
 Only the registered user with appropriate subscription status will be able to login this app.
-These database contains the real user information. All the registration , login is done in supabase and we have appropriate edge functions for that. Refer (`.claude/skills/supabase/SKILL.md`)
+These database contains the real user information. All the registration , login is done in supabase and we have appropriate edge functions for that.
 
 
 ## Data model
 
 SQLite, one connection guarded behind a mutex (`state.rs`) — this app targets
 one terminal on one shop floor, so no connection pooling. Tables:
-`series_of_product`, `reason`, `worker`, `grade`, `worker_log`, `barcode`. See
-README's "Data model" and "Migrations" sections for the full column list, and
-`.claude/rules/data-model.md` for the guard rules (one row per tap, no orphaning
-deletes, `barcode` backfill, idempotent migrations).
+`series_of_product`, `reason`, `worker`, `grade`, `worker_log`, `barcode`.

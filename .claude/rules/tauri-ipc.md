@@ -28,4 +28,3 @@ treat `internal` as a fault.
 - Same pattern for events: registry at `core/tauri/tauri-events.const.ts`.
 - One command per action. Don't multiplex several operations behind one command with a type/action flag.
 - Every new command needs an entry in the relevant Tauri v2 capabilities allowlist (`src-tauri/capabilities/*.json`) — add this in the same change, not a follow-up, or the command will be silently denied at runtime.
-- Event payloads are typed `response*` models, never `any`.
