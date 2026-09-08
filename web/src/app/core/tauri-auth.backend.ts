@@ -4,6 +4,7 @@ import { PasswordReset, Payment, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
   LoginRequest,
+  OtpSent,
   RegisterRequest,
   RestoreResponse,
 } from '../models/auth.requests';
@@ -35,8 +36,12 @@ export class TauriAuthBackend extends AuthBackend {
     return this.zoneWrapper.invoke<RestoreResponse>(TAURI_COMMANDS.authRestore);
   }
 
-  register(payload: RegisterRequest): Promise<Session> {
-    return this.zoneWrapper.invoke<Session>(TAURI_COMMANDS.authRegister, { payload });
+  sendOtp(email: string): Promise<OtpSent> {
+    return this.zoneWrapper.invoke<OtpSent>(TAURI_COMMANDS.authSendOtp, { email });
+  }
+
+  register(payload: RegisterRequest): Promise<void> {
+    return this.zoneWrapper.invoke<void>(TAURI_COMMANDS.authRegister, { payload });
   }
 
   login(payload: LoginRequest): Promise<Session> {

@@ -30,7 +30,8 @@ Angular tests (from `web/`):
 
 ```bash
 npm test                                              # ng test — the whole vitest suite
-npm test -- --include src/app/core/scan.service.spec.ts   # one spec file
+npm test -- --watch=false                             # one-shot run from an interactive shell
+npm test -- --include src/app/core/scan.service.spec.ts   # one spec file (path is web/-relative)
 npm test -- --filter "keyboard wedge"                 # tests whose name matches a regex
 ```
 
@@ -38,12 +39,20 @@ Tests run through Angular's `@angular/build:unit-test` builder (vitest under
 jsdom, no `vitest.config.ts`). Calling `npx vitest` directly fails — the builder
 is what initialises the TestBed, so always go through `npm test`.
 
+`--watch` defaults to **true in a TTY**, so `npm test` typed at a prompt sits in
+watch mode rather than exiting; pass `--watch=false` when you want a run that
+returns. There are four spec files — `core/scan.service.spec.ts`,
+`core/zone-wrapper/zone-wrapper.service.spec.ts`, `models/auth.spec.ts`,
+`shared/scan-field/scan-field.spec.ts` (37 tests, green as of this writing).
+Nothing under `views/` or `services/` is covered.
+
 There is no linter configured. Formatting is Prettier 3 against `web/.prettierrc`
 (100 columns, single quotes, `angular` parser for templates) — there is no
 `format` script, so run `npx prettier --write <paths>` from `web/`.
 
 Rust tests are plain `#[test]` functions inline in the modules under
-`src-tauri/src/` (`barcode.rs`, `barcode_sheet.rs`, `db.rs`, `report.rs`):
+`src-tauri/src/` (`barcode.rs`, `barcode_sheet.rs`, `db.rs`, `report.rs`,
+`models/response/api_response.rs`):
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml
@@ -66,13 +75,16 @@ seeder — set it during dev to avoid touching a real register.
 worker-log/
 ├── package.json     root — `npm run dev` / `npm run build`
 ├── src-tauri/        Rust: Tauri commands, SQLite, PDF writer, account/licence
-├── web/               Angular 21 + PrimeNG 21 front end
-└── supabase/          edge functions + SQL for the account/licence backend
+└── web/               Angular 21 + PrimeNG 21 front end
 ```
 
-(`supabase/` is tracked in git but currently deleted in the working tree — the
-Rust side still calls those edge functions, so restore it with
-`git checkout supabase` before editing them.)
+There is a stray empty `supabase/` directory in the working tree, but **the
+edge-function sources are no longer in git** — commit `e27bffd` deleted
+`supabase/README.md`, `config.toml`, `migrations/0001_account_schema.sql` and
+`functions/{register,login,forgot-password}/index.ts`, and nothing since
+restored them, so `git checkout supabase` fails with "pathspec did not match".
+`src-tauri/src/supabase.rs` still calls those three deployed functions by name.
+To edit them, recover the tree first: `git checkout e27bffd^ -- supabase`.
 
 `npm run dev` is `tauri dev`: `tauri.conf.json`'s `beforeDevCommand` starts the
 Angular dev server on `:4200` and the Tauri window points at it. `npm run build`
@@ -80,9 +92,12 @@ runs `web`'s production build and bundles `web/dist/CeramicWasteLog/browser`.
 
 ### The two halves talk over Tauri IPC, not HTTP
 
-Angular never calls `fetch`/HTTP for app data. Entity services under
+Angular never calls `fetch`/HTTP for app data — the single `provideHttpClient()`
+in `app.config.ts` exists only so `@ngx-translate` can load `assets/i18n/en.json`
+through `core/custom-translate-loader.ts`. Entity services under
 `web/src/app/services/` (see below) invoke Tauri commands defined in
-`src-tauri/src/commands.rs` and `auth.rs` (full command table in the README),
+`src-tauri/src/commands.rs` and `auth.rs` (README has a command table, but a
+stale one — see "Where the older docs have drifted"),
 and Rust pushes `worker-log://data-changed` events back with a scope (`waste`,
 `workers`, `series`, `reasons`, `grades`, `everything`) that tells each screen
 whether to reload — read via `core/data-changes.service.ts`.
@@ -108,6 +123,22 @@ mapping lives in `zone-wrapper.service.ts`) — so `notify.service.ts`'s
 command's real logic lives in a `<name>_impl` function returning the ordinary
 `AppResult<T>` with `?`-based error handling; the `#[tauri::command]` wrapper
 just calls it and converts with `.into()`.
+
+#### Adding a command touches exactly three places
+
+1. `commands.rs` (or `auth.rs`) — the `<name>_impl` + `#[tauri::command]` pair.
+2. `src-tauri/src/lib.rs`'s `generate_handler![]` list. Miss this and the call
+   rejects at runtime with no compile error.
+3. `core/tauri/tauri-commands.const.ts` — one `TAURI_COMMANDS` entry, so a typo
+   is a compile error rather than a rejected promise.
+
+It does **not** touch `src-tauri/capabilities/default.json`, despite what
+`.claude/rules/tauri-ipc.md`'s last bullet and `scaffold-entity` step 8 say.
+That file carries plugin permissions only (`dialog:allow-save`,
+`opener:allow-open-path`, `log:default`, `core:*`); all 37 app commands are
+reachable today with none of them listed, so an entry there would be
+meaningless text. Verify with `cat src-tauri/capabilities/default.json` before
+believing the rule — it is the rule that is wrong, not the code.
 
 ### Rust side (`src-tauri/src`)
 
@@ -160,20 +191,34 @@ Standalone components with signals, PrimeNG 21 Aura preset. Structure:
   sheet, recording a scan), `settings/` (app info, demo-data seeding),
   `export/` (the save-dialog + open-after-export flow shared by the month
   sheet and reports, on top of `WasteService`).
+- `layout/shell/` — the chrome (nav, shared date range/series filter) every
+  signed-in screen renders inside. `app.routes.ts` mounts every view as a lazy
+  child of `Shell` behind `canActivateChild: [authGuard]`; `login` and
+  `register` sit *outside* it behind `guestGuard`, because there is nothing to
+  navigate to until somebody is signed in.
 - `views/` — one folder per screen (`waste`, `sheet`, `reports`, `barcodes`,
   `workers`, `series`, `reasons`, `grades`, `settings`, `auth/login`,
-  `auth/register`, `profile`).
+  `auth/register`, `profile`), each `loadComponent`-ed from `app.routes.ts`.
 - `shared/` — reusable pieces (`scan-field`, `range-filter`) used across views.
 - `models/` — DTOs shared with Rust, split by direction per
   `.claude/rules/models.md`: `models/request/` (payloads, `RangeFilter`,
   `RegisterRequest`, …) and `models/response/` (`Grade`, `Dashboard`,
   `UserAccount`, …), one type per file, both re-exported flatly through
   `models/index.ts` so the rest of the app keeps writing
-  `import { Grade } from '../../models'`. `auth.ts` holds the account domain's
-  status unions and every display/validation helper, re-exporting the response
-  structs it works with; `auth.requests.ts` re-exports the `auth_*` command's
-  request/response types the same way. `constants.ts` holds non-copy literals
-  used in more than one place — route paths, toast lifetimes.
+  `import { Grade } from '../../models'`. Note the two trees pair up
+  one-for-one but do **not** always share a name: the account domain follows
+  `.claude/rules/models.md`'s `*Request` suffix (`loginRequest.ts` ↔
+  `login_request.rs`), while the waste domain predates it and pairs
+  `seriesPayload.ts` ↔ `series_upsert.rs` (likewise grade/reason/worker, and
+  `rangeFilter.ts` ↔ `range_query.rs`). Match the neighbours of whatever you
+  are adding rather than renaming the existing set. `auth.ts` holds the
+  account domain's status unions and every display/validation helper,
+  re-exporting the response structs it works with; `auth.requests.ts`
+  re-exports the `auth_*` command's request/response types the same way.
+  `constants.ts` holds non-copy literals used in more than one place — route
+  paths, toast lifetimes. `events.ts` sits outside the request/response split
+  because a pushed event is neither: it holds `DataChanged`, mirroring
+  `src-tauri/src/events.rs`.
 - `assets/i18n/en.json` — every piece of on-screen copy, namespaced by view
   folder (`waste.*`, `grades.*`, …) plus shared `common.*`/`validation.*`
   namespaces; resolved with the `translate` pipe in templates and
@@ -188,7 +233,17 @@ optional series filter — that state lives above the view level, not per-screen
 Every colour is a CSS custom property in
 `web/src/assets/styles/base/_theme.scss` (`:root` = light, `.app-dark` = dark),
 aliased to Sass names in `_tokens.scss`. Never hardcode a colour in a component
-stylesheet.
+stylesheet. Because each alias holds a `var()` reference rather than a colour,
+Sass colour functions (`darken()`, `rgba()`, …) don't work on them — reach for a
+`--wash-*` token or a raw palette variable instead.
+
+The app ships light (`web/src/index.html` is plain `<html lang="en">`); adding
+`class="app-dark"` there switches both the app's own tokens and PrimeNG's dark
+scheme at once, since `app.config.ts` sets `darkModeSelector: '.app-dark'` on
+the preset. That preset is `web/src/app/theme.ts` (`WasteLogPreset`, a
+`definePreset(Aura, …)` in navy) — the PrimeNG side of the palette, distinct
+from the Sass tokens above. Barcode tiles, sheet header bands and grade colours
+deliberately ignore the theme; see `.claude/rules/theming.md` for why.
 
 ### Accounts / licensing (Supabase)
 
@@ -223,3 +278,25 @@ the rest of the split (only `tauri-auth.backend.ts` touches
 documented mini-layer (see "Accounts / licensing" below) rather than a CRUD
 entity in the sense the rest of `services/` is. Nothing about this is a rule
 violation — say so if a future change wants it moved for consistency anyway.
+
+## Where the older docs have drifted
+
+`README.md` and two `.claude/rules/` files predate the `zone-wrapper` split and
+still name files that no longer exist. The rules below are still correct in
+*substance* — follow them — but resolve the paths against this file, not them:
+
+- `README.md`'s "How the two halves talk" and "Zones" sections, and all of
+  `.claude/rules/tauri-ipc.md`, point at `web/src/app/core/tauri.service.ts`
+  with `call()`/`on()`, and README also names `core/waste-log.service.ts`.
+  Neither file exists. The IPC boundary is
+  `core/zone-wrapper/zone-wrapper.service.ts` with `invoke()`/`listen()`, and
+  the per-entity services live under `services/`.
+- `.claude/rules/zone-wrapper.md`'s `paths:` globs are `src/app/**` rather than
+  `web/src/app/**`, so they never match anything and the rule is unlikely to
+  auto-attach. Read it deliberately when touching a service.
+- README's command table omits the seven `auth_*` commands and `device_id`.
+  `core/tauri/tauri-commands.const.ts` and `lib.rs`'s `generate_handler![]` are
+  the authoritative list (37 commands).
+
+Fixing these files is worth doing if you are already in them; the code is the
+side that is right.

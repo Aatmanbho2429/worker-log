@@ -13,6 +13,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputIconModule } from 'primeng/inputicon';
+import { InputOtpModule } from 'primeng/inputotp';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
@@ -48,6 +49,7 @@ const MODULES = [
   InputGroupModule,
   InputGroupAddonModule,
   InputIconModule,
+  InputOtpModule,
   InputTextModule,
   MessageModule,
   PasswordModule,

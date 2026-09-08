@@ -19,6 +19,7 @@ export type { LoginRequest } from './request/loginRequest';
 export type { RegisterRequest } from './request/registerRequest';
 
 export type { ForgotPasswordResponse } from './response/forgotPasswordResponse';
+export type { OtpSent } from './response/otpSent';
 export type { PaymentsResponse } from './response/paymentsResponse';
 export type { RestoreResponse } from './response/restoreResponse';
 export type { SessionResponse } from './response/sessionResponse';

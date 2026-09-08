@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 
 import { PasswordReset, Payment, Session } from '../models/auth';
-import { ChangePasswordRequest, LoginRequest, RegisterRequest } from '../models/auth.requests';
+import {
+  ChangePasswordRequest,
+  LoginRequest,
+  OtpSent,
+  RegisterRequest,
+} from '../models/auth.requests';
 
 /**
  * Everything the account screens need, and the seam between them and where the
@@ -27,7 +32,14 @@ export abstract class AuthBackend {
   /** The signed-in session left over from last time, if there is one. */
   abstract restore(): Promise<Session | null>;
 
-  abstract register(payload: RegisterRequest): Promise<Session>;
+  /** Mails a code to prove the address before `register` is called with it. */
+  abstract sendOtp(email: string): Promise<OtpSent>;
+
+  /**
+   * Opens an account. Does not sign in — the account and the session are two
+   * separate facts, and this only makes the first one true.
+   */
+  abstract register(payload: RegisterRequest): Promise<void>;
 
   abstract login(payload: LoginRequest): Promise<Session>;
 

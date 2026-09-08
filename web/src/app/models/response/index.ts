@@ -9,6 +9,7 @@ export * from './dashboard';
 export * from './forgotPasswordResponse';
 export * from './grade';
 export * from './gradeDeleteImpact';
+export * from './otpSent';
 export * from './passwordReset';
 export * from './payment';
 export * from './paymentsResponse';

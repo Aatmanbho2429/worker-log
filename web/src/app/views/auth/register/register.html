@@ -30,193 +30,282 @@
   </aside>
 
   <div class="auth__pane">
-    <form class="auth__card auth__card--wide" (ngSubmit)="submit()" novalidate>
-      <header class="auth__head">
-        <h1 class="auth__title">{{ 'auth.register.title' | translate }}</h1>
-        <p class="auth__subtitle">{{ 'auth.register.subtitle' | translate }}</p>
-      </header>
+    @if (step() === 'details') {
+      <form class="auth__card auth__card--wide" (ngSubmit)="requestCode()" novalidate>
+        <header class="auth__head">
+          <h1 class="auth__title">{{ 'auth.register.title' | translate }}</h1>
+          <p class="auth__subtitle">{{ 'auth.register.subtitle' | translate }}</p>
+        </header>
 
-      <div class="auth__device">
-        <i class="pi pi-lock"></i>
-        <div>
-          <span class="auth__device-title">{{ 'auth.register.deviceTitle' | translate }}</span>
-          <p>{{ 'auth.register.deviceBody' | translate }}</p>
-        </div>
-      </div>
-
-      <div class="auth__grid">
-        <div class="field">
-          <label class="field__label" for="first-name">{{
-            'auth.fieldFirstName' | translate
-          }}</label>
-          <input
-            pInputText
-            id="first-name"
-            autocomplete="given-name"
-            pSize="large"
-            [placeholder]="'auth.placeholderFirstName' | translate"
-            [ngModel]="form().firstName"
-            name="firstName"
-            (ngModelChange)="patch('firstName', $event)"
-            (blur)="touch('firstName')"
-          />
-          @if (problem('firstName'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
-          }
+        <div class="auth__device">
+          <i class="pi pi-lock"></i>
+          <div>
+            <span class="auth__device-title">{{ 'auth.register.deviceTitle' | translate }}</span>
+            <p>{{ 'auth.register.deviceBody' | translate }}</p>
+          </div>
         </div>
 
-        <div class="field">
-          <label class="field__label" for="last-name">{{ 'auth.fieldLastName' | translate }}</label>
-          <input
-            pInputText
-            id="last-name"
-            autocomplete="family-name"
-            pSize="large"
-            [placeholder]="'auth.placeholderLastName' | translate"
-            [ngModel]="form().lastName"
-            name="lastName"
-            (ngModelChange)="patch('lastName', $event)"
-            (blur)="touch('lastName')"
-          />
-          @if (problem('lastName'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
-          }
-        </div>
-
-        <div class="field">
-          <label class="field__label" for="phone">{{ 'auth.fieldPhone' | translate }}</label>
-          <p-inputgroup>
-            <p-inputgroup-addon>{{ 'auth.phonePrefix' | translate }}</p-inputgroup-addon>
+        <div class="auth__grid">
+          <div class="field">
+            <label class="field__label" for="first-name">{{
+              'auth.fieldFirstName' | translate
+            }}</label>
             <input
               pInputText
-              id="phone"
-              inputmode="tel"
-              autocomplete="tel-national"
+              id="first-name"
+              autocomplete="given-name"
               pSize="large"
-              [placeholder]="'auth.placeholderPhone' | translate"
-              [ngModel]="form().phone"
-              name="phone"
-              (ngModelChange)="patch('phone', $event)"
-              (blur)="touch('phone')"
+              [placeholder]="'auth.placeholderFirstName' | translate"
+              [ngModel]="form().firstName"
+              name="firstName"
+              (ngModelChange)="patch('firstName', $event)"
+              (blur)="touch('firstName')"
             />
-          </p-inputgroup>
-          @if (problem('phone'); as message) {
+            @if (problem('firstName'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="last-name">{{
+              'auth.fieldLastName' | translate
+            }}</label>
+            <input
+              pInputText
+              id="last-name"
+              autocomplete="family-name"
+              pSize="large"
+              [placeholder]="'auth.placeholderLastName' | translate"
+              [ngModel]="form().lastName"
+              name="lastName"
+              (ngModelChange)="patch('lastName', $event)"
+              (blur)="touch('lastName')"
+            />
+            @if (problem('lastName'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="phone">{{ 'auth.fieldPhone' | translate }}</label>
+            <p-inputgroup>
+              <p-inputgroup-addon>{{ 'auth.phonePrefix' | translate }}</p-inputgroup-addon>
+              <input
+                pInputText
+                id="phone"
+                inputmode="tel"
+                autocomplete="tel-national"
+                pSize="large"
+                [placeholder]="'auth.placeholderPhone' | translate"
+                [ngModel]="form().phone"
+                name="phone"
+                (ngModelChange)="patch('phone', $event)"
+                (blur)="touch('phone')"
+              />
+            </p-inputgroup>
+            @if (problem('phone'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            } @else {
+              <span class="field__hint">{{ 'auth.hintPhone' | translate }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="email">{{ 'auth.fieldEmail' | translate }}</label>
+            <input
+              pInputText
+              id="email"
+              type="email"
+              autocomplete="email"
+              pSize="large"
+              [placeholder]="'auth.placeholderEmail' | translate"
+              [ngModel]="form().email"
+              name="email"
+              (ngModelChange)="patch('email', $event)"
+              (blur)="touch('email')"
+            />
+            @if (problem('email'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            } @else {
+              <span class="field__hint">{{ 'auth.hintEmail' | translate }}</span>
+            }
+          </div>
+
+          <div class="field auth__span">
+            <label class="field__label" for="company">{{ 'auth.fieldCompany' | translate }}</label>
+            <input
+              pInputText
+              id="company"
+              autocomplete="organization"
+              pSize="large"
+              [placeholder]="'auth.placeholderCompany' | translate"
+              [ngModel]="form().companyName"
+              name="companyName"
+              (ngModelChange)="patch('companyName', $event)"
+              (blur)="touch('companyName')"
+            />
+            @if (problem('companyName'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password">{{
+              'auth.fieldPassword' | translate
+            }}</label>
+            <p-password
+              inputId="password"
+              autocomplete="new-password"
+              inputStyleClass="field__input--lg"
+              [placeholder]="'auth.placeholderPassword' | translate"
+              [feedback]="false"
+              [toggleMask]="true"
+              [ngModel]="form().password"
+              name="password"
+              (ngModelChange)="patch('password', $event)"
+              (onBlur)="touch('password')"
+            />
+
+            @if (form().password) {
+              <div [class]="'meter meter--' + scoreTone()">
+                @for (step of [1, 2, 3, 4]; track step) {
+                  <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
+                }
+              </div>
+            }
+
+            @if (problem('password'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            } @else if (form().password) {
+              <span class="meter__label">{{ scoreLabel() | translate }}</span>
+            } @else {
+              <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="confirm-password">{{
+              'auth.fieldConfirmPassword' | translate
+            }}</label>
+            <p-password
+              inputId="confirm-password"
+              autocomplete="new-password"
+              inputStyleClass="field__input--lg"
+              [placeholder]="'auth.placeholderConfirmPassword' | translate"
+              [feedback]="false"
+              [toggleMask]="true"
+              [ngModel]="form().confirmPassword"
+              name="confirmPassword"
+              (ngModelChange)="patch('confirmPassword', $event)"
+              (onBlur)="touch('confirmPassword')"
+            />
+            @if (problem('confirmPassword'); as message) {
+              <span class="field__error">{{ message | translate }}</span>
+            } @else {
+              <span class="field__hint">{{ 'auth.hintConfirmPassword' | translate }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="auth__actions">
+          <p-button
+            type="submit"
+            [label]="'auth.register.submit' | translate"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            styleClass="auth__submit"
+            [loading]="saving()"
+          />
+        </div>
+
+        <p class="auth__foot">
+          {{ 'auth.register.footPrompt' | translate }}
+          <a class="auth__link" [routerLink]="ROUTE_LOGIN">{{
+            'auth.register.footLink' | translate
+          }}</a>
+        </p>
+      </form>
+    } @else if (step() === 'code') {
+      <form
+        class="auth__card auth__card--narrow auth__card--code"
+        (ngSubmit)="confirm()"
+        novalidate
+      >
+        <div class="auth__code-mark"><i class="pi pi-envelope"></i></div>
+
+        <header class="auth__head">
+          <h1 class="auth__title">{{ 'auth.register.codeTitle' | translate }}</h1>
+          <p class="auth__subtitle">
+            {{ 'auth.register.codeSubtitle' | translate: { email: otpEmail() } }}
+          </p>
+        </header>
+
+        <div class="field auth__otp-field">
+          <label class="field__label" for="otp-code">{{ 'auth.fieldOtp' | translate }}</label>
+          <p-inputotp
+            class="auth__otp"
+            inputId="otp-code"
+            [length]="4"
+            [integerOnly]="true"
+            autocomplete="one-time-code"
+            size="large"
+            [ngModel]="otpCode()"
+            name="otpCode"
+            (ngModelChange)="otpCode.set($event)"
+            (onBlur)="touchOtp()"
+          />
+          @if (otpFieldProblem(); as message) {
             <span class="field__error">{{ message | translate }}</span>
           } @else {
-            <span class="field__hint">{{ 'auth.hintPhone' | translate }}</span>
+            <span class="field__hint">{{ 'auth.register.spamHint' | translate }}</span>
           }
         </div>
 
-        <div class="field">
-          <label class="field__label" for="email">{{ 'auth.fieldEmail' | translate }}</label>
-          <input
-            pInputText
-            id="email"
-            type="email"
-            autocomplete="email"
-            pSize="large"
-            [placeholder]="'auth.placeholderEmail' | translate"
-            [ngModel]="form().email"
-            name="email"
-            (ngModelChange)="patch('email', $event)"
-            (blur)="touch('email')"
+        <div class="auth__actions">
+          <p-button
+            type="submit"
+            [label]="'auth.register.codeSubmit' | translate"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            styleClass="auth__submit"
+            [loading]="saving()"
           />
-          @if (problem('email'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
-          } @else {
-            <span class="field__hint">{{ 'auth.hintEmail' | translate }}</span>
-          }
         </div>
 
-        <div class="field auth__span">
-          <label class="field__label" for="company">{{ 'auth.fieldCompany' | translate }}</label>
-          <input
-            pInputText
-            id="company"
-            autocomplete="organization"
-            pSize="large"
-            [placeholder]="'auth.placeholderCompany' | translate"
-            [ngModel]="form().companyName"
-            name="companyName"
-            (ngModelChange)="patch('companyName', $event)"
-            (blur)="touch('companyName')"
-          />
-          @if (problem('companyName'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
+        <p class="auth__foot">
+          @if (cooldown() > 0) {
+            {{ 'auth.register.resendIn' | translate: { seconds: cooldown() } }}
+          } @else {
+            <button class="auth__link" type="button" (click)="resend()">
+              {{ 'auth.register.resend' | translate }}
+            </button>
           }
+        </p>
+      </form>
+    } @else {
+      <div class="auth__card auth__card--narrow auth__card--code">
+        <div class="auth__code-mark auth__code-mark--success">
+          <i class="pi pi-check-circle"></i>
         </div>
 
-        <div class="field">
-          <label class="field__label" for="password">{{ 'auth.fieldPassword' | translate }}</label>
-          <p-password
-            inputId="password"
-            autocomplete="new-password"
-            inputStyleClass="field__input--lg"
-            [placeholder]="'auth.placeholderPassword' | translate"
-            [feedback]="false"
-            [toggleMask]="true"
-            [ngModel]="form().password"
-            name="password"
-            (ngModelChange)="patch('password', $event)"
-            (onBlur)="touch('password')"
+        <header class="auth__head">
+          <h1 class="auth__title">{{ 'auth.register.successTitle' | translate }}</h1>
+          <p class="auth__subtitle">
+            {{ 'auth.register.successBody' | translate: { name: firstName() } }}
+          </p>
+        </header>
+
+        <div class="auth__actions">
+          <p-button
+            type="button"
+            [label]="'auth.register.successCta' | translate"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            styleClass="auth__submit"
+            (onClick)="goToLogin()"
           />
-
-          @if (form().password) {
-            <div [class]="'meter meter--' + scoreTone()">
-              @for (step of [1, 2, 3, 4]; track step) {
-                <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
-              }
-            </div>
-          }
-
-          @if (problem('password'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
-          } @else if (form().password) {
-            <span class="meter__label">{{ scoreLabel() | translate }}</span>
-          } @else {
-            <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
-          }
-        </div>
-
-        <div class="field">
-          <label class="field__label" for="confirm-password">{{
-            'auth.fieldConfirmPassword' | translate
-          }}</label>
-          <p-password
-            inputId="confirm-password"
-            autocomplete="new-password"
-            inputStyleClass="field__input--lg"
-            [placeholder]="'auth.placeholderConfirmPassword' | translate"
-            [feedback]="false"
-            [toggleMask]="true"
-            [ngModel]="form().confirmPassword"
-            name="confirmPassword"
-            (ngModelChange)="patch('confirmPassword', $event)"
-            (onBlur)="touch('confirmPassword')"
-          />
-          @if (problem('confirmPassword'); as message) {
-            <span class="field__error">{{ message | translate }}</span>
-          } @else {
-            <span class="field__hint">{{ 'auth.hintConfirmPassword' | translate }}</span>
-          }
         </div>
       </div>
-
-      <div class="auth__actions">
-        <p-button
-          type="submit"
-          [label]="'auth.register.submit' | translate"
-          icon="pi pi-arrow-right"
-          iconPos="right"
-          styleClass="auth__submit"
-          [loading]="saving()"
-        />
-      </div>
-
-      <p class="auth__foot">
-        {{ 'auth.register.footPrompt' | translate }}
-        <a class="auth__link" [routerLink]="ROUTE_LOGIN">{{ 'auth.register.footLink' | translate }}</a>
-      </p>
-    </form>
+    }
   </div>
 </div>

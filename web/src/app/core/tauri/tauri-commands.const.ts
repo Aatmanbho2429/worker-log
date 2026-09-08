@@ -59,6 +59,7 @@ export const TAURI_COMMANDS = {
   authLogin: 'auth_login',
   authRestore: 'auth_restore',
   authLogout: 'auth_logout',
+  authSendOtp: 'auth_send_otp',
   authForgotPassword: 'auth_forgot_password',
   authChangePassword: 'auth_change_password',
   authPayments: 'auth_payments',

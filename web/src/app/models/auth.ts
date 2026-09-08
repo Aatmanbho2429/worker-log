@@ -144,6 +144,18 @@ export function confirmProblem(password: string, confirmation: string): string |
   return password === confirmation ? null : 'validation.confirmMismatch';
 }
 
+/** The code `auth_send_otp` mailed — four digits, checked here for shape only. */
+export function otpProblem(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 'validation.otpRequired';
+  }
+  if (!/^\d{4}$/.test(trimmed)) {
+    return 'validation.otpLength';
+  }
+  return null;
+}
+
 /**
  * A 0-4 score for the meter under the password field. Length carries most of
  * it, because it is the part that actually makes a password hard to guess.
@@ -164,9 +176,13 @@ export function passwordScore(value: string): number {
 
 /** The key for the word printed under the meter. Empty at a score of zero. */
 export function passwordScoreKey(score: number): string {
-  return ['', 'passwordStrength.weak', 'passwordStrength.fair', 'passwordStrength.good', 'passwordStrength.strong'][
-    score
-  ];
+  return [
+    '',
+    'passwordStrength.weak',
+    'passwordStrength.fair',
+    'passwordStrength.good',
+    'passwordStrength.strong',
+  ][score];
 }
 
 // --------------------------------------------------------------- display ---

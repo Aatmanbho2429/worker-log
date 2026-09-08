@@ -60,6 +60,8 @@
     "passwordVariety": "Use at least one letter and one number.",
     "confirmRequired": "Repeat the password.",
     "confirmMismatch": "The two passwords do not match.",
+    "otpRequired": "Enter the code sent to your email.",
+    "otpLength": "The code is 4 digits.",
     "currentPasswordRequired": "Enter your current password.",
     "passwordUnchanged": "The new password is the same as the current one."
   },
@@ -97,6 +99,7 @@
     "fieldCompany": "Company name",
     "fieldPassword": "Password",
     "fieldConfirmPassword": "Confirm password",
+    "fieldOtp": "Verification code",
     "placeholderFirstName": "Ravi",
     "placeholderLastName": "Sharma",
     "placeholderPhone": "98765 43210",
@@ -126,8 +129,18 @@
       "submit": "Create account",
       "footPrompt": "Already have an account?",
       "footLink": "Sign in",
-      "welcome": "Welcome, {{ name }}. This PC is now licensed.",
-      "failed": "Could not create the account."
+      "failed": "Could not create the account.",
+      "codeSent": "A verification code was sent to your email.",
+      "codeTitle": "Check your email",
+      "codeSubtitle": "Enter the 4-digit code sent to {{ email }}.",
+      "codeSubmit": "Verify and create account",
+      "resend": "Resend code",
+      "resendIn": "Resend code in {{ seconds }}s",
+      "spamHint": "Didn't get it? Check your spam or junk folder.",
+      "sendFailed": "Could not send the code.",
+      "successTitle": "Account created",
+      "successBody": "Welcome, {{ name }}. This PC is now licensed — sign in with the email and password you just set to get started.",
+      "successCta": "Go to sign in"
     },
     "login": {
       "pitch": "Welcome back",

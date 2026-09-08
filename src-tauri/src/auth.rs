@@ -18,8 +18,8 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    ApiResponse, ChangePasswordRequest, LoginRequest, PasswordReset, Payment, RegisterRequest,
-    Session, Subscription, UserAccount,
+    ApiResponse, ChangePasswordRequest, LoginRequest, OtpSent, PasswordReset, Payment,
+    RegisterRequest, Session, Subscription, UserAccount,
 };
 use crate::supabase;
 
@@ -310,12 +310,16 @@ async fn build_session(profile: ProfileRow, access_token: &str) -> Session {
 
 // ---------------------------------------------------------------- commands --
 
-/// Opens an account and signs into it.
+/// Opens an account. Does not sign in — the register screen sends the
+/// operator to the login screen instead, so "an account exists" and "this
+/// window is signed into one" stay the two separate facts they always were
+/// elsewhere in this file (`auth_login` is the only command that writes a
+/// session to disk).
 ///
 /// The insert needs the service role key, so it goes through the `register`
 /// edge function — which is also where this PC is checked against every other
 /// account, something no client could do for itself.
-async fn auth_register_impl(app: AppHandle, payload: RegisterRequest) -> AppResult<Session> {
+async fn auth_register_impl(payload: RegisterRequest) -> AppResult<()> {
     let body = serde_json::json!({
         "firstName": payload.first_name,
         "lastName": payload.last_name,
@@ -324,19 +328,18 @@ async fn auth_register_impl(app: AppHandle, payload: RegisterRequest) -> AppResu
         "password": payload.password,
         "companyName": payload.company_name,
         "deviceId": device_id()?,
+        "otpCode": payload.otp_code,
     });
 
     let _: RegisterResponse =
         supabase::call_function("register", &body, "Could not create the account.").await?;
 
-    // Registering does not sign anybody in — the function creates the account
-    // and nothing else.
-    auth_login_impl(app, LoginRequest { email: payload.email, password: payload.password }).await
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn auth_register(app: AppHandle, payload: RegisterRequest) -> ApiResponse<Session> {
-    auth_register_impl(app, payload).await.into()
+pub async fn auth_register(payload: RegisterRequest) -> ApiResponse<()> {
+    auth_register_impl(payload).await.into()
 }
 
 async fn auth_login_impl(app: AppHandle, payload: LoginRequest) -> AppResult<Session> {
@@ -421,6 +424,24 @@ async fn auth_logout_impl(app: AppHandle) -> AppResult<()> {
 #[tauri::command]
 pub async fn auth_logout(app: AppHandle) -> ApiResponse<()> {
     auth_logout_impl(app).await.into()
+}
+
+/// Step one of registering: mails a code to prove the address before an
+/// account is created for it. Nothing is written on this side — the register
+/// form's answers stay in the window until `auth_register` is called with the
+/// code that comes back.
+async fn auth_send_otp_impl(email: String) -> AppResult<OtpSent> {
+    supabase::call_function(
+        "send-otp",
+        &serde_json::json!({ "email": email.trim().to_lowercase() }),
+        "Could not send the code.",
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn auth_send_otp(email: String) -> ApiResponse<OtpSent> {
+    auth_send_otp_impl(email).await.into()
 }
 
 async fn auth_forgot_password_impl(email: String) -> AppResult<PasswordReset> {

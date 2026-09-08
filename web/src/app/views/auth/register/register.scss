@@ -1,8 +1,9 @@
 @use 'base/tokens' as *;
 
 // The page chrome is shared with the sign-in screen and lives in
-// `styles/components/_auth.scss`. What is left here is the one thing only the
-// register form does: run two columns of fields.
+// `styles/components/_auth.scss`. What is left here is the two things only
+// the register form does: run two columns of fields on the details step, and
+// the centred one-field layout of the code step that follows it.
 
 .auth__card {
   // The grid gutter already spaces the fields apart; the last row would
@@ -10,4 +11,74 @@
   .field:last-of-type {
     margin-bottom: $space-md;
   }
+}
+
+// ------------------------------------------------------------ code step ---
+//
+// One field on a card sized for the whole two-column form looks abandoned,
+// which is why the template also drops to `auth__card--narrow` here. What is
+// left is centring everything in it — the wide layout's fields all sit under
+// a shared left-aligned label, but a single code lands better read as a
+// standalone step than as a stray form field.
+
+.auth__card--code {
+  text-align: center;
+
+  .auth__head {
+    margin-bottom: $space-lg;
+  }
+}
+
+// Echoes `.auth__mark` on the brand panel, but toned for a light card rather
+// than the dark one: a wash instead of a navy gradient, the accent colour
+// carrying the icon instead of white.
+.auth__code-mark {
+  align-items: center;
+  background: $wash-inset;
+  border-radius: $radius-pill;
+  display: flex;
+  height: 5.6rem;
+  justify-content: center;
+  margin: 0 auto $space-lg;
+  width: 5.6rem;
+
+  i {
+    color: $text-accent;
+    font-size: 2.4rem;
+  }
+}
+
+// The account exists at this point rather than merely being asked for, which
+// is what the accent-coloured mark above is for everywhere else — so this one
+// carries the same green the password meter and the forgot-password dialog
+// already use for "done".
+.auth__code-mark--success i {
+  color: $green-500;
+}
+
+.auth__otp-field {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+// PrimeNG's own root element is an inline flex row of digit boxes; centring
+// it takes a block-level wrapper around that row, and the digits themselves
+// want more room between them than the component's default gap gives once
+// they are this large. The digit inputs are rendered by `InputOtp`'s own
+// template, not this component's, so reaching them needs `::ng-deep` — the
+// same escape hatch `range-filter` and `sheet` already use for PrimeNG's
+// internals.
+.auth__otp {
+  display: flex !important;
+  gap: $space-md;
+  justify-content: center;
+  margin-bottom: $space-sm;
+}
+
+:host ::ng-deep .auth__otp .p-inputotp-input {
+  font-size: $fs-xl;
+  height: 5.6rem;
+  text-align: center;
+  width: 4.8rem;
 }

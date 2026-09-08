@@ -1,7 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { PasswordReset, Payment, Session } from '../models/auth';
-import { ChangePasswordRequest, LoginRequest, RegisterRequest } from '../models/auth.requests';
+import {
+  ChangePasswordRequest,
+  LoginRequest,
+  OtpSent,
+  RegisterRequest,
+} from '../models/auth.requests';
 import { AuthBackend } from './auth.backend';
 
 /**
@@ -30,10 +35,20 @@ export class AuthService {
     this.ready = this.restore();
   }
 
-  async register(payload: RegisterRequest): Promise<Session> {
-    const session = await this.backend.register(payload);
-    this.session.set(session);
-    return session;
+  /**
+   * Mails a code to prove the address before {@link register} is called with
+   * it. Does not touch the session — nothing exists yet to sign into.
+   */
+  sendOtp(email: string): Promise<OtpSent> {
+    return this.backend.sendOtp(email);
+  }
+
+  /**
+   * Opens an account. Does not sign it in — the screen sends the operator to
+   * {@link login} instead, so there is no session here to set.
+   */
+  register(payload: RegisterRequest): Promise<void> {
+    return this.backend.register(payload);
   }
 
   async login(payload: LoginRequest): Promise<Session> {
