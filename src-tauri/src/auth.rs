@@ -18,8 +18,8 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    ApiResponse, ChangePasswordRequest, LoginRequest, OtpSent, PasswordReset, Payment,
-    RegisterRequest, Session, Subscription, UserAccount,
+    ApiResponse, ChangePasswordRequest, LoginRequest, OtpSent, PasswordReset, Payment, Plan,
+    RazorpayOrder, RegisterRequest, Session, Subscription, UserAccount, VerifyPaymentRequest,
 };
 use crate::supabase;
 
@@ -596,4 +596,120 @@ async fn auth_payments_impl(app: AppHandle) -> AppResult<Vec<Payment>> {
 #[tauri::command]
 pub async fn auth_payments(app: AppHandle) -> ApiResponse<Vec<Payment>> {
     auth_payments_impl(app).await.into()
+}
+
+/// What `get-plans` answers with — the renewal catalogue, wrapped in an
+/// object rather than returned as a bare array so a field can be added
+/// beside it later without changing the shape this deserialises.
+#[derive(Debug, Deserialize)]
+struct PlansResponse {
+    plans: Vec<Plan>,
+}
+
+/// The renewal catalogue shown on the profile once a subscription has
+/// expired or is close to it.
+///
+/// Unlike every other command in this file, this one reads with no token at
+/// all: `get-plans` answers with the service role key, so there is nothing
+/// to load from `session.json` and nothing to fail on for a signed-out or
+/// mid-refresh caller — which is exactly the caller this exists for. A price
+/// list is not private data the way a profile or a payment history is;
+/// `supabase/README.md` already treats the anon key plus RLS as what
+/// protects the things that are.
+///
+/// `Plan` is deserialised straight off the wire here rather than mapped
+/// through a private row struct the way `ProfileRow` / `SubscriptionRow` are.
+/// Those exist so a column rename in `public.users` / `public.subscriptions`
+/// cannot silently change what the window is handed; this response is shaped
+/// by our own function, not directly by a table, so that indirection would
+/// buy nothing here.
+async fn auth_plans_impl() -> AppResult<Vec<Plan>> {
+    let response: PlansResponse = supabase::call_function(
+        "get-plans",
+        &serde_json::json!({}),
+        "Could not load the plans.",
+    )
+    .await?;
+
+    Ok(response.plans)
+}
+
+#[tauri::command]
+pub async fn auth_plans() -> ApiResponse<Vec<Plan>> {
+    auth_plans_impl().await.into()
+}
+
+/// Opens a Razorpay order against a plan's real price — `create-order` reads
+/// `plans.amount` itself rather than trusting anything the window sends, so
+/// nothing here decides what gets charged.
+async fn auth_create_order_impl(app: AppHandle, plan_id: String) -> AppResult<RazorpayOrder> {
+    let Some(stored) = load_tokens(&app) else {
+        return Err(AppError::NotFound("You are not signed in.".into()));
+    };
+
+    supabase::call_function(
+        "create-order",
+        &serde_json::json!({ "accessToken": stored.access_token, "planId": plan_id }),
+        "Could not start the payment.",
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn auth_create_order(app: AppHandle, plan_id: String) -> ApiResponse<RazorpayOrder> {
+    auth_create_order_impl(app, plan_id).await.into()
+}
+
+/// What `verify-payment` answers with. Not returned to the window — see
+/// `auth_verify_payment_impl` for why a freshly rebuilt `Session` is handed
+/// back instead — so only used here to know the call actually succeeded.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct VerifyPaymentResponse {
+    #[allow(dead_code)]
+    subscription_end: String,
+}
+
+/// Proves a Razorpay payment happened and records the term it bought.
+///
+/// `verify-payment` is where the real check lives — it recomputes the
+/// Razorpay signature server-side, so nothing the checkout widget reported
+/// client-side is trusted until then. Once it has written the new
+/// subscription, this rebuilds the session the same way `auth_validate`
+/// does (`validated_session`) rather than trusting the function's own
+/// answer — the server has already written the new status by this point,
+/// so re-reading it is what keeps this command from needing its own copy of
+/// `build_subscription`'s logic. A `None` here means the payment landed but
+/// the session could not be rebuilt right after — a real fault, surfaced
+/// rather than swallowed, since the money did move.
+async fn auth_verify_payment_impl(app: AppHandle, payload: VerifyPaymentRequest) -> AppResult<Session> {
+    let Some(stored) = load_tokens(&app) else {
+        return Err(AppError::NotFound("You are not signed in.".into()));
+    };
+
+    let _: VerifyPaymentResponse = supabase::call_function(
+        "verify-payment",
+        &serde_json::json!({
+            "accessToken": stored.access_token,
+            "planId": payload.plan_id,
+            "razorpayOrderId": payload.razorpay_order_id,
+            "razorpayPaymentId": payload.razorpay_payment_id,
+            "razorpaySignature": payload.razorpay_signature,
+        }),
+        "Could not verify the payment.",
+    )
+    .await?;
+
+    validated_session(&app).await.ok_or_else(|| {
+        AppError::Internal(
+            "The payment went through, but the new session could not be loaded. Please sign \
+             out and back in."
+                .into(),
+        )
+    })
+}
+
+#[tauri::command]
+pub async fn auth_verify_payment(app: AppHandle, payload: VerifyPaymentRequest) -> ApiResponse<Session> {
+    auth_verify_payment_impl(app, payload).await.into()
 }

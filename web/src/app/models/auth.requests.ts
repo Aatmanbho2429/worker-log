@@ -17,9 +17,11 @@ export type { ChangePasswordRequest } from './request/changePasswordRequest';
 export type { ForgotPasswordRequest } from './request/forgotPasswordRequest';
 export type { LoginRequest } from './request/loginRequest';
 export type { RegisterRequest } from './request/registerRequest';
+export type { VerifyPaymentRequest } from './request/verifyPaymentRequest';
 
 export type { ForgotPasswordResponse } from './response/forgotPasswordResponse';
 export type { OtpSent } from './response/otpSent';
 export type { PaymentsResponse } from './response/paymentsResponse';
+export type { RazorpayOrder } from './response/razorpayOrder';
 export type { RestoreResponse } from './response/restoreResponse';
 export type { SessionResponse } from './response/sessionResponse';

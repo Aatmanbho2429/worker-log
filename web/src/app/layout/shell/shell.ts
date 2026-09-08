@@ -74,6 +74,18 @@ export class Shell implements OnDestroy {
 
   protected readonly ROUTE_PROFILE = ROUTE_PROFILE;
 
+  /**
+   * The Floor and Masters sections disappear while the subscription is
+   * expired — `authGuard` already refuses to navigate there, this just keeps
+   * the operator from clicking a link that silently bounces them back to
+   * `/profile`, the one place still open. Account (profile, sign-out) stays.
+   */
+  protected readonly visibleSections = computed(() =>
+    this.auth.subscriptionExpired()
+      ? this.sections.filter((section) => section.label === 'shell.sectionAccount')
+      : this.sections,
+  );
+
   protected readonly user = this.auth.user;
 
   protected readonly initials = computed(() => {

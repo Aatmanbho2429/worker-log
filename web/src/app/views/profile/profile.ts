@@ -1,12 +1,19 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../core/auth.service';
 import { NotifyService } from '../../core/notify.service';
+import {
+  RazorpayCancelled,
+  RazorpayCancelReason,
+  RazorpayService,
+} from '../../core/razorpay.service';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Payment,
+  Plan,
   SETTLED_PAYMENT_STATUSES,
+  SubscriptionStatus,
   accountFullName,
   accountInitials,
   confirmProblem,
@@ -20,6 +27,21 @@ import {
   subscriptionSeverity,
 } from '../../models/auth';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
+
+/**
+ * Razorpay's own widget colour, not one of `_tokens.scss`'s — the checkout
+ * overlay is Razorpay's surface, not this app's, the same reason barcode
+ * tiles and sheet header bands stay outside the theme (`.claude/rules/theming.md`).
+ * Mirrors `$navy-500`, duplicated rather than shared because a Sass variable
+ * cannot cross into a `.ts` file.
+ */
+const RAZORPAY_THEME_COLOR = '#1e4e86';
+
+/** Which copy key explains a non-silent {@link RazorpayCancelled}. `dismissed` needs none — see `selectPlan`. */
+const RAZORPAY_FAILURE_KEYS: Record<Exclude<RazorpayCancelReason, 'dismissed'>, string> = {
+  paymentFailed: 'profile.paymentFailed',
+  gatewayUnavailable: 'profile.gatewayFailed',
+};
 
 interface PasswordForm {
   currentPassword: string;
@@ -48,6 +70,7 @@ const EMPTY_PASSWORD_FORM: PasswordForm = {
 export class Profile {
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotifyService);
+  private readonly razorpay = inject(RazorpayService);
   private readonly translate = inject(TranslateService);
 
   protected readonly user = this.auth.user;
@@ -92,6 +115,55 @@ export class Profile {
    */
   protected readonly totalCurrency = computed(() => this.settled()[0]?.currency ?? 'INR');
 
+  // ------------------------------------------------------------- plans ---
+
+  private static readonly PLAN_VISIBLE_STATUSES: readonly SubscriptionStatus[] = [
+    'expired',
+    'expiring',
+  ];
+
+  protected readonly plans = signal<Plan[]>([]);
+  protected readonly plansLoading = signal(false);
+  protected readonly plansDialogOpen = signal(false);
+  private plansLoaded = false;
+
+  /** The plan currently mid-checkout, if any — one payment in flight at a time. */
+  protected readonly payingPlanId = signal<string | null>(null);
+
+  /**
+   * Whether a "View plans" button belongs on the subscription card at all —
+   * an operator with months left sees the profile exactly as it always has,
+   * and `auth.plans()` is never called for them.
+   */
+  protected readonly showPlans = computed(() => {
+    const status = this.subscription()?.status;
+    return status !== undefined && Profile.PLAN_VISIBLE_STATUSES.includes(status);
+  });
+
+  /**
+   * The plan with the lowest cost per day, so the tile can carry a "Best
+   * value" ribbon — the catalogue has no such flag of its own, and a longer
+   * term is not automatically the cheaper one to hold.
+   */
+  protected readonly bestPlanId = computed(() => {
+    const list = this.plans();
+    if (!list.length) {
+      return null;
+    }
+    return list.reduce((best, plan) =>
+      plan.amount / plan.duration < best.amount / best.duration ? plan : best,
+    ).id;
+  });
+
+  /**
+   * Longest term first — `get-plans` answers in `sort_order` (Monthly
+   * first, cheapest commitment to longest), but the tile the operator should
+   * see first is the one worth the most: reversed for display only, so
+   * `bestPlanId` and every id-keyed lookup above still reads the untouched
+   * `plans()` order.
+   */
+  protected readonly orderedPlans = computed(() => [...this.plans()].reverse());
+
   // ---------------------------------------------------- change password ---
 
   protected readonly dialogOpen = signal(false);
@@ -131,12 +203,40 @@ export class Profile {
 
   constructor() {
     void this.load();
+
+    // An `effect` rather than a one-off call in the constructor: the
+    // six-hourly `AuthService.validate()` tick can flip the subscription to
+    // `expired` while this screen is already open, and an effect picks that
+    // up where a constructor call would leave the operator staring at a
+    // profile that never told them. Fires once per session — closing the
+    // dialog does not reopen it; the "View plans" button on the subscription
+    // card is how it is found again.
+    effect(() => {
+      if (this.showPlans() && !this.plansLoaded) {
+        this.plansLoaded = true;
+        this.plansDialogOpen.set(true);
+        void this.loadPlans();
+      }
+    });
   }
 
   protected openPasswordDialog(): void {
     this.form.set({ ...EMPTY_PASSWORD_FORM });
     this.submitted.set(false);
     this.dialogOpen.set(true);
+  }
+
+  /**
+   * Reopens the plans dialog after the operator has closed it. Also covers
+   * the (unlikely) case of a click landing before the auto-open effect has
+   * run — `plansLoaded` makes the load idempotent either way.
+   */
+  protected openPlansDialog(): void {
+    this.plansDialogOpen.set(true);
+    if (!this.plansLoaded) {
+      this.plansLoaded = true;
+      void this.loadPlans();
+    }
   }
 
   protected patch<K extends keyof PasswordForm>(field: K, value: PasswordForm[K]): void {
@@ -215,6 +315,82 @@ export class Profile {
       this.notify.fromCommand(error, this.translate.instant('profile.paymentsFailed'));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async loadPlans(): Promise<void> {
+    this.plansLoading.set(true);
+    try {
+      this.plans.set(await this.auth.plans());
+    } catch (error) {
+      this.notify.fromCommand(error, this.translate.instant('profile.plansFailed'));
+    } finally {
+      this.plansLoading.set(false);
+    }
+  }
+
+  /**
+   * Opens Razorpay's checkout for a plan, then hands what it reports to
+   * `auth_verify_payment` for the check that actually matters — the
+   * signature is recomputed server-side, so nothing the widget says here is
+   * trusted until then.
+   *
+   * A dismissed checkout is not a failure: the operator closed the widget on
+   * purpose, so it resets the spinner and says nothing rather than showing
+   * an error for a choice they made deliberately.
+   */
+  protected async selectPlan(plan: Plan): Promise<void> {
+    const account = this.user();
+    // Cannot happen in practice — this dialog only opens for a signed-in
+    // operator — but this keeps the branch total rather than assumed.
+    if (!account || this.payingPlanId() !== null) {
+      return;
+    }
+
+    this.payingPlanId.set(plan.id);
+
+    try {
+      const order = await this.auth.createOrder(plan.id);
+
+      const checkout = await this.razorpay.open({
+        orderId: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: order.keyId,
+        name: this.translate.instant('common.brandName'),
+        description: this.translate.instant('profile.paymentDescription', { plan: plan.name }),
+        prefill: {
+          name: accountFullName(account),
+          email: account.email,
+          contact: account.phone,
+        },
+        themeColor: RAZORPAY_THEME_COLOR,
+      });
+
+      const session = await this.auth.verifyPayment({
+        planId: plan.id,
+        razorpayOrderId: checkout.razorpayOrderId,
+        razorpayPaymentId: checkout.razorpayPaymentId,
+        razorpaySignature: checkout.razorpaySignature,
+      });
+
+      this.notify.success(
+        this.translate.instant('profile.paymentSuccess', {
+          plan: plan.name,
+          days: session.subscription.daysLeft,
+        }),
+      );
+      this.plansDialogOpen.set(false);
+    } catch (error) {
+      if (error instanceof RazorpayCancelled) {
+        if (error.reason !== 'dismissed') {
+          this.notify.warn(this.translate.instant(RAZORPAY_FAILURE_KEYS[error.reason]));
+        }
+      } else {
+        this.notify.fromCommand(error, this.translate.instant('profile.paymentFailed'));
+      }
+    } finally {
+      this.payingPlanId.set(null);
     }
   }
 }

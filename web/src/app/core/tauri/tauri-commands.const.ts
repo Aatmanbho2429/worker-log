@@ -64,4 +64,7 @@ export const TAURI_COMMANDS = {
   authForgotPassword: 'auth_forgot_password',
   authChangePassword: 'auth_change_password',
   authPayments: 'auth_payments',
+  authPlans: 'auth_plans',
+  authCreateOrder: 'auth_create_order',
+  authVerifyPayment: 'auth_verify_payment',
 } as const;

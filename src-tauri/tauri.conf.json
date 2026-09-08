@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'"
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost https://*.razorpay.com; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://*.razorpay.com; script-src 'self' https://checkout.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; connect-src 'self' ipc: http://ipc.localhost https://*.razorpay.com; form-action https://api.razorpay.com"
     }
   },
   "bundle": {

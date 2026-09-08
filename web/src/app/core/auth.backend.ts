@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 
-import { PasswordReset, Payment, Session } from '../models/auth';
+import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
   LoginRequest,
   OtpSent,
+  RazorpayOrder,
   RegisterRequest,
+  VerifyPaymentRequest,
 } from '../models/auth.requests';
 
 /**
@@ -60,4 +62,22 @@ export abstract class AuthBackend {
   abstract changePassword(payload: ChangePasswordRequest): Promise<void>;
 
   abstract payments(): Promise<Payment[]>;
+
+  /**
+   * The renewal catalogue, unrelated to whether anyone is signed in — `Rust`
+   * reads it with the service role key, so this can be called even from a
+   * session that has just been found to be expired.
+   */
+  abstract plans(): Promise<Plan[]>;
+
+  /** Opens a Razorpay order against a plan's real, server-read price. */
+  abstract createOrder(planId: string): Promise<RazorpayOrder>;
+
+  /**
+   * Proves a Razorpay payment happened and records the term it bought.
+   * Answers with a freshly rebuilt session rather than loose subscription
+   * fields — `AuthService.verifyPayment` replaces its session signal with
+   * it, which is what unblocks the app without a sign-out and back in.
+   */
+  abstract verifyPayment(payload: VerifyPaymentRequest): Promise<Session>;
 }

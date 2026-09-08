@@ -1,11 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
-import { PasswordReset, Payment, Session } from '../models/auth';
+import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
   LoginRequest,
   OtpSent,
+  RazorpayOrder,
   RegisterRequest,
+  VerifyPaymentRequest,
 } from '../models/auth.requests';
 import { AuthBackend } from './auth.backend';
 
@@ -89,6 +91,28 @@ export class AuthService {
 
   payments(): Promise<Payment[]> {
     return this.backend.payments();
+  }
+
+  /** The renewal catalogue — see {@link AuthBackend.plans}. */
+  plans(): Promise<Plan[]> {
+    return this.backend.plans();
+  }
+
+  /** Opens a Razorpay order against a plan's real, server-read price. */
+  createOrder(planId: string): Promise<RazorpayOrder> {
+    return this.backend.createOrder(planId);
+  }
+
+  /**
+   * Proves a Razorpay payment happened and records the term it bought.
+   * Replaces the session signal with the fresh one the backend rebuilds —
+   * that one line is what unblocks the app: `subscriptionExpired()` flips,
+   * and the guard and the shell's nav follow it without a reload.
+   */
+  async verifyPayment(payload: VerifyPaymentRequest): Promise<Session> {
+    const session = await this.backend.verifyPayment(payload);
+    this.session.set(session);
+    return session;
   }
 
   deviceId(): Promise<string> {

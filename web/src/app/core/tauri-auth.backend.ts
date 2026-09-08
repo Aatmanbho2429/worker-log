@@ -1,12 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 
-import { PasswordReset, Payment, Session } from '../models/auth';
+import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
   LoginRequest,
   OtpSent,
+  RazorpayOrder,
   RegisterRequest,
   RestoreResponse,
+  VerifyPaymentRequest,
 } from '../models/auth.requests';
 import { AuthBackend } from './auth.backend';
 import { ZoneWrapperService } from './zone-wrapper/zone-wrapper.service';
@@ -66,5 +68,17 @@ export class TauriAuthBackend extends AuthBackend {
 
   payments(): Promise<Payment[]> {
     return this.zoneWrapper.invoke<Payment[]>(TAURI_COMMANDS.authPayments);
+  }
+
+  plans(): Promise<Plan[]> {
+    return this.zoneWrapper.invoke<Plan[]>(TAURI_COMMANDS.authPlans);
+  }
+
+  createOrder(planId: string): Promise<RazorpayOrder> {
+    return this.zoneWrapper.invoke<RazorpayOrder>(TAURI_COMMANDS.authCreateOrder, { planId });
+  }
+
+  verifyPayment(payload: VerifyPaymentRequest): Promise<Session> {
+    return this.zoneWrapper.invoke<Session>(TAURI_COMMANDS.authVerifyPayment, { payload });
   }
 }

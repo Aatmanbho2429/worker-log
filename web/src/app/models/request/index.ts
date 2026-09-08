@@ -7,4 +7,5 @@ export * from './rangeFilter';
 export * from './reasonPayload';
 export * from './registerRequest';
 export * from './seriesPayload';
+export * from './verifyPaymentRequest';
 export * from './workerPayload';

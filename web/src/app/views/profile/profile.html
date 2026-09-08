@@ -106,6 +106,18 @@
             [text]="'profile.expiringMessage' | translate: { days: plan.daysLeft }"
           />
         }
+
+        @if (showPlans()) {
+          <p-button
+            icon="pi pi-arrow-up-right"
+            iconPos="right"
+            [label]="'profile.viewPlans' | translate"
+            severity="secondary"
+            [outlined]="true"
+            styleClass="profile__view-plans"
+            (onClick)="openPlansDialog()"
+          />
+        }
       }
     </div>
   </div>
@@ -260,4 +272,66 @@
       />
     </div>
   </ng-template>
+</p-dialog>
+
+<!-- --------------------------------------------------------------- plans -->
+<p-dialog
+  [visible]="plansDialogOpen()"
+  (visibleChange)="plansDialogOpen.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [focusOnShow]="false"
+  styleClass="plans-dialog"
+  [style]="{ width: '90vw', maxWidth: '78rem' }"
+>
+  <ng-template #header>
+    <div class="plans-dialog__head">
+      <span class="plans-dialog__eyebrow">{{ 'profile.subscription' | translate }}</span>
+      <h2 class="plans-dialog__title">{{ 'profile.planSectionTitle' | translate }}</h2>
+      <p class="plans-dialog__body">{{ 'profile.planSectionBody' | translate }}</p>
+    </div>
+  </ng-template>
+
+  @if (plansLoading()) {
+    <div class="profile__plans">
+      @for (row of [1, 2, 3, 4]; track row) {
+        <p-skeleton height="19rem" borderRadius="10px" />
+      }
+    </div>
+  } @else if (!plans().length) {
+    <div class="empty">
+      <i class="pi pi-tags"></i>
+      <span class="empty__title">{{ 'profile.noPlans' | translate }}</span>
+    </div>
+  } @else {
+    <div class="profile__plans">
+      @for (plan of orderedPlans(); track plan.id) {
+        <div class="profile__plan-card" [class.profile__plan-card--best]="plan.id === bestPlanId()">
+          @if (plan.id === bestPlanId()) {
+            <span class="profile__plan-card-ribbon">{{ 'profile.bestValue' | translate }}</span>
+          }
+
+          <span class="profile__plan-card-name">{{ plan.name }}</span>
+
+          <div class="profile__plan-card-price">
+            <span class="profile__plan-card-amount tabular">{{
+              money(plan.amount, plan.currency)
+            }}</span>
+            <span class="profile__plan-card-term">
+              / {{ 'profile.planDuration' | translate: { days: plan.duration } }}
+            </span>
+          </div>
+
+          <p-button
+            [label]="'profile.planChoose' | translate"
+            [outlined]="plan.id !== bestPlanId()"
+            [loading]="payingPlanId() === plan.id"
+            [disabled]="payingPlanId() !== null && payingPlanId() !== plan.id"
+            styleClass="profile__plan-card-button"
+            (onClick)="selectPlan(plan)"
+          />
+        </div>
+      }
+    </div>
+  }
 </p-dialog>

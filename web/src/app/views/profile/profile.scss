@@ -158,6 +158,153 @@
   margin-top: $space-lg;
 }
 
+// The button that reopens the plans dialog once it has been dismissed —
+// follows the expired/expiring message on the subscription card.
+.profile__view-plans {
+  margin-top: $space-lg;
+}
+
+// --------------------------------------------------------------- plans ---
+//
+// Rendered inside a `p-dialog` sized off the window (`90vw`, capped at
+// `78rem`) rather than a fixed rem width, so it reads well anywhere from the
+// app's 1024px minimum up through its 1440px default. Four columns at that
+// width, stepping down as the window narrows.
+
+.plans-dialog__head {
+  display: flex;
+  flex-direction: column;
+  // Clears the close button PrimeNG renders alongside this template.
+  padding-right: $space-2xl;
+  // The dialog's own content padding is flush against the header (PrimeNG
+  // sets its top inset to 0, expecting the header to carry the gap), so this
+  // is what keeps the cards clear of the title block below.
+  padding-bottom: $space-md;
+}
+
+.plans-dialog__eyebrow {
+  color: $text-faint;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.plans-dialog__title {
+  font-family: $font-display;
+  font-size: $fs-xl;
+  letter-spacing: 0.02em;
+  margin-top: $space-xs;
+  text-transform: uppercase;
+}
+
+.plans-dialog__body {
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-top: $space-sm;
+}
+
+.profile__plans {
+  display: grid;
+  gap: $space-xl;
+  grid-template-columns: repeat(4, 1fr);
+  // Breathing room above the row of cards and below it before the dialog's
+  // own edge — the dialog's bottom padding alone read as too tight once the
+  // grid, rather than a paragraph, was the last thing in it.
+  margin: $space-sm 0 $space-md;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile__plan-card {
+  background: $surface-sunken;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-xl $space-lg;
+  position: relative;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    border-color: $border-strong;
+    box-shadow: $shadow-raised;
+    transform: translateY(-0.2rem);
+  }
+}
+
+// The cheapest plan per day of term — computed in `Profile.bestPlanId`, not a
+// flag from the catalogue, since a longer term is not automatically the
+// cheaper one to hold.
+.profile__plan-card--best {
+  border-color: $band;
+
+  &:hover {
+    border-color: $band;
+  }
+}
+
+.profile__plan-card-ribbon {
+  background: $band;
+  border-radius: $radius-pill;
+  color: $band-text;
+  font-size: $fs-xs;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  left: $space-lg;
+  padding: 0.3rem $space-sm;
+  position: absolute;
+  text-transform: uppercase;
+  top: -0.9rem;
+}
+
+.profile__plan-card-name {
+  color: $text-secondary;
+  font-family: $font-display;
+  font-size: $fs-sm;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.profile__plan-card-price {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+  margin-top: $space-sm;
+}
+
+.profile__plan-card-amount {
+  color: $text-accent;
+  font-family: $font-display;
+  font-size: $fs-2xl;
+  line-height: 1;
+}
+
+.profile__plan-card-term {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.profile__plan-card-button {
+  // `auto` rather than a fixed length: the grid stretches every card in a
+  // row to match the tallest, so this is what absorbs whatever's left and
+  // keeps every button sitting on the same line however tall its neighbours
+  // are — a fixed margin would only be right for one card's content.
+  margin-top: auto;
+  width: 100%;
+}
+
 // ----------------------------------------------------------- payments ---
 
 .profile__reference {

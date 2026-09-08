@@ -13,6 +13,8 @@ export * from './otpSent';
 export * from './passwordReset';
 export * from './payment';
 export * from './paymentsResponse';
+export * from './plan';
+export * from './razorpayOrder';
 export * from './reason';
 export * from './restoreResponse';
 export * from './scanReceipt';

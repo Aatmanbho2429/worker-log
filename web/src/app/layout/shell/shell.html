@@ -36,7 +36,7 @@
   </div>
 
   <nav class="shell__nav">
-    @for (section of sections; track section.label) {
+    @for (section of visibleSections(); track section.label) {
       <span class="shell__section">{{ section.label | translate }}</span>
       @for (item of section.items; track item.route) {
         <a

@@ -6,6 +6,7 @@ mod range_query;
 mod reason_upsert;
 mod register_request;
 mod series_upsert;
+mod verify_payment_request;
 mod worker_upsert;
 
 pub use change_password_request::ChangePasswordRequest;
@@ -16,4 +17,5 @@ pub use range_query::RangeQuery;
 pub use reason_upsert::ReasonUpsert;
 pub use register_request::RegisterRequest;
 pub use series_upsert::SeriesUpsert;
+pub use verify_payment_request::VerifyPaymentRequest;
 pub use worker_upsert::WorkerUpsert;

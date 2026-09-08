@@ -14,7 +14,28 @@ project_id = "worker-log"
 # `send-otp` is the most exposed of them — it will mail anybody who asks — so
 # its checking is rate limiting rather than authentication: one code a minute
 # and five an hour per address, enforced in the function.
+#
+# `get-plans` is exposed further still: no checking at all, not even a rate
+# limit. It asks for nothing because it hands back nothing but a public price
+# list, read with the service role key so a caller need not even hold a valid
+# token — which is the point, since the operator this exists for is the one
+# whose subscription just ran out.
+#
+# `create-order` and `verify-payment` carry the operator's `accessToken` in
+# the body (same pattern as `validate-token`) and check it with
+# `auth.getUser()` before doing anything privileged. `verify-payment` also
+# recomputes the Razorpay HMAC signature itself — that check, not the
+# platform's JWT verification, is what proves the payment is real.
 [functions.send-otp]
+verify_jwt = false
+
+[functions.get-plans]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false
+
+[functions.verify-payment]
 verify_jwt = false
 
 [functions.register]

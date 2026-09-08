@@ -1,8 +1,8 @@
 # Supabase setup
 
 Accounts live in Supabase: `auth.users` holds the credentials, `public.users`
-holds the profile and the licence, and the three edge functions here are the
-only things that write to either.
+holds the profile and the licence, and the edge functions here are the only
+things that write to either.
 
 Everything below is done once, per project.
 
@@ -48,15 +48,16 @@ or deploy them with the CLI:
 
 ```bash
 supabase link --project-ref YOUR-PROJECT-REF
-supabase functions deploy register login forgot-password
+supabase functions deploy register login validate-token send-otp forgot-password get-plans create-order verify-payment
 ```
 
-If you paste them in the dashboard, turn **Verify JWT** off on all three — they
-are all called before anybody is signed in.
+If you paste them in the dashboard, turn **Verify JWT** off on all of them —
+none can require a verified JWT, since either nobody is signed in yet or
+(`get-plans`) nobody needs to be.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
-by the platform. Both `register` and `forgot-password` send mail through Resend,
-so they need one secret of their own:
+by the platform. `register`, `send-otp` and `forgot-password` send mail through
+Resend, so they need one secret of their own:
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
@@ -67,20 +68,46 @@ function — the same verified domain Pictoria sends from. The mailbox does not
 have to exist; the domain does. `forgot-password` additionally reads
 `RESEND_FROM` if you would rather set the sender as a secret there.
 
+`create-order` and `verify-payment` need two secrets of their own, the same
+Razorpay account for both:
+
+```bash
+supabase secrets set RAZORPAY_KEY_ID_PROD=rzp_xxxxxxxx
+supabase secrets set RAZORPAY_KEY_SECRET_PROD=xxxxxxxxxxxxxxxx
+```
+
+The `_PROD` in both names is a naming choice carried over from where these
+functions were ported from, not a guarantee of what is actually set — check
+whether the key id reads `rzp_test_…` or `rzp_live_…` before assuming which
+one a deploy is charging against.
+
 | Function | Does | Deployed | JWT |
 | --- | --- | --- | --- |
-| `register` | Refuses if this PC is already registered, then creates the auth user and the profile row keyed to it, with a 14-day trial on `users` and this PC's `device_id`. Deletes the auth user again if the profile insert fails, then sends the welcome email. | yes | not required |
+| `register` | Verifies the OTP against `email_otps`, refuses if this PC is already registered, then creates the auth user and the profile row keyed to it, with a 14-day trial on `users` and this PC's `device_id`. Deletes the auth user again if the profile insert fails, then sends the welcome email. | yes | not required |
+| `login` | Signs in against GoTrue and decides the device binding on the server, claiming a null `device_id` on a first sign-in. `auth_login` calls this rather than GoTrue directly — see "Where the licence check happens" below. | yes | not required |
+| `validate-token` | The six-hourly re-check `auth_validate` calls: still a real token, still this PC, still active, and whatever the subscription status now is — writing `expired` back to `public.users` if a term has run out since the last check. | yes | not required |
+| `send-otp` | Mails a 4-digit code to prove an address before `register` is called with it. Rate-limited per address (one a minute, five an hour) in the function itself. | yes | not required |
 | `forgot-password` | Rolls a password, emails it via Resend, then sets it. Never returns it. | not yet | not required |
-| `login` | Written, but **not used**. Rust signs in against GoTrue directly — see below. | no | not required |
+| `get-plans` | The renewal catalogue shown on the profile once a subscription has expired or is close to it. Takes no token and needs none — a price list is not private, and the operator it exists for may hold one that is mid-refresh. | not yet | not required |
+| `create-order` | Reads a plan's real price from `plans` and opens a Razorpay order against it. Refuses a `users.status` that is not `active`. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a name, email and phone for anyone who could guess a uuid. | not yet | not required |
+| `verify-payment` | Recomputes the Razorpay HMAC signature server-side — the only place that check can happen — then records the paid term and unblocks the account. Refuses to insert a second row for a `razorpay_payment_id` already on file, so a retried call cannot extend the licence twice for one payment. | not yet | not required |
 
 None of them can require a verified JWT: they are all called before anybody is
-signed in. Each does its own checking instead.
+signed in, or (`get-plans`, `create-order`, `verify-payment`) check the
+operator's token themselves rather than relying on the platform to. Each does
+its own checking instead.
 
-Only `register` and `forgot-password` need to exist as functions at all, and for
-the same reason: both need the **service role key**, which cannot live in the
-desktop binary. Registration inserts a profile row and checks this PC against
-every other account; a password reset sets somebody else's password. Everything
-else Rust can do with the anon key and the user's own credentials.
+Every one of them needs the **service role key**, which cannot live in the
+desktop binary — that is what makes each of these a function rather than a
+PostgREST call with the anon key. `register` inserts a profile row and checks
+this PC against every other account; `login` and `validate-token` read and
+write the device binding and subscription status; `forgot-password` sets
+somebody else's password; `get-plans` reads a table with no select policy for
+an unauthenticated caller; `create-order` and `verify-payment` write to
+`subscriptions` and `users`, which carry no insert or update policy for
+anyone. Everything else Rust can do with the anon key and the user's own
+credentials — payments and profile reads while signed in go straight through
+PostgREST, protected by row level security instead.
 
 ## 3. The app
 
@@ -130,21 +157,27 @@ to the client:
 
 ## Where the licence check happens, and what that costs
 
-Rust signs in against GoTrue directly, reads the profile through PostgREST, and
-compares `device_id` with the machine id it reads off the hardware. That is a
-real boundary — the check is compiled, and the anon key and tokens never reach
-the window — but it is not a server-side one. Someone determined enough to patch
-the binary could skip it.
+`auth_login` (`src-tauri/src/auth.rs`) calls
+[`functions/login/index.ts`](functions/login/index.ts) rather than signing in
+against GoTrue directly: the function verifies the password and decides the
+device binding on the server, handing back a session only once both pass. That
+is a real server-side boundary — the anon key never leaves the client, but the
+decision itself is made where nobody holding the binary can patch it.
 
-The stronger version is [`functions/login/index.ts`](functions/login/index.ts),
-which verifies the password and decides the binding on the server and hands back
-a session only once both pass. It is written and typechecked but not deployed.
-Deploy it and point `auth_login` at it to close that gap.
+`auth_validate` re-runs the same two checks — still a real token, still this
+PC, still an active account — every six hours through
+[`functions/validate-token/index.ts`](functions/validate-token/index.ts), and
+both functions write `expired` back to `public.users` the moment a trial or a
+paid term's end date has passed, rather than leaving that only computed for
+display.
 
 One thing Rust genuinely cannot do is **claim an unclaimed licence**: writing
 `device_id` needs the service role key. Registration always claims the machine,
-so a row with a null `device_id` means the account was made some other way —
-`auth_login` refuses it and asks the operator to contact support.
+so a row with a null `device_id` at `login` means the account was made some
+other way, and it is claimed rather than refused — the same first-machine rule
+as registration. `validate-token` refuses instead: by the time a token exists
+to validate, the account has already signed in once, so a null `device_id` at
+that point means the row changed after the token was issued.
 
 ## Moving a licence to another PC
 

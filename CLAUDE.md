@@ -75,16 +75,21 @@ seeder — set it during dev to avoid touching a real register.
 worker-log/
 ├── package.json     root — `npm run dev` / `npm run build`
 ├── src-tauri/        Rust: Tauri commands, SQLite, PDF writer, account/licence
+├── supabase/         edge-function + migration sources for the account layer
 └── web/               Angular 21 + PrimeNG 21 front end
 ```
 
-There is a stray empty `supabase/` directory in the working tree, but **the
-edge-function sources are no longer in git** — commit `e27bffd` deleted
-`supabase/README.md`, `config.toml`, `migrations/0001_account_schema.sql` and
-`functions/{register,login,forgot-password}/index.ts`, and nothing since
-restored them, so `git checkout supabase` fails with "pathspec did not match".
-`src-tauri/src/supabase.rs` still calls those three deployed functions by name.
-To edit them, recover the tree first: `git checkout e27bffd^ -- supabase`.
+`supabase/` is tracked again and is the account layer's server side. Commit
+`e27bffd` had deleted it; `3056413` restored it along with the OTP pieces,
+`b92fa42` added `validate-token`, and two later changes added `get-plans` and
+then the Razorpay pair. It now holds `README.md`, `config.toml`, three
+migrations (`0001_account_schema.sql`, `0002_email_otps.sql`,
+`0003_payments.sql`) and eight edge functions — `register`, `login`,
+`validate-token`, `forgot-password`, `send-otp`, `get-plans`, `create-order`,
+`verify-payment` — each a single self-contained file with no shared imports,
+so it can be pasted into the dashboard as-is. Nothing in this repo deploys them:
+`src-tauri/src/supabase.rs` calls them by name over HTTP, and what is actually
+live is recorded in `.claude/plans/` (see below), not inferable from the tree.
 
 `npm run dev` is `tauri dev`: `tauri.conf.json`'s `beforeDevCommand` starts the
 Angular dev server on `:4200` and the Tauri window points at it. `npm run build`
@@ -135,7 +140,7 @@ just calls it and converts with `.into()`.
 It does **not** touch `src-tauri/capabilities/default.json`, despite what
 `.claude/rules/tauri-ipc.md`'s last bullet and `scaffold-entity` step 8 say.
 That file carries plugin permissions only (`dialog:allow-save`,
-`opener:allow-open-path`, `log:default`, `core:*`); all 37 app commands are
+`opener:allow-open-path`, `log:default`, `core:*`); all 42 app commands are
 reachable today with none of them listed, so an entry there would be
 meaningless text. Verify with `cat src-tauri/capabilities/default.json` before
 believing the rule — it is the rule that is wrong, not the code.
@@ -167,7 +172,7 @@ believing the rule — it is the rule that is wrong, not the code.
 - `error.rs` — `AppError` and its `status_code()`, the mapping every command
   converts through on its way into an `ApiResponse` (see above).
 - `auth.rs` + `supabase.rs` — the account/licence layer, separate from the
-  waste-log data model entirely (see below). `auth.rs` holds the seven
+  waste-log data model entirely (see below). `auth.rs` holds the twelve
   `auth_*` commands in the same `<name>_impl` + thin wrapper shape as
   `commands.rs`.
 
@@ -199,7 +204,13 @@ Standalone components with signals, PrimeNG 21 Aura preset. Structure:
 - `views/` — one folder per screen (`waste`, `sheet`, `reports`, `barcodes`,
   `workers`, `series`, `reasons`, `grades`, `settings`, `auth/login`,
   `auth/register`, `profile`), each `loadComponent`-ed from `app.routes.ts`.
-- `shared/` — reusable pieces (`scan-field`, `range-filter`) used across views.
+- `shared/` — reusable pieces (`scan-field`, `range-filter`) used across views,
+  plus `primeng-components-module.ts`: the PrimeNG surface the app actually
+  uses bundled into one `NgModule` (with `CommonModule`, `FormsModule`,
+  `RouterModule` and `TranslateModule` riding along) so a standalone view
+  imports one symbol instead of a dozen. Every view and both shared
+  components import it — add to it rather than importing a PrimeNG module
+  directly into a view.
 - `models/` — DTOs shared with Rust, split by direction per
   `.claude/rules/models.md`: `models/request/` (payloads, `RangeFilter`,
   `RegisterRequest`, …) and `models/response/` (`Grade`, `Dashboard`,
@@ -253,15 +264,54 @@ payment history. A lapsed subscription does not stop the account signing
 in — only `status` (active/inactive/blocked) and the device binding gate that.
 It stops everything past the profile screen instead: `authGuard`
 (`core/auth.guard.ts`) redirects every other route there once
-`AuthService.subscriptionExpired()` is true, which is where a plan will
-eventually be picked to clear it.
+`AuthService.subscriptionExpired()` is true, and the shell hides the Floor and
+Masters nav sections for the same reason (`shell.ts`'s `visibleSections`) so
+nothing is left to click that would only bounce back. The profile shows the
+renewal catalogue in a dialog (`auth_plans` → `get-plans`, fetched only while
+the subscription reads `expired` or `expiring`) that auto-opens once per
+session the first time that becomes true, and reopens from a "View plans"
+button on the subscription card afterwards. Picking a plan there
+(`Profile.selectPlan`) opens Razorpay's checkout widget through
+`RazorpayService` (`core/razorpay.service.ts` — the one file in `web/` that
+reaches a third-party host directly, and deliberately so: a card form needs a
+browser context Rust does not have), then hands what the widget reports to
+`auth_verify_payment` → `verify-payment`, which recomputes the payment's
+HMAC signature server-side before recording it — nothing the widget says is
+trusted until then. `auth_verify_payment` answers with a freshly rebuilt
+`Session`; `AuthService.verifyPayment` replaces the session signal with it,
+which is what clears `subscriptionExpired()` and brings the nav back without
+a reload. `tauri.conf.json`'s `security.csp` is scoped to `razorpay.com`
+hosts to let the checkout script load at all — the default `script-src
+'self'` this app otherwise runs under would refuse it silently, and its
+`connect-src` line deliberately keeps Tauri's own `ipc:` / `http://ipc.localhost`
+origins alongside the Razorpay ones, since writing an explicit `connect-src`
+replaces rather than extends the implicit `default-src 'self'` every other
+command was reaching `invoke` through.
 
 Nothing about Supabase lives in `web/` — the project URL, anon key, session
 tokens and licence check are all in `src-tauri/src/auth.rs` and `supabase.rs`.
 Anything needing the service role key goes through an edge function
-(`register`, `login`, `validate-token`, `forgot-password`) via
-`supabase::call_function`; the rest uses PostgREST with the anon key. A
-licence is bound to one PC by a device fingerprint taken at registration (or
+(`register`, `login`, `validate-token`, `forgot-password`, `send-otp`,
+`get-plans`, `create-order`, `verify-payment`) via `supabase::call_function`;
+the rest uses PostgREST with the anon key. Two exceptions worth flagging:
+`get-plans` takes no token and is callable whether anyone is signed in or
+not, because the operator it exists for is the one whose token may be
+mid-refresh; `create-order` and `verify-payment` carry the operator's
+`accessToken` in the request body rather than an `Authorization` header
+(`supabase::call_function` always sets that header to the bare anon key), and
+check it themselves with `auth.getUser()`, the same pattern `validate-token`
+already uses.
+
+Signing in goes through the `login` function too, rather than GoTrue directly,
+because the device-binding check (and claiming an unbound licence) needs that
+key — `auth.rs`'s own `sign_in` survives only for `auth_change_password`, which just
+re-proves a password. Registering is two steps: `auth_send_otp` mails a
+4-digit code (rate-limited per address in the function, hashed into
+`email_otps`, never stored in the clear), then `auth_register` verifies it and
+creates the account in one call — nothing is written until the code checks
+out.
+
+A licence is bound to one PC by a device fingerprint taken at registration (or
 claimed by the first machine to sign in, for a row left unbound) and
 re-checked at every sign-in and again every six hours while the window stays
 open (`AuthService`'s `validate()` timer, `auth_validate` → `validate-token`)
@@ -284,15 +334,16 @@ above). The account layer (`auth.service.ts`, `auth.backend.ts`,
 `services/auth/`: it was already fully compliant with `zone-wrapper.md` before
 the rest of the split (only `tauri-auth.backend.ts` touches
 `ZoneWrapperService`, exactly as the rule asks), and it is already its own
-documented mini-layer (see "Accounts / licensing" below) rather than a CRUD
+documented mini-layer (see "Accounts / licensing" above) rather than a CRUD
 entity in the sense the rest of `services/` is. Nothing about this is a rule
 violation — say so if a future change wants it moved for consistency anyway.
 
 ## Where the older docs have drifted
 
-`README.md` and two `.claude/rules/` files predate the `zone-wrapper` split and
-still name files that no longer exist. The rules below are still correct in
-*substance* — follow them — but resolve the paths against this file, not them:
+`README.md`, `supabase/README.md`, two `.claude/rules/` files and the
+`scaffold-entity` skill all name files or facts that no longer hold. They are
+still correct in *substance* — follow them — but resolve the paths and counts
+against this file, not them:
 
 - `README.md`'s "How the two halves talk" and "Zones" sections, and all of
   `.claude/rules/tauri-ipc.md`, point at `web/src/app/core/tauri.service.ts`
@@ -303,9 +354,34 @@ still name files that no longer exist. The rules below are still correct in
 - `.claude/rules/zone-wrapper.md`'s `paths:` globs are `src/app/**` rather than
   `web/src/app/**`, so they never match anything and the rule is unlikely to
   auto-attach. Read it deliberately when touching a service.
-- README's command table omits the seven `auth_*` commands and `device_id`.
+- README's command table omits the twelve `auth_*` commands and `device_id`.
   `core/tauri/tauri-commands.const.ts` and `lib.rs`'s `generate_handler![]` are
-  the authoritative list (37 commands).
+  the authoritative list (42 commands).
+- The `scaffold-entity` skill's steps 4–8 describe a Rust layout this project
+  never adopted: there is no `src-tauri/src/services/` and no
+  `src-tauri/src/commands/` directory (logic lives in `repo/` and the commands
+  in the single `commands.rs`), models are one flat file per struct rather than
+  per-entity subdirectories, registration happens in `lib.rs` not `main.rs`,
+  and the `code-comments.md` it cites does not exist. Steps 1–3 are accurate.
+- `supabase/README.md` was rewritten alongside `get-plans` and the Razorpay
+  pair and is kept in step with `supabase/config.toml` each time a function is
+  added — no known drift in it as of this writing. Worth a second look
+  anyway before trusting it blindly; the pattern with every file on this list
+  is that it drifts the moment nobody is in it for a change.
+- `.claude/rules/api-response-format.md`'s third `paths:` glob is
+  `src-tauri/src/commands/**/*.rs`, a directory that does not exist; the rule
+  still auto-attaches through its two model globs.
 
 Fixing these files is worth doing if you are already in them; the code is the
 side that is right.
+
+## `.claude/plans/`
+
+Two design notes for the account layer, both written before the work shipped
+and both still ending in a deployment checklist: `otp-registration.md` (the
+two-step register flow) and `token-validation.md` (sign-in plus the six-hourly
+re-check). The code they describe is in the tree; what they say about **what
+is deployed** is the part to re-check, since nothing in this repo pushes an
+edge function. Read them before changing `auth.rs`, `supabase.rs` or anything
+under `supabase/functions/` — they carry the reasoning (why the OTP is hashed
+with a pepper, why `login` moved off GoTrue) that the code only implies.

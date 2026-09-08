@@ -17,6 +17,7 @@
 export type { UserAccount } from './response/userAccount';
 export type { Subscription } from './response/subscription';
 export type { Payment } from './response/payment';
+export type { Plan } from './response/plan';
 export type { Session } from './response/session';
 export type { PasswordReset } from './response/passwordReset';
 
