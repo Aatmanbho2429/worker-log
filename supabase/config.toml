@@ -2,10 +2,14 @@
 # this file does nothing — turn Verify JWT off there instead.
 project_id = "worker-log"
 
-# The account functions are called before anybody is signed in, so none of them
-# can require a verified JWT. Each does its own checking: `register` and
-# `forgot-password` validate their input, and `login` verifies the password
-# before it decides anything.
+# None of these can require a verified JWT at the platform level, because
+# `supabase::call_function` (src-tauri/src/supabase.rs) always calls with the
+# anon key as the bearer token — the account functions are called before
+# anybody is signed in, and `validate-token` carries the operator's own token
+# in its request body instead of the header, checking it itself with
+# `auth.getUser()`. Each does its own checking: `register` and
+# `forgot-password` validate their input, `login` verifies the password, and
+# `validate-token` verifies the token, before any of them decides anything.
 #
 # `send-otp` is the most exposed of them — it will mail anybody who asks — so
 # its checking is rate limiting rather than authentication: one code a minute
@@ -17,6 +21,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.login]
+verify_jwt = false
+
+[functions.validate-token]
 verify_jwt = false
 
 [functions.forgot-password]

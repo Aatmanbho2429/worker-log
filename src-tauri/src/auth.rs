@@ -80,6 +80,20 @@ struct RegisterResponse {
     profile: serde_json::Value,
 }
 
+/// What `login` answers with: `session` is the same shape GoTrue's own
+/// `/token` endpoint returns (it is that response, forwarded), which is why
+/// this reuses `Tokens` rather than declaring its own pair of fields.
+#[derive(Debug, Deserialize)]
+struct LoginResponse {
+    session: Tokens,
+    profile: ProfileRow,
+}
+
+#[derive(Debug, Deserialize)]
+struct ValidateResponse {
+    profile: ProfileRow,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct StoredSession {
     access_token: String,
@@ -193,6 +207,38 @@ async fn fetch_profile(user_id_filter: &str, access_token: &str) -> AppResult<Pr
     rows.into_iter()
         .next()
         .ok_or_else(|| AppError::NotFound("That account has no profile. Please contact support.".into()))
+}
+
+/// Signs in and checks the device binding in one round trip, through the
+/// `login` edge function rather than GoTrue plus a PostgREST read — the
+/// binding check (and claiming an unclaimed `device_id` on a first sign-in)
+/// needs the service role key, the same reason `register` cannot be done
+/// from here either. `sign_in` above is kept for `auth_change_password_impl`,
+/// which only needs to re-prove a password, not check a licence.
+async fn login_via_edge(email: &str, password: &str, device_id: &str) -> AppResult<LoginResponse> {
+    supabase::call_function(
+        "login",
+        &serde_json::json!({ "email": email, "password": password, "deviceId": device_id }),
+        "That email and password do not match an account.",
+    )
+    .await
+}
+
+/// Re-checks a stored session through `validate-token`: still a real token,
+/// still this PC, still an active account — and reports whatever the
+/// subscription status now is, since a trial or a paid term can run out with
+/// the window shut and nobody signing back in to notice. Unlike `login`, a
+/// missing `device_id` here is refused rather than claimed: by the time a
+/// token exists to validate, the account has already signed in once.
+async fn validate_token(access_token: &str, device_id: &str) -> AppResult<ProfileRow> {
+    let response: ValidateResponse = supabase::call_function(
+        "validate-token",
+        &serde_json::json!({ "accessToken": access_token, "deviceId": device_id }),
+        "Could not check your account.",
+    )
+    .await?;
+
+    Ok(response.profile)
 }
 
 /// The subscription the licence is currently running on, if there is one.
@@ -344,20 +390,19 @@ pub async fn auth_register(payload: RegisterRequest) -> ApiResponse<()> {
 
 async fn auth_login_impl(app: AppHandle, payload: LoginRequest) -> AppResult<Session> {
     let email = payload.email.trim().to_lowercase();
-    let tokens = sign_in(&email, &payload.password).await?;
+    let device = device_id()?;
 
-    let profile = fetch_profile(&format!("email=eq.{email}"), &tokens.access_token).await?;
-    check_licence(&profile)?;
+    let response = login_via_edge(&email, &payload.password, &device).await?;
 
     save_tokens(
         &app,
         &StoredSession {
-            access_token: tokens.access_token.clone(),
-            refresh_token: tokens.refresh_token,
+            access_token: response.session.access_token.clone(),
+            refresh_token: response.session.refresh_token,
         },
     )?;
 
-    Ok(build_session(profile, &tokens.access_token).await)
+    Ok(build_session(response.profile, &response.session.access_token).await)
 }
 
 #[tauri::command]
@@ -365,55 +410,77 @@ pub async fn auth_login(app: AppHandle, payload: LoginRequest) -> ApiResponse<Se
     auth_login_impl(app, payload).await.into()
 }
 
-/// The signed-in session left over from last time, if there is one.
+/// Re-checks a stored session through `validate-token`, refreshing the
+/// access token once if it has gone stale, and clearing the stored session
+/// entirely whenever nothing usable comes back of it — an expired refresh
+/// token, a validation refusal (wrong device, blocked account), or a token
+/// that is simply not there. Shared by `auth_restore` (asked once, at
+/// launch) and `auth_validate` (asked again every few hours) because they
+/// are the same question: is the session this window is holding still good.
 ///
-/// The stored access token is usually stale — they last an hour — so a failure
-/// to read the profile is taken as "expired" and the refresh token is spent
-/// before giving up. The licence is re-checked on the way back in, so a token
-/// file copied onto another machine does not outlive the binding.
-async fn auth_restore_impl(app: AppHandle) -> AppResult<Option<Session>> {
-    let Some(stored) = load_tokens(&app) else {
-        return Ok(None);
-    };
+/// A lapsed *subscription* does not clear anything here — `validate-token`
+/// answers that inside the profile it returns, and it is still a real
+/// session either way. What an expired subscription is allowed to do is a
+/// decision for the screens, not this file.
+async fn validated_session(app: &AppHandle) -> Option<Session> {
+    let stored = load_tokens(app)?;
+    let device = device_id().ok()?;
 
-    let mut access_token = stored.access_token;
-
-    let profile = match fetch_profile("select=*&limit=1", &access_token).await {
-        Ok(profile) => profile,
-        Err(_) => {
-            let Ok(fresh) = refresh(&stored.refresh_token).await else {
-                clear_tokens(&app);
-                return Ok(None);
-            };
-            access_token = fresh.access_token.clone();
-            save_tokens(
-                &app,
-                &StoredSession {
-                    access_token: fresh.access_token,
+    let (profile, access_token) = match validate_token(&stored.access_token, &device).await {
+        Ok(profile) => (profile, stored.access_token),
+        Err(_) => match refresh(&stored.refresh_token).await {
+            Ok(fresh) => {
+                let stored = StoredSession {
+                    access_token: fresh.access_token.clone(),
                     refresh_token: fresh.refresh_token,
-                },
-            )?;
-            match fetch_profile("select=*&limit=1", &access_token).await {
-                Ok(profile) => profile,
-                Err(_) => {
-                    clear_tokens(&app);
-                    return Ok(None);
+                };
+                if save_tokens(app, &stored).is_err() {
+                    return None;
+                }
+                match validate_token(&fresh.access_token, &device).await {
+                    Ok(profile) => (profile, fresh.access_token),
+                    Err(_) => {
+                        clear_tokens(app);
+                        return None;
+                    }
                 }
             }
-        }
+            Err(_) => {
+                clear_tokens(app);
+                return None;
+            }
+        },
     };
 
     if check_licence(&profile).is_err() {
-        clear_tokens(&app);
-        return Ok(None);
+        clear_tokens(app);
+        return None;
     }
 
-    Ok(Some(build_session(profile, &access_token).await))
+    Some(build_session(profile, &access_token).await)
+}
+
+/// The signed-in session left over from last time, if there is one.
+async fn auth_restore_impl(app: AppHandle) -> AppResult<Option<Session>> {
+    Ok(validated_session(&app).await)
 }
 
 #[tauri::command]
 pub async fn auth_restore(app: AppHandle) -> ApiResponse<Option<Session>> {
     auth_restore_impl(app).await.into()
+}
+
+/// What the shell calls every few hours: the same check `auth_restore` does
+/// at launch, run again so a subscription that lapses — or a device or
+/// status change made from the dashboard — is noticed without the operator
+/// having to close and reopen the window.
+async fn auth_validate_impl(app: AppHandle) -> AppResult<Option<Session>> {
+    Ok(validated_session(&app).await)
+}
+
+#[tauri::command]
+pub async fn auth_validate(app: AppHandle) -> ApiResponse<Option<Session>> {
+    auth_validate_impl(app).await.into()
 }
 
 async fn auth_logout_impl(app: AppHandle) -> AppResult<()> {

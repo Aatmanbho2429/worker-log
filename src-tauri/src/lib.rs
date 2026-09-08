@@ -87,6 +87,7 @@ pub fn run() {
             auth::auth_register,
             auth::auth_login,
             auth::auth_restore,
+            auth::auth_validate,
             auth::auth_logout,
             auth::auth_send_otp,
             auth::auth_forgot_password,

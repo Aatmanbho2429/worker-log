@@ -17,7 +17,7 @@ import { TAURI_COMMANDS } from './tauri/tauri-commands.const';
  *
  * There is no logic in this file and there is not meant to be any. Supabase,
  * the project URL, the anon key, the session tokens and the licence check all
- * live in `src-tauri/src/auth.rs`; this is the seven calls that reach them.
+ * live in `src-tauri/src/auth.rs`; this is the calls that reach them.
  *
  * Keeping it this thin is the point. A rule enforced in TypeScript is a rule
  * enforced inside the window, where anyone with the developer tools can watch
@@ -34,6 +34,10 @@ export class TauriAuthBackend extends AuthBackend {
 
   restore(): Promise<Session | null> {
     return this.zoneWrapper.invoke<RestoreResponse>(TAURI_COMMANDS.authRestore);
+  }
+
+  validate(): Promise<Session | null> {
+    return this.zoneWrapper.invoke<RestoreResponse>(TAURI_COMMANDS.authValidate);
   }
 
   sendOtp(email: string): Promise<OtpSent> {

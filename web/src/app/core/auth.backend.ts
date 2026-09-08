@@ -32,6 +32,15 @@ export abstract class AuthBackend {
   /** The signed-in session left over from last time, if there is one. */
   abstract restore(): Promise<Session | null>;
 
+  /**
+   * Re-checks the stored session: still a real token, still this PC, still
+   * an active account, and whatever the subscription status now is. `null`
+   * means the session is over — wrong device, blocked account, or a token
+   * that could not be renewed — and the operator is signed out same as a
+   * failed {@link restore}.
+   */
+  abstract validate(): Promise<Session | null>;
+
   /** Mails a code to prove the address before `register` is called with it. */
   abstract sendOtp(email: string): Promise<OtpSent>;
 

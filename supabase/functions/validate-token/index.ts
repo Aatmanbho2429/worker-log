@@ -1,16 +1,16 @@
-// Supabase Edge Function — login
+// Supabase Edge Function — validate-token
 //
-// Signing in, and the only place the device binding is actually enforced.
+// What the app calls every few hours to find out, without asking the operator
+// to sign in again, whether the session it is holding still means anything:
+// is the token still good, is this still the PC the licence is bound to, has
+// the account been blocked since, and has a trial or a paid term run out.
 //
-// It would be simpler to sign in from the app and check `device_id` there, and
-// it would also be worthless: the check would live in code the person being
-// checked is running. So the password is verified here, the binding is decided
-// here, and the session is only handed back once both have passed. The schema
-// grants no update policy on `public.users`, so this function — holding the
-// service role key — is the only thing that can claim or read the binding.
-//
-// A row with a null `device_id` is unclaimed, and the first machine to sign in
-// takes it. That is also how support moves a licence: null the column.
+// The token itself is proof of nothing here beyond "GoTrue issued this and it
+// has not expired" — the device and status checks below are what `login`
+// already enforces at sign-in, run again because time has passed since then.
+// Nothing is claimed here the way `login` claims a null `device_id`: by the
+// time a token exists to validate, the account already signed in once, so an
+// unset `device_id` at this point is a broken row rather than a first login.
 //
 // Self-contained so it can be pasted straight into the dashboard editor.
 
@@ -62,17 +62,20 @@ interface ProfileRow {
   subscriptions_end_date: string | null;
 }
 
+interface ValidateBody {
+  accessToken?: string;
+  deviceId?: string;
+}
+
 /**
  * Writes `expired` back to the row when a trial or a paid term has run past
  * its end date, and returns the profile carrying whichever status is now
  * true — so a caller reading this response never sees a status the database
  * itself no longer agrees with.
  *
- * Not fatal if the write fails: the profile in this response still reports
- * the right status, and the next login or `validate-token` call tries again.
- * This is the only place either function refuses on a status past `expired`
- * — an expired subscription still signs in. The app decides what an expired
- * account can do; a lapsed card is not a wrong password.
+ * Kept identical to the copy in `login/index.ts` rather than shared: each
+ * function is pasted into the dashboard on its own, the way `send-otp` and
+ * `register` already duplicate the code hashing they both need.
  */
 async function withCurrentSubscriptionStatus(
   admin: ReturnType<typeof createClient>,
@@ -87,7 +90,7 @@ async function withCurrentSubscriptionStatus(
       .eq('id', profile.id);
 
     if (error) {
-      console.error('[login] could not record the expired subscription:', error);
+      console.error('[validate-token] could not record the expired subscription:', error);
     }
 
     return { ...profile, subscription_status: 'expired' };
@@ -95,18 +98,6 @@ async function withCurrentSubscriptionStatus(
 
   return profile;
 }
-
-interface LoginBody {
-  email?: string;
-  password?: string;
-  deviceId?: string;
-}
-
-/**
- * One message for a wrong address and a wrong password, so the form cannot be
- * used to find out which addresses have accounts.
- */
-const REFUSED = 'That email and password do not match an account.';
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
@@ -117,32 +108,27 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const body = (await request.json()) as LoginBody;
+    const body = (await request.json()) as ValidateBody;
+    const accessToken = String(body.accessToken ?? '').trim();
     const deviceId = String(body.deviceId ?? '').trim();
-    const email = String(body.email ?? '').trim().toLowerCase();
 
-    if (!email || !body.password) {
-      return fail('badRequest', REFUSED);
-    }
-    if (!deviceId) {
-      return fail('badRequest', 'This machine could not be identified.');
+    if (!accessToken) {
+      return fail('badRequest', 'No token provided.');
     }
 
     const url = Deno.env.get('SUPABASE_URL')!;
 
-    // Checking a password is the one thing that happens with no privilege at
-    // all, so it goes through the anon key rather than the service role one.
+    // Deciding whether the token itself is still good needs no privilege
+    // beyond the token — the same reason `login` checks the password with
+    // the anon key rather than the service role one.
     const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({
-      email,
-      password: String(body.password),
-    });
+    const { data: userData, error: userError } = await anon.auth.getUser(accessToken);
 
-    if (signInError || !signIn?.session || !signIn.user) {
-      return fail('badRequest', REFUSED);
+    if (userError || !userData?.user) {
+      return fail('notFound', 'Your session has expired. Please sign in again.');
     }
 
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -152,7 +138,7 @@ Deno.serve(async (request) => {
     const { data, error: profileError } = await admin
       .from('users')
       .select(PROFILE_COLUMNS)
-      .eq('id', signIn.user.id)
+      .eq('id', userData.user.id)
       .single();
 
     // The client is untyped and `PROFILE_COLUMNS` is a `string` rather than a
@@ -171,27 +157,10 @@ Deno.serve(async (request) => {
       return fail('forbidden', 'This account is not active. Please contact support.');
     }
 
-    if (!profile.device_id) {
-      const { data: claimedData, error: claimError } = await admin
-        .from('users')
-        .update({ device_id: deviceId, modified_date: new Date().toISOString() })
-        .eq('id', profile.id)
-        // Only if it is still unclaimed, so two machines racing cannot both win.
-        .is('device_id', null)
-        .select(PROFILE_COLUMNS)
-        .single();
-
-      if (claimError || !claimedData) {
-        return fail('conflict', 'This licence was just claimed by another PC.');
-      }
-      const claimed = claimedData as unknown as ProfileRow;
-      return ok({
-        session: signIn.session,
-        profile: await withCurrentSubscriptionStatus(admin, claimed),
-      });
-    }
-
-    if (profile.device_id !== deviceId) {
+    // Not a claim, unlike `login` — a null `device_id` here means the row was
+    // changed after the token was issued (support cleared it, say), not that
+    // this is the first sign-in.
+    if (!profile.device_id || (deviceId && profile.device_id !== deviceId)) {
       return fail(
         'conflict',
         'This account is licensed to a different PC. Sign in on the machine it ' +
@@ -199,10 +168,7 @@ Deno.serve(async (request) => {
       );
     }
 
-    return ok({
-      session: signIn.session,
-      profile: await withCurrentSubscriptionStatus(admin, profile),
-    });
+    return ok({ profile: await withCurrentSubscriptionStatus(admin, profile) });
   } catch (error) {
     console.error(error);
     return fail('internal', 'Something went wrong on our side. Please try again.');

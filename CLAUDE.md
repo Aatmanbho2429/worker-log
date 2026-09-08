@@ -249,15 +249,24 @@ deliberately ignore the theme; see `.claude/rules/theming.md` for why.
 
 A second, unrelated database bolted onto an otherwise offline app. Waste-log
 data never touches it; it holds real user accounts, subscription status and
-payment history, and only a registered account with an acceptable subscription
-status can open the app.
+payment history. A lapsed subscription does not stop the account signing
+in — only `status` (active/inactive/blocked) and the device binding gate that.
+It stops everything past the profile screen instead: `authGuard`
+(`core/auth.guard.ts`) redirects every other route there once
+`AuthService.subscriptionExpired()` is true, which is where a plan will
+eventually be picked to clear it.
 
 Nothing about Supabase lives in `web/` — the project URL, anon key, session
 tokens and licence check are all in `src-tauri/src/auth.rs` and `supabase.rs`.
 Anything needing the service role key goes through an edge function
-(`register`, `login`, `forgot-password`) via `supabase::call_function`; the rest
-uses PostgREST with the anon key. A licence is bound to one PC by a device
-fingerprint taken at registration and re-checked at every sign-in.
+(`register`, `login`, `validate-token`, `forgot-password`) via
+`supabase::call_function`; the rest uses PostgREST with the anon key. A
+licence is bound to one PC by a device fingerprint taken at registration (or
+claimed by the first machine to sign in, for a row left unbound) and
+re-checked at every sign-in and again every six hours while the window stays
+open (`AuthService`'s `validate()` timer, `auth_validate` → `validate-token`)
+— so a subscription lapsing, or a device unbound from the dashboard, is
+noticed without the operator closing and reopening the app.
 
 
 ## Data model
