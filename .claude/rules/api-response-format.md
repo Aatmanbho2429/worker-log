@@ -2,12 +2,14 @@
 paths:
   - "web/src/app/models/response/**/*.ts"
   - "src-tauri/src/models/response/**/*.rs"
-  - "src-tauri/src/commands/**/*.rs"
+  - "src-tauri/src/commands.rs"
+  - "src-tauri/src/auth.rs"
 ---
 
 # API response envelope
 
-Every call — success or error — returns the same shape:
+Every command answers with the same shape — success or failure — rather than
+rejecting the `invoke` promise:
 
 ```ts
 export interface apiResponse<T> {
@@ -27,5 +29,24 @@ pub struct ApiResponse<T> {
 }
 ```
 
-- Commands never `panic!` or return a raw error string. Catch errors in the service and map them into this envelope with an error-range `statusCode` and a `message`.
-- `ZoneWrapperService.invoke()` unwraps `.data` once, so services and components only ever see the plain payload type — not the envelope.
+## How a command is written
+
+The real logic lives in a `<name>_impl` function returning the ordinary
+`AppResult<T>`, so it can use `?` throughout. The `#[tauri::command]` wrapper
+is one line that calls it and converts with `.into()`:
+
+```rust
+async fn auth_payments_impl(app: AppHandle) -> AppResult<Vec<Payment>> { … }
+
+#[tauri::command]
+pub async fn auth_payments(app: AppHandle) -> ApiResponse<Vec<Payment>> {
+    auth_payments_impl(app).await.into()
+}
+```
+
+- Commands never `panic!` or return a raw error string. The conversion goes
+  through `AppError::status_code()` in `src-tauri/src/error.rs` — 400 / 404 /
+  409 / 500.
+- `ZoneWrapperService.invoke()` unwraps `.data` once on the way back, so
+  services and components only ever see the plain payload type, never the
+  envelope. See `.claude/rules/zone-wrapper.md`.

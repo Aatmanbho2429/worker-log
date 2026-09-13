@@ -1,13 +1,31 @@
 ---
 paths:
-  - "src/app/services/**/*.ts"
-  - "src/app/core/zone-wrapper/**/*.ts"
+  - "web/src/app/services/**/*.ts"
+  - "web/src/app/core/**/*.ts"
 ---
 
 # NgZone wrapper
 
-`invoke()` and `listen()` from `@tauri-apps/api` resolve outside Angular's zone, so the UI won't update on their result unless it's pushed back in.
+`web/src/app/core/zone-wrapper/zone-wrapper.service.ts` (`ZoneWrapperService`)
+is the **only** file in the app allowed to import `@tauri-apps/api` or touch
+`invoke`/`listen`. Every service method that talks to Tauri calls
+`zoneWrapper.invoke()` / `zoneWrapper.listen()`.
 
-- `ZoneWrapperService` (`core/zone-wrapper/zone-wrapper.service.ts`) is the only file that imports `@tauri-apps/api`.
-- Every service method that talks to Tauri calls `zoneWrapper.invoke()` or `zoneWrapper.listen()` — never `invoke`/`listen` directly.
-- `zoneWrapper.invoke()` unwraps the `ApiResponse` envelope and returns the plain payload, already run inside `NgZone`, so callers never see the envelope or have to think about zones.
+Why: Tauri delivers results and events through a callback registered on
+`window`, driven from Rust rather than from a zone.js-patched JS task, so a
+handler wired up the obvious way runs **outside** Angular's zone and never
+triggers change detection. `ZoneWrapperService` re-enters the zone around
+every listener callback and every command result — that is the only reason it
+is safe for the rest of the app to treat Tauri calls like ordinary promises.
+
+It also unwraps the `ApiResponse` envelope, so callers never see it: a 2xx
+resolves with `data`, anything else throws `{ kind, message }` with `kind` one
+of `badRequest` / `notFound` / `conflict` / `internal` (the inverse
+status→kind mapping lives in `zone-wrapper.service.ts`; the forward one is
+`AppError::status_code()` in `src-tauri/src/error.rs`). Show the first three
+to the operator as actionable warnings — `notify.service.ts`'s `fromCommand()`
+already does — and treat `internal` as a fault.
+
+The account layer reaches the bridge the same way, one file deep:
+`core/tauri-auth.backend.ts` is the only part of it that touches
+`ZoneWrapperService`, and `auth.service.ts` goes through that.

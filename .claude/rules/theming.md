@@ -21,4 +21,18 @@ tiles (always dark bars on a white tile — inverted barcodes read poorly on
 cheap laser scanners), sheet/table header bands (fixed brand navy), and grade
 colours (saturated fills carrying white text in both themes; they do carry a
 separate light/dark variant for text drawn *in* the grade colour — see
-`_grades.scss`).
+`_grades.scss`, and `web/src/app/core/grade-tone.ts` for the TS side that picks
+a grade's tone).
+
+## The two palettes
+
+There are two, and they are switched by the same selector:
+
+- **The app's own tokens** — `_theme.scss` / `_tokens.scss`, above.
+- **PrimeNG's** — `web/src/app/theme.ts` (`WasteLogPreset`, a
+  `definePreset(Aura, …)` in navy), applied in `app.config.ts` with
+  `darkModeSelector: '.app-dark'`.
+
+The app ships light: `web/src/index.html` is a plain `<html lang="en">`.
+Adding `class="app-dark"` there flips both palettes at once — there is no
+runtime toggle and no per-user preference to honour.
