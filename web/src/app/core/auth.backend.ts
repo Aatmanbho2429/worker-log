@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
+  ForgotPasswordVerifyRequest,
   LoginRequest,
   OtpSent,
   RazorpayOrder,
@@ -56,8 +57,11 @@ export abstract class AuthBackend {
 
   abstract logout(): Promise<void>;
 
-  /** Rolls a new password for the account and sends it to the address on file. */
-  abstract forgotPassword(email: string): Promise<PasswordReset>;
+  /** Mails a code, if the address has an active account licensed to this PC. */
+  abstract forgotPasswordSendOtp(email: string): Promise<OtpSent>;
+
+  /** Checks the code, then mails a new password to the address and sets it. */
+  abstract forgotPasswordVerify(payload: ForgotPasswordVerifyRequest): Promise<PasswordReset>;
 
   abstract changePassword(payload: ChangePasswordRequest): Promise<void>;
 

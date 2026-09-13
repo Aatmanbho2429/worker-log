@@ -159,10 +159,18 @@
     "forgot": {
       "link": "Forgot password?",
       "header": "Forgot password",
-      "prompt": "Enter the email on the account. We will send a new, randomly generated password to it.",
+      "prompt": "Enter the email on the account registered to this PC. We will send a code to confirm it is yours.",
+      "sendCode": "Send code",
+      "codeSent": "A verification code was sent to your email.",
+      "codeSubtitle": "Enter the 4-digit code sent to {{ email }}.",
+      "spamHint": "Didn't get it? Check your spam or junk folder.",
+      "resend": "Resend code",
+      "resendIn": "Resend code in {{ seconds }}s",
+      "back": "Use a different email",
       "sent": "A new password has been sent to",
       "next": "Sign in with it, then change it from your profile.",
-      "submit": "Send new password",
+      "submit": "Verify and send new password",
+      "sendFailed": "Could not send the code.",
       "failed": "Could not send a new password."
     }
   },

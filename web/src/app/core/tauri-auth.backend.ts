@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
+  ForgotPasswordVerifyRequest,
   LoginRequest,
   OtpSent,
   RazorpayOrder,
@@ -58,8 +59,14 @@ export class TauriAuthBackend extends AuthBackend {
     return this.zoneWrapper.invoke<void>(TAURI_COMMANDS.authLogout);
   }
 
-  forgotPassword(email: string): Promise<PasswordReset> {
-    return this.zoneWrapper.invoke<PasswordReset>(TAURI_COMMANDS.authForgotPassword, { email });
+  forgotPasswordSendOtp(email: string): Promise<OtpSent> {
+    return this.zoneWrapper.invoke<OtpSent>(TAURI_COMMANDS.authForgotPasswordSendOtp, { email });
+  }
+
+  forgotPasswordVerify(payload: ForgotPasswordVerifyRequest): Promise<PasswordReset> {
+    return this.zoneWrapper.invoke<PasswordReset>(TAURI_COMMANDS.authForgotPasswordVerify, {
+      payload,
+    });
   }
 
   changePassword(payload: ChangePasswordRequest): Promise<void> {

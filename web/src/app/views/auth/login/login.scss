@@ -22,3 +22,15 @@
     margin-top: 0.1rem;
   }
 }
+
+// The "use a different email" / resend row under the code step's OTP field —
+// the same two-things-apart layout as `.auth__aside` above the password
+// field, but plain text rather than a label, so it gets its own class rather
+// than reusing that one.
+.forgot__aside {
+  align-items: center;
+  display: flex;
+  font-size: $fs-sm;
+  justify-content: space-between;
+  margin-top: $space-sm;
+}

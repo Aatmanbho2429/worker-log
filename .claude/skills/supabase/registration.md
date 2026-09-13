@@ -1,8 +1,13 @@
-# Registration: the two-step OTP flow
+# Registration and forgotten passwords: the OTP flows
 
 Covers `supabase/functions/send-otp`, `supabase/functions/register`,
 `supabase/migrations/0002_email_otps.sql`, `auth_send_otp` / `auth_register`
-in `auth.rs`, and `views/auth/register/`.
+in `auth.rs`, and `views/auth/register/` — plus, below, the forgot-password
+flow that reuses the same OTP machinery: `supabase/functions/forgot-password-send-otp`,
+`supabase/functions/forgot-password-verify-otp`,
+`supabase/migrations/0005_password_reset_otps.sql`,
+`auth_forgot_password_send_otp` / `auth_forgot_password_verify` in `auth.rs`,
+and the forgot-password dialog in `views/auth/login/`.
 
 ## The flow
 
@@ -68,12 +73,74 @@ rules in the UI only, no server-side copy.
 - **Angular never calls a function URL.** Always `AuthService → AuthBackend →
   Tauri → Rust → edge function`.
 
-## `forgot-password`
+## Forgot password
 
-Rolls a new password, emails it via Resend, then sets it — never returns it.
-Unlike `register` and `send-otp`, which hard-code `SENDER`, it **requires**
-`RESEND_FROM` as well as `RESEND_API_KEY` and throws if either is missing. **Not deployed as
-of the last check** — see [deployment.md](deployment.md).
+The login screen's "Forgot password?" dialog, in three steps: an email
+address, a 4-digit code, then a mailed password. Two functions, structurally
+copies of `send-otp` and the register-verification half of `register`, pointed
+at their own table, `password_reset_otps`, rather than `email_otps` — kept
+separate so this flow's cooldowns and attempt counters can never tie into
+registration's, and so a reset code is never something `register`'s check
+could see.
+
+There used to be a single `forgot-password` function that reset a password
+immediately on nothing but an email address — no proof of anything. It was
+never deployed, and was replaced rather than fixed once the OTP step was
+added; it no longer exists in this tree.
+
+**`forgot-password-send-otp`** — checks the address before mailing anything,
+refusing in this order: no account for the address, the account blocked, the
+account not active, or the account licensed to a different PC. On all four
+passing, mails a 4-digit code (same rate limit as `send-otp`: one a minute,
+five an hour, ten-minute expiry, same `OTP_PEPPER` hash).
+
+**`forgot-password-verify-otp`** — checks the code (same shape as
+`register`'s: expiry, 5 attempts, deleted on either dead end), then **re-runs
+the same four account checks**, because ten minutes is long enough for an
+account to be blocked or a licence moved in between. Only then does it roll a
+password, **mail it, and set it in that order** — the reverse of the deleted
+function, and deliberately so: mailing first means a failed
+`updateUserById` afterwards leaves the *old* password still working, with the
+row kept so the same code can be retried (it just mails a different
+password). A failed mail changes nothing at all. The `password_reset_otps`
+row is only deleted once the password is actually set.
+
+The generated password: 12 characters from `send-otp`'s
+look-alike-free alphabet (no `0`/`O`/`1`/`l`), no symbols (it's read off an
+email and typed by hand), drawn with rejection sampling to avoid the small
+modulo bias a plain `byte % length` would carry, and **regenerated until it
+contains at least one letter and one digit** — the app's own password rule
+(`passwordProblem()`) should never reject a password the app itself issued.
+
+**Account enumeration is accepted here, on purpose.** "No account is
+registered with that email address" and "licensed to a different PC" both
+tell whoever types an address something about it. This is a licensed tool
+with a known operator at a known machine; a clear message is worth more here
+than the enumeration it costs — the same trade the deleted `forgot-password`
+already made, and the same one `validate-token`'s messages make once someone
+is signed in.
+
+**A null `device_id` is allowed, not refused**, in both functions — unlike
+`validate-token`, which refuses one. A null means support released the
+licence so it can move; refusing a reset here would strand exactly the
+operator support just helped. It is claimed at the next sign-in, same as an
+unclaimed registration.
+
+**No password rules are enforced server-side** — the email's shape and the
+code's shape are both checked in the dialog (`emailProblem()` / `otpProblem()`);
+the functions only check that their fields are present.
+
+**Sessions are not revoked.** Unlike `change-password`, which can call
+`auth.admin.signOut(jwt, 'global')` because it holds the caller's token,
+nobody is signed in during a password reset, and supabase-js has no
+sign-out-by-user-id. Any session an attacker already held elsewhere survives
+until its refresh token next meets a device check. Known and accepted, not
+built around.
+
+The dialog itself lives in `views/auth/login/login.ts` / `.html`, sharing its
+OTP input styling (`.auth__otp-field`, `.auth__otp`) with the register
+screen's code step — both now pull those classes from the shared
+`assets/styles/components/_auth.scss` rather than each having its own copy.
 
 ## Email
 

@@ -8,9 +8,11 @@ Everything below is done once, per project.
 
 ## 1. The schema
 
-Run [`migrations/0001_account_schema.sql`](migrations/0001_account_schema.sql)
-and then
-[`migrations/0004_current_subscription.sql`](migrations/0004_current_subscription.sql)
+Run [`migrations/0001_account_schema.sql`](migrations/0001_account_schema.sql),
+then
+[`migrations/0004_current_subscription.sql`](migrations/0004_current_subscription.sql),
+then
+[`migrations/0005_password_reset_otps.sql`](migrations/0005_password_reset_otps.sql)
 in the SQL editor, in that order.
 
 `0001` adds one column:
@@ -49,6 +51,13 @@ they could clear `device_id` and move the licence to another PC, or set
 a `subscriptions` row, they could write themselves a paid term Razorpay never
 saw.
 
+`0005` adds `public.password_reset_otps`, the codes behind the login screen's
+"Forgot password?" dialog — a table shaped exactly like `email_otps` from
+`0002`, kept separate so a registration code and a password-reset code can
+never be mistaken for one another. Same RLS stance too: enabled, no policies,
+because every read and write goes through `forgot-password-send-otp` /
+`forgot-password-verify-otp`.
+
 ### Where the profile reads from
 
 | Shown | Source |
@@ -71,7 +80,7 @@ or deploy them with the CLI:
 
 ```bash
 supabase link --project-ref YOUR-PROJECT-REF
-supabase functions deploy register login validate-token send-otp forgot-password get-plans create-order verify-payment get-user-subscriptions change-password
+supabase functions deploy register login validate-token send-otp forgot-password-send-otp forgot-password-verify-otp get-plans create-order verify-payment get-user-subscriptions change-password
 ```
 
 If you paste them in the dashboard, turn **Verify JWT** off on all of them —
@@ -79,17 +88,17 @@ none can require a verified JWT, since either nobody is signed in yet or
 (`get-plans`) nobody needs to be.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
-by the platform. `register`, `send-otp`, `forgot-password` and `change-password`
-send mail through Resend, so they need one secret of their own:
+by the platform. `register`, `send-otp`, `change-password`,
+`forgot-password-send-otp` and `forgot-password-verify-otp` send mail through
+Resend, so they need one secret of their own:
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
 ```
 
-The sender is `Waste Log <noreply@pictoria.shop>`, hard-coded at the top of each
-function — the same verified domain Pictoria sends from. The mailbox does not
-have to exist; the domain does. `forgot-password` is the exception: it
-hard-codes nothing and **requires** `RESEND_FROM` as a secret, failing without it.
+The sender is `Waste Log <noreply@pictoria.shop>`, hard-coded at the top of
+every mailing function — the same verified domain Pictoria sends from. The
+mailbox does not have to exist; the domain does.
 
 `create-order` and `verify-payment` need two secrets of their own, the same
 Razorpay account for both:
@@ -110,12 +119,13 @@ one a deploy is charging against.
 | `login` | Signs in against GoTrue and decides the device binding on the server, claiming a null `device_id` on a first sign-in. `auth_login` calls this rather than GoTrue directly — see "Where the licence check happens" below. | yes | not required |
 | `validate-token` | The six-hourly re-check `auth_validate` calls: still a real token, still this PC, still active, and whatever the subscription status now is — writing `expired` back to `public.users` if a term has run out since the last check. | yes | not required |
 | `send-otp` | Mails a 4-digit code to prove an address before `register` is called with it. Rate-limited per address (one a minute, five an hour) in the function itself. | yes | not required |
-| `forgot-password` | Rolls a password, emails it via Resend, then sets it. Never returns it. | not yet | not required |
+| `forgot-password-send-otp` | Step one of the login screen's "Forgot password?" dialog. Checks the address has an account, is active, and is licensed to this PC (or unclaimed), then mails a 4-digit code — same rate limiting as `send-otp`, against its own table, `password_reset_otps`. | not yet | not required |
+| `forgot-password-verify-otp` | Step two: checks the code, re-runs the same account/device checks, then mails a new random password and only sets it once the mail has gone out — never the other order, so a failed send changes nothing. Never returns the password. | not yet | not required |
 | `get-plans` | The renewal catalogue shown on the profile once a subscription has expired or is close to it. Takes no token and needs none — a price list is not private, and the operator it exists for may hold one that is mid-refresh. | yes | not required |
 | `create-order` | Reads a plan's real price from `plans` and opens a Razorpay order against it. Refuses a `users.status` that is not `active`. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a name, email and phone for anyone who could guess a uuid. | yes | not required |
 | `verify-payment` | Recomputes the Razorpay HMAC signature server-side — the only place that check can happen — then records the paid term and unblocks the account. Refuses to insert a second row for a `razorpay_payment_id` already on file, so a retried call cannot extend the licence twice for one payment. | yes | not required |
 | `get-user-subscriptions` | The payment history table on the profile: every `subscriptions` row for the caller, newest first. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a stranger's payment history to anyone who could guess a uuid. | yes | not required |
-| `change-password` | The profile's "Reset password" dialog. Proves the current password with a throwaway sign-in, sets the new one, revokes every session for the account, and mails a confirmation. Carries the operator's `accessToken` and `deviceId` in the body and runs the same account/device checks `validate-token` does. | not yet | not required |
+| `change-password` | The profile's "Reset password" dialog. Proves the current password with a throwaway sign-in, sets the new one, revokes every session for the account, and mails a confirmation. Carries the operator's `accessToken` and `deviceId` in the body and runs the same account/device checks `validate-token` does. | yes | not required |
 
 None of them can require a verified JWT: they are all called before anybody is
 signed in, or (`get-plans`, `create-order`, `verify-payment`) check the
@@ -127,9 +137,11 @@ desktop binary — that is what makes each of these a function rather than a
 PostgREST call with the anon key. `register` inserts a profile row and checks
 this PC against every other account; `login` and `validate-token` read and
 write the device binding, subscription status and now the current-subscription
-pointer, and embed it back in the same read; `forgot-password` sets somebody
-else's password; `get-plans` reads a table with no select policy for an
-unauthenticated caller; `create-order` and `verify-payment` write to
+pointer, and embed it back in the same read; `forgot-password-send-otp` and
+`forgot-password-verify-otp` read `users` to run the same account/device
+checks and, in the second one, set somebody's password with
+`auth.admin.updateUserById`; `get-plans` reads a table with no select policy
+for an unauthenticated caller; `create-order` and `verify-payment` write to
 `subscriptions` and `users`, which carry no insert or update policy for
 anyone; `get-user-subscriptions` reads the payment history with the caller
 proved through `auth.getUser()` rather than trusted from a bare `user_id` in

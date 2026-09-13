@@ -61,7 +61,7 @@ export class Shell implements OnDestroy {
         { label: 'shell.navSeries', icon: 'pi pi-box', route: ROUTE_SERIES },
         { label: 'shell.navReasons', icon: 'pi pi-tags', route: ROUTE_REASONS },
         { label: 'shell.navGrades', icon: 'pi pi-sliders-h', route: ROUTE_GRADES },
-        { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
+        // { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
       ],
     },
     {

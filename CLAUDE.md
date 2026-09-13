@@ -111,7 +111,7 @@ in `.claude/rules/tauri-ipc.md`, `zone-wrapper.md`, `api-response-format.md`.
 - `commands.rs` — every `#[tauri::command]` except auth: series/reason/grade/
   worker CRUD, waste dashboard/log, exports, barcode sheet/scan, seeding.
 - `auth.rs` + `supabase.rs` — the account/licence layer, entirely separate from
-  the waste-log data model. Twelve `auth_*` commands. See the `supabase` skill.
+  the waste-log data model. Thirteen `auth_*` commands. See the `supabase` skill.
 - `repo/` — one module per table holding its SQL (`workers.rs`, `series.rs`,
   `reasons.rs`, `grades.rs`, `logs.rs`, `barcodes.rs`).
 - `models/` — everything crossing the bridge, split `request/` ÷ `response/`,
@@ -177,6 +177,6 @@ plan.
 `README.md` predates the current structure: its "How the two halves talk" and
 "Zones" sections name `core/tauri.service.ts` with `call()`/`on()` and
 `core/waste-log.service.ts`, neither of which exists, and its command table
-omits the twelve `auth_*` commands and `device_id`. The substance is still
+omits the thirteen `auth_*` commands and `device_id`. The substance is still
 right; resolve paths and counts against this file and the rules instead. Worth
 fixing if you are already in it.

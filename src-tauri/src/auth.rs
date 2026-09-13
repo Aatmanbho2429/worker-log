@@ -18,16 +18,17 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    ApiResponse, ChangePasswordRequest, LoginRequest, OtpSent, PasswordReset, Payment, Plan,
-    RazorpayOrder, RegisterRequest, Session, Subscription, UserAccount, VerifyPaymentRequest,
+    ApiResponse, ChangePasswordRequest, ForgotPasswordVerifyRequest, LoginRequest, OtpSent,
+    PasswordReset, Payment, Plan, RazorpayOrder, RegisterRequest, Session, Subscription,
+    UserAccount, VerifyPaymentRequest,
 };
 use crate::supabase;
 
 // The account models — `UserAccount`, `Subscription`, `Payment`, `Session`,
-// `PasswordReset`, `RegisterRequest`, `LoginRequest`, `ChangePasswordRequest`
-// — live in `models/request/` and `models/response/`. Serialised camelCase,
-// because they cross into TypeScript: they mirror `web/src/app/models/auth.ts`
-// field for field.
+// `PasswordReset`, `RegisterRequest`, `LoginRequest`, `ChangePasswordRequest`,
+// `ForgotPasswordVerifyRequest` — live in `models/request/` and
+// `models/response/`. Serialised camelCase, because they cross into
+// TypeScript: they mirror `web/src/app/models/auth.ts` field for field.
 
 // --------------------------------------------------------- the wire shapes --
 //
@@ -501,18 +502,50 @@ pub async fn auth_send_otp(email: String) -> ApiResponse<OtpSent> {
     auth_send_otp_impl(email).await.into()
 }
 
-async fn auth_forgot_password_impl(email: String) -> AppResult<PasswordReset> {
+/// Step one of a forgotten password: the function checks the address has an
+/// account, is active and is licensed to this PC, then mails a code. Nothing
+/// about the account changes here — see `auth_forgot_password_verify_impl`
+/// for what actually resets it.
+async fn auth_forgot_password_send_otp_impl(email: String) -> AppResult<OtpSent> {
     supabase::call_function(
-        "forgot-password",
-        &serde_json::json!({ "email": email.trim().to_lowercase() }),
-        "Could not send a new password.",
+        "forgot-password-send-otp",
+        &serde_json::json!({
+            "email": email.trim().to_lowercase(),
+            "deviceId": device_id()?,
+        }),
+        "Could not send the code.",
     )
     .await
 }
 
 #[tauri::command]
-pub async fn auth_forgot_password(email: String) -> ApiResponse<PasswordReset> {
-    auth_forgot_password_impl(email).await.into()
+pub async fn auth_forgot_password_send_otp(email: String) -> ApiResponse<OtpSent> {
+    auth_forgot_password_send_otp_impl(email).await.into()
+}
+
+/// Step two: the code goes back; the function re-checks the account, mails a
+/// new password, then sets it. Nothing is signed in and no token is stored —
+/// the operator signs in with the mailed password afterwards.
+async fn auth_forgot_password_verify_impl(
+    payload: ForgotPasswordVerifyRequest,
+) -> AppResult<PasswordReset> {
+    supabase::call_function(
+        "forgot-password-verify-otp",
+        &serde_json::json!({
+            "email": payload.email.trim().to_lowercase(),
+            "deviceId": device_id()?,
+            "otpCode": payload.otp_code.trim(),
+        }),
+        "Could not reset the password.",
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn auth_forgot_password_verify(
+    payload: ForgotPasswordVerifyRequest,
+) -> ApiResponse<PasswordReset> {
+    auth_forgot_password_verify_impl(payload).await.into()
 }
 
 /// Changing a password, through the `change-password` function rather than

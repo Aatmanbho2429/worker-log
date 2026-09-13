@@ -13,11 +13,12 @@ Update this section whenever you check again or the user deploys something.
 | Piece | Live? |
 | --- | --- |
 | `register`, `send-otp`, `login`, `validate-token`, `get-plans`, `create-order`, `verify-payment`, `get-user-subscriptions` | ✅ deployed (`login`/`validate-token` v4 and `verify-payment` v2 carry the `current_subscription_id` change) |
-| `forgot-password` | ❌ **not deployed** — `auth_forgot_password` fails at runtime until it is |
-| `change-password` | ❌ **not deployed as of this write-up** — `auth_change_password` fails until it is; deploy before shipping the app build that calls it |
+| `change-password` | ✅ deployed (v1, confirmed 2026-09-13) |
+| `forgot-password-send-otp`, `forgot-password-verify-otp` | ❌ **not deployed as of this write-up** — `auth_forgot_password_send_otp` / `_verify` fail until they are. The old `forgot-password` they replace was never deployed either, so there is nothing to remove from the dashboard |
 | `0002_email_otps.sql` | ✅ `email_otps` exists |
 | `0003_payments.sql` | ⚠️ **half applied** — `subscriptions.razorpay_signature` exists, but the partial unique index `subscriptions_razorpay_payment_id_key` does **not**. `verify-payment`'s replay check still works; only the race backstop is missing |
 | `0004_current_subscription.sql` | ✅ column, FK and backfill applied |
+| `0005_password_reset_otps.sql` | ❌ **not deployed as of this write-up** |
 | RLS policies | none on any public table — intended, see [payments.md](payments.md#rls-deny-all-is-deliberate) |
 | `public.plans` | 4 active rows |
 | Razorpay keys | set as `RAZORPAY_KEY_ID_PROD` / `RAZORPAY_KEY_SECRET_PROD`; **test vs live mode unverified** |
@@ -30,7 +31,7 @@ To re-check: list edge functions, and query `pg_policies`,
 - Paste the whole `index.ts` into the dashboard. Each file is self-contained on
   purpose; never add a shared import.
 - **Verify JWT off** on every function (CLI reads `config.toml`, which already
-  sets `verify_jwt = false` for all ten; the dashboard does not read it).
+  sets `verify_jwt = false` for all eleven; the dashboard does not read it).
 - CLI alternative:
   `supabase functions deploy <name> --project-ref ujalkizozxeshrheuhkb`.
 - Add a new function to `config.toml` and to `supabase/README.md`'s table in
@@ -43,10 +44,12 @@ Platform-injected, nothing to set: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
 
 | Secret | Used by |
 | --- | --- |
-| `RESEND_API_KEY` | `register`, `send-otp`, `forgot-password`, `change-password` — must be set on **this** project, not the unrelated Pictoria one |
-| `OTP_PEPPER` | `send-otp`, `register` (a long random string; changing it invalidates outstanding codes) |
-| `RESEND_FROM` | `forgot-password` — **required** there (it throws without it); `register` and `send-otp` hard-code their sender instead |
+| `RESEND_API_KEY` | `register`, `send-otp`, `change-password`, `forgot-password-send-otp`, `forgot-password-verify-otp` — must be set on **this** project, not the unrelated Pictoria one |
+| `OTP_PEPPER` | `send-otp`, `register`, `forgot-password-send-otp`, `forgot-password-verify-otp` (a long random string; changing it invalidates outstanding codes) |
 | `RAZORPAY_KEY_ID_PROD`, `RAZORPAY_KEY_SECRET_PROD` | `create-order`, `verify-payment` |
+
+No function needs `RESEND_FROM` any more — the old `forgot-password` was the
+only one that did, and it no longer exists.
 
 The `_PROD` suffix was inherited from Visara and says nothing about the mode.
 Test keys start `rzp_test_`, live `rzp_live_`. Check before any test payment —
@@ -65,6 +68,12 @@ a live key charges a real card. Razorpay's test card
   old app build is unaffected either way (it never calls the function); a new
   build against a project without it gets "Could not change the password.
   (the server has no such endpoint yet)" from the profile dialog.
+- **Run `0005_password_reset_otps.sql` before deploying the two
+  `forgot-password-*` functions.** Both write to the table on the very first
+  call; deploying them first just means the first reset attempt after that
+  fails with a database error instead of a "no such endpoint" one — less
+  clear, but not destructive either way. Deploy order between the two
+  functions themselves doesn't matter to each other.
 
 ## Manual test recipes
 
@@ -91,3 +100,13 @@ No automated test reaches Supabase; these are the passes that have been used.
   = '<id>'` should read `0` right after the change, before signing back in.
 - **Register:** needs `OTP_PEPPER` and `RESEND_API_KEY` set; a real attempt
   fails at `send-otp` without them.
+- **Forgot password:** an unknown address → "No account is registered with
+  that email address.", still on the email step, no mail. A blocked or
+  inactive test account → the matching message. A device mismatch
+  (`update public.users set device_id = 'other'` on a test row) → the
+  different-PC message; set it back to `null` and a code sends (the null-device
+  rule). Correct address → code arrives, dialog moves to the code step with a
+  60s countdown. Five wrong codes → "Too many incorrect codes", row deleted.
+  Correct code → the done step, new-password mail arrives, the old password
+  is refused at sign-in and the mailed one works, and the
+  `password_reset_otps` row for the address is gone.

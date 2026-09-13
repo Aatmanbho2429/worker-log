@@ -55,30 +55,3 @@
 .auth__code-mark--success i {
   color: $green-500;
 }
-
-.auth__otp-field {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-}
-
-// PrimeNG's own root element is an inline flex row of digit boxes; centring
-// it takes a block-level wrapper around that row, and the digits themselves
-// want more room between them than the component's default gap gives once
-// they are this large. The digit inputs are rendered by `InputOtp`'s own
-// template, not this component's, so reaching them needs `::ng-deep` — the
-// same escape hatch `range-filter` and `sheet` already use for PrimeNG's
-// internals.
-.auth__otp {
-  display: flex !important;
-  gap: $space-md;
-  justify-content: center;
-  margin-bottom: $space-sm;
-}
-
-:host ::ng-deep .auth__otp .p-inputotp-input {
-  font-size: $fs-xl;
-  height: 5.6rem;
-  text-align: center;
-  width: 4.8rem;
-}

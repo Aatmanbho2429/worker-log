@@ -7,13 +7,21 @@ project_id = "worker-log"
 # anon key as the bearer token — the account functions are called before
 # anybody is signed in, and `validate-token` carries the operator's own token
 # in its request body instead of the header, checking it itself with
-# `auth.getUser()`. Each does its own checking: `register` and
-# `forgot-password` validate their input, `login` verifies the password, and
-# `validate-token` verifies the token, before any of them decides anything.
+# `auth.getUser()`. Each does its own checking: `register` validates its
+# input, `login` verifies the password, and `validate-token` verifies the
+# token, before any of them decides anything.
 #
 # `send-otp` is the most exposed of them — it will mail anybody who asks — so
 # its checking is rate limiting rather than authentication: one code a minute
 # and five an hour per address, enforced in the function.
+#
+# `forgot-password-send-otp` and `forgot-password-verify-otp` carry the same
+# rate limit as `send-otp` (against their own table,
+# `password_reset_otps`), plus an account/device check: an unknown, blocked,
+# inactive, or differently-licensed address is refused before anything is
+# mailed. Neither carries a token — nobody is signed in at this point — so the
+# device id (read off the machine by Rust, same as `register`) is what stands
+# in for proof of which PC is asking.
 #
 # `get-plans` is exposed further still: no checking at all, not even a rate
 # limit. It asks for nothing because it hands back nothing but a public price
@@ -48,7 +56,10 @@ verify_jwt = false
 [functions.validate-token]
 verify_jwt = false
 
-[functions.forgot-password]
+[functions.forgot-password-send-otp]
+verify_jwt = false
+
+[functions.forgot-password-verify-otp]
 verify_jwt = false
 
 [functions.get-user-subscriptions]

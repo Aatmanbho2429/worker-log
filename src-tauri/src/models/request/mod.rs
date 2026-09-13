@@ -1,4 +1,5 @@
 mod change_password_request;
+mod forgot_password_verify_request;
 mod grade_upsert;
 mod log_entry_request;
 mod login_request;
@@ -10,6 +11,7 @@ mod verify_payment_request;
 mod worker_upsert;
 
 pub use change_password_request::ChangePasswordRequest;
+pub use forgot_password_verify_request::ForgotPasswordVerifyRequest;
 pub use grade_upsert::GradeUpsert;
 pub use log_entry_request::LogEntryRequest;
 pub use login_request::LoginRequest;

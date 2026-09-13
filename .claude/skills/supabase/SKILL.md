@@ -20,7 +20,7 @@ not recoverable from the code.
 
 | File | Read before touching |
 | --- | --- |
-| [registration.md](registration.md) | `send-otp`, `register`, the two-step register screen, `email_otps` |
+| [registration.md](registration.md) | `send-otp`, `register`, the two-step register screen, `email_otps`, and the forgot-password OTP flow (`forgot-password-send-otp`/`-verify-otp`, `password_reset_otps`) |
 | [sessions.md](sessions.md) | `login`, `validate-token`, `validated_session`, the six-hourly check, the device binding, what an expired subscription blocks, change password |
 | [payments.md](payments.md) | `get-plans`, the plans dialog, Razorpay, `create-order`, `verify-payment`, `get-user-subscriptions`, `users.current_subscription_id`, the subscription card, the CSP |
 | [deployment.md](deployment.md) | deploying anything, secrets, migrations, **what is actually live**, manual test recipes |
@@ -28,22 +28,22 @@ not recoverable from the code.
 ## Where it lives
 
 Nothing about Supabase lives in `web/`. The project URL, anon key, session
-tokens and the licence check are all in `src-tauri/src/auth.rs` (the twelve
+tokens and the licence check are all in `src-tauri/src/auth.rs` (the thirteen
 `auth_*` commands, in the same `<name>_impl` + thin-wrapper shape as
 `commands.rs`) and `src-tauri/src/supabase.rs` (the HTTP transport). Project:
 `ujalkizozxeshrheuhkb`.
 
 `supabase/` is the server side, and is *sources only* — nothing in this repo
-deploys them. It holds `README.md`, `config.toml`, four migrations
-(`0001_account_schema.sql` … `0004_current_subscription.sql`) and ten edge
-functions: `register`, `login`, `validate-token`, `forgot-password`,
-`send-otp`, `get-plans`, `create-order`, `verify-payment`,
-`get-user-subscriptions`, `change-password`. Each is a single self-contained
-file with no shared imports, so it can be pasted into the dashboard as-is —
-which is why helpers such as `withCurrentSubscriptionStatus` and
-`PROFILE_COLUMNS` are deliberately **duplicated** across files rather than
-shared. What is live is not inferable from this tree;
-[deployment.md](deployment.md) records the last check.
+deploys them. It holds `README.md`, `config.toml`, five migrations
+(`0001_account_schema.sql` … `0005_password_reset_otps.sql`) and eleven edge
+functions: `register`, `login`, `validate-token`, `send-otp`,
+`forgot-password-send-otp`, `forgot-password-verify-otp`, `get-plans`,
+`create-order`, `verify-payment`, `get-user-subscriptions`, `change-password`.
+Each is a single self-contained file with no shared imports, so it can be
+pasted into the dashboard as-is — which is why helpers such as
+`withCurrentSubscriptionStatus` and `PROFILE_COLUMNS` are deliberately
+**duplicated** across files rather than shared. What is live is not inferable
+from this tree; [deployment.md](deployment.md) records the last check.
 
 ## Transport: nothing reads a table directly
 
@@ -101,6 +101,13 @@ nav comes back without a reload. → [payments.md](payments.md)
 the current one, sets the new one, revokes every session for the account, and
 mails a confirmation — the app then signs itself out and returns to `/login`.
 → [sessions.md](sessions.md)
+
+**Forgetting a password** (the login screen's "Forgot password?" dialog) is
+two calls, the same OTP shape as registering: `forgot-password-send-otp`
+checks the address is a real, active account licensed to this PC and mails a
+code, `forgot-password-verify-otp` checks the code, re-runs the same checks,
+then mails a new random password and only then sets it. Nobody is signed in
+for any of it. → [registration.md](registration.md)
 
 ## Why this layer sits in `core/`, not `services/`
 

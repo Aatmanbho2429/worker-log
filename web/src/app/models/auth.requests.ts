@@ -15,6 +15,7 @@
 
 export type { ChangePasswordRequest } from './request/changePasswordRequest';
 export type { ForgotPasswordRequest } from './request/forgotPasswordRequest';
+export type { ForgotPasswordVerifyRequest } from './request/forgotPasswordVerifyRequest';
 export type { LoginRequest } from './request/loginRequest';
 export type { RegisterRequest } from './request/registerRequest';
 export type { VerifyPaymentRequest } from './request/verifyPaymentRequest';

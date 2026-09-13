@@ -1,5 +1,6 @@
 export * from './changePasswordRequest';
 export * from './forgotPasswordRequest';
+export * from './forgotPasswordVerifyRequest';
 export * from './gradePayload';
 export * from './logEntryPayload';
 export * from './loginRequest';

@@ -312,6 +312,39 @@
   margin-top: $space-xs;
 }
 
+// ----------------------------------------------------------- OTP input ---
+//
+// Shared between the register screen's own code step and the login screen's
+// forgot-password dialog, which is why this lives here rather than in either
+// component's own stylesheet.
+
+.auth__otp-field {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+// PrimeNG's own root element is an inline flex row of digit boxes; centring
+// it takes a block-level wrapper around that row, and the digits themselves
+// want more room between them than the component's default gap gives once
+// they are this large. The digit inputs are rendered by `InputOtp`'s own
+// template, so reaching them takes a plain descendant selector here — no
+// `::ng-deep` needed, since this file is already global rather than a
+// component stylesheet.
+.auth__otp {
+  display: flex !important;
+  gap: $space-md;
+  justify-content: center;
+  margin-bottom: $space-sm;
+}
+
+.auth__otp .p-inputotp-input {
+  font-size: $fs-xl;
+  height: 5.6rem;
+  text-align: center;
+  width: 4.8rem;
+}
+
 @media (max-width: 900px) {
   .auth {
     grid-template-columns: 1fr;

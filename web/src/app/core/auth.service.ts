@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { PasswordReset, Payment, Plan, Session } from '../models/auth';
 import {
   ChangePasswordRequest,
+  ForgotPasswordVerifyRequest,
   LoginRequest,
   OtpSent,
   RazorpayOrder,
@@ -81,8 +82,12 @@ export class AuthService {
     }
   }
 
-  forgotPassword(email: string): Promise<PasswordReset> {
-    return this.backend.forgotPassword(email);
+  forgotPasswordSendOtp(email: string): Promise<OtpSent> {
+    return this.backend.forgotPasswordSendOtp(email);
+  }
+
+  forgotPasswordVerify(payload: ForgotPasswordVerifyRequest): Promise<PasswordReset> {
+    return this.backend.forgotPasswordVerify(payload);
   }
 
   changePassword(payload: ChangePasswordRequest): Promise<void> {
