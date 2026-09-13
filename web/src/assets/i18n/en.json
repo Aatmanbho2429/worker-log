@@ -181,6 +181,7 @@
     "daysLeft": "days left",
     "dayLeft": "day left",
     "labelStarted": "Started",
+    "labelStarts": "Starts",
     "labelRenews": "Renews",
     "labelExpired": "Expired",
     "labelPaidToDate": "Paid to date",
@@ -218,7 +219,7 @@
     "placeholderNewPassword": "Create a new password",
     "placeholderConfirmNewPassword": "Re-enter your new password",
     "changePasswordSubmit": "Change password",
-    "changePasswordDone": "Password changed.",
+    "changePasswordDone": "Password changed. Sign in with your new password.",
     "changePasswordFailed": "Could not change the password."
   },
   "subscriptionStatus": {

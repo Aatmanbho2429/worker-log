@@ -140,11 +140,26 @@ Deno.serve(async (request) => {
     // race each other.
     const { data: existing } = await admin
       .from('subscriptions')
-      .select('end_date')
+      .select('id, end_date')
       .eq('razorpay_payment_id', razorpayPaymentId)
       .maybeSingle();
 
     if (existing) {
+      // Repairs the one thing a retry can leave broken: the first call's
+      // insert landing but its `users` update failing (see below). Only
+      // fills the pointer when it is still unset, so this can never move it
+      // backwards onto an older term than whatever a later, successful
+      // payment has since pointed it at.
+      const { error: repairError } = await admin
+        .from('users')
+        .update({ current_subscription_id: existing.id })
+        .eq('id', userData.user.id)
+        .is('current_subscription_id', null);
+
+      if (repairError) {
+        console.error('[verify-payment] could not repair the subscription pointer:', repairError);
+      }
+
       return ok({ subscriptionEnd: existing.end_date });
     }
 
@@ -186,21 +201,28 @@ Deno.serve(async (request) => {
     endDate.setDate(endDate.getDate() + plan.duration);
 
     // ── 6. Record the payment ──────────────────────────────────────────
-    const { error: insertError } = await admin.from('subscriptions').insert({
-      user_id: userData.user.id,
-      plan_id: plan.id,
-      amount: plan.amount,
-      currency: plan.currency || 'INR',
-      status: 'active',
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-      razorpay_order_id: razorpayOrderId,
-      razorpay_payment_id: razorpayPaymentId,
-      razorpay_signature: razorpaySignature,
-      payment_method: 'razorpay',
-    });
+    // `.select('id').single()` so the new row's id is on hand for step 7 —
+    // that is what lets the account point at exactly the term it just
+    // bought, rather than the app inferring "current" from status and dates.
+    const { data: inserted, error: insertError } = await admin
+      .from('subscriptions')
+      .insert({
+        user_id: userData.user.id,
+        plan_id: plan.id,
+        amount: plan.amount,
+        currency: plan.currency || 'INR',
+        status: 'active',
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        razorpay_order_id: razorpayOrderId,
+        razorpay_payment_id: razorpayPaymentId,
+        razorpay_signature: razorpaySignature,
+        payment_method: 'razorpay',
+      })
+      .select('id')
+      .single();
 
-    if (insertError) {
+    if (insertError || !inserted) {
       console.error('[verify-payment] could not record the payment:', insertError);
       return fail('internal', 'The payment went through, but could not be recorded. Please contact support.');
     }
@@ -211,6 +233,7 @@ Deno.serve(async (request) => {
       .update({
         subscription_status: 'active',
         subscriptions_end_date: endDate.toISOString(),
+        current_subscription_id: inserted.id,
       })
       .eq('id', userData.user.id);
 

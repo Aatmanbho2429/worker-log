@@ -50,9 +50,23 @@ function fail(kind: ErrorKind, message: string): Response {
 
 // ---------------------------------------------------------------- handler --
 
+// The `!users_current_subscription_id_fkey` hint is required: without it
+// PostgREST sees two relationships between `users` and `subscriptions`
+// (this one, and `subscriptions.user_id`) and refuses the query as
+// ambiguous — which would fail sign-in for every account, not just this
+// embed. `0004_current_subscription.sql` is what names the constraint.
 const PROFILE_COLUMNS =
   'id, first_name, last_name, phone, email, company_name, device_id, ' +
-  'status, subscription_status, subscriptions_end_date, created_date';
+  'status, subscription_status, subscriptions_end_date, created_date, ' +
+  'current_subscription:subscriptions!users_current_subscription_id_fkey(' +
+  'start_date, end_date, status, plans(name))';
+
+interface CurrentSubscriptionRow {
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  plans: { name: string } | null;
+}
 
 interface ProfileRow {
   id: string;
@@ -60,6 +74,7 @@ interface ProfileRow {
   status: 'active' | 'inactive' | 'blocked';
   subscription_status: string | null;
   subscriptions_end_date: string | null;
+  current_subscription: CurrentSubscriptionRow | null;
 }
 
 /**

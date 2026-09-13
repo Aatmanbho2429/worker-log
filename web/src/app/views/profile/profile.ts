@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
 import { NotifyService } from '../../core/notify.service';
@@ -9,6 +10,7 @@ import {
   RazorpayService,
 } from '../../core/razorpay.service';
 import { TranslateService } from '@ngx-translate/core';
+import { ROUTE_LOGIN } from '../../models/constants';
 import {
   Payment,
   Plan,
@@ -72,6 +74,7 @@ export class Profile {
   private readonly notify = inject(NotifyService);
   private readonly razorpay = inject(RazorpayService);
   private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
 
   protected readonly user = this.auth.user;
   protected readonly subscription = this.auth.subscription;
@@ -97,6 +100,22 @@ export class Profile {
     }
     const used = subscription.termDays - subscription.daysLeft;
     return Math.min(Math.max(Math.round((used / subscription.termDays) * 100), 0), 100);
+  });
+
+  /**
+   * `profile.labelStarted` normally, but `profile.labelStarts` for a term
+   * bought ahead of the one running now — buying a new plan carries any
+   * remaining days on the current one forward, so the new term's `startedOn`
+   * can be a real future date rather than today. Comparing the `YYYY-MM-DD`
+   * strings directly is safe: both sides are date-only, so there is no time
+   * component to make "today" ambiguous.
+   */
+  protected readonly startLabel = computed(() => {
+    const subscription = this.subscription();
+    const today = new Date().toISOString().slice(0, 10);
+    return subscription && subscription.startedOn > today
+      ? 'profile.labelStarts'
+      : 'profile.labelStarted';
   });
 
   /** The rows where money actually changed hands, newest first. */
@@ -257,8 +276,14 @@ export class Profile {
         currentPassword: this.form().currentPassword,
         newPassword: this.form().newPassword,
       });
-      this.notify.success(this.translate.instant('profile.changePasswordDone'));
+      // Close first, so the dialog's modal mask cannot outlive this screen.
       this.dialogOpen.set(false);
+      this.notify.success(this.translate.instant('profile.changePasswordDone'));
+      // Every session for this account was revoked server-side — this signs
+      // the window itself out (session signal, six-hourly validation timer)
+      // and sends the operator to sign in with the new password.
+      await this.auth.logout();
+      await this.router.navigate([ROUTE_LOGIN]);
     } catch (error) {
       this.notify.fromCommand(error, this.translate.instant('profile.changePasswordFailed'));
     } finally {
@@ -380,6 +405,11 @@ export class Profile {
           days: session.subscription.daysLeft,
         }),
       );
+      // The row `verify-payment` just wrote is not in the table yet — `load()`
+      // has not run since the constructor. The subscription card refreshed
+      // itself off the new session signal; this is what stops the history
+      // underneath it reading as though the payment never happened.
+      void this.load();
       this.plansDialogOpen.set(false);
     } catch (error) {
       if (error instanceof RazorpayCancelled) {

@@ -40,20 +40,20 @@
           <dt>{{ 'profile.labelRegistered' | translate }}</dt>
           <dd>{{ date(account.createdDate) }}</dd>
 
-          <dt>{{ 'profile.labelLicensedPc' | translate }}</dt>
+          <!-- <dt>{{ 'profile.labelLicensedPc' | translate }}</dt>
           <dd class="profile__device">
             @if (account.deviceId; as device) {
               {{ shortDeviceId(device) }}
             } @else {
               <span class="master__na">{{ 'profile.deviceUnclaimed' | translate }}</span>
             }
-          </dd>
+          </dd> -->
         </dl>
 
-        <p class="profile__bound">
+        <!-- <p class="profile__bound">
           <i class="pi pi-lock"></i>
           <span>{{ 'profile.boundNote' | translate }}</span>
-        </p>
+        </p> -->
       }
     </div>
 
@@ -83,7 +83,7 @@
         </div>
 
         <dl class="profile__facts">
-          <dt>{{ 'profile.labelStarted' | translate }}</dt>
+          <dt>{{ startLabel() | translate }}</dt>
           <dd>{{ date(plan.startedOn) }}</dd>
 
           <dt>
@@ -94,8 +94,8 @@
           </dt>
           <dd>{{ date(plan.renewsOn) }}</dd>
 
-          <dt>{{ 'profile.labelPaidToDate' | translate }}</dt>
-          <dd class="tabular">{{ money(paidTotal(), totalCurrency()) }}</dd>
+          <!-- <dt>{{ 'profile.labelPaidToDate' | translate }}</dt>
+          <dd class="tabular">{{ money(paidTotal(), totalCurrency()) }}</dd> -->
         </dl>
 
         @if (plan.status === 'expired') {

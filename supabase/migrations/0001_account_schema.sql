@@ -15,6 +15,11 @@ alter table public.users
 -- it cost, how it was paid and the term it covers, and `plans.name` already
 -- holds the plan name — a `plan` column on `users` would be a second copy of a
 -- fact that changes when somebody upgrades.
+--
+-- `0004_current_subscription.sql` later adds `users.current_subscription_id`.
+-- That does not contradict the line above: it is a foreign key to a
+-- `subscriptions` row, not a copy of the plan name or dates — it says *which*
+-- row, and the row itself stays the one place any of those facts live.
 
 -- If you ran an earlier draft of this file that created `public.payments`,
 -- that table is redundant now. Check it is empty, then drop it:

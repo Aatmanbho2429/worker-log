@@ -9,33 +9,56 @@ Everything below is done once, per project.
 ## 1. The schema
 
 Run [`migrations/0001_account_schema.sql`](migrations/0001_account_schema.sql)
-in the SQL editor. It adds one column and the row level security:
+and then
+[`migrations/0004_current_subscription.sql`](migrations/0004_current_subscription.sql)
+in the SQL editor, in that order.
+
+`0001` adds one column:
 
 | What | Why |
 | --- | --- |
 | `users.company_name` | Collected on the register form; there was nowhere to put it. |
-| RLS on `users`, `subscriptions`, `plans` | Select-only, and only your own rows. `plans` is the catalogue and is readable by anyone signed in. |
 
-Nothing else. `subscriptions` already records what was bought, what it cost, how
-it was paid and the term it covers — it *is* the payment history, and a separate
-`payments` table would duplicate it and start disagreeing with it. `plans.name`
+**It also writes select-only RLS policies on `users`, `subscriptions` and
+`plans` — do not run that part.** Nothing in this app reads any of these
+tables with the anon key any more (the last two reads that did,
+`fetch_profile` and `fetch_current_subscription`, moved onto edge functions —
+see below), so the policies would permit nothing the app itself uses. What
+they *would* permit is anyone holding the anon key — compiled into every
+shipped binary — plus a stolen or valid user token, reading these rows
+directly and bypassing every check the edge functions make. Leaving RLS
+enabled with no policy, which is the live state as of 2026-09-13, is the
+smaller surface. If something outside this app ever needs to read these
+tables with a user token, add the policies back then; nothing here needs
+undoing to do that.
+
+`0004` adds `users.current_subscription_id`, a foreign key onto
+`subscriptions(id)` naming which row an account's licence is currently
+running on — a pointer, not a copy: `subscriptions` already records what was
+bought, what it cost, how it was paid and the term it covers, and `plans.name`
 already holds the plan name, so a `plan` column on `users` would be a second
-copy of a fact that changes when somebody upgrades.
+copy of a fact that changes when somebody upgrades. The pointer just says
+*which* row, so nothing can drift out of sync with it. It also backfills
+existing accounts from their newest active subscription.
 
-There is deliberately **no** insert or update policy on any of them. Every write
-goes through an edge function holding the service role key. If a signed-in user
-could update their own row, they could clear `device_id` and move the licence to
-another PC, or set `subscription_status` to `active` and stop paying — and if
-they could insert a `subscriptions` row, they could write themselves a paid term
-Razorpay never saw.
+There is deliberately **no** insert or update policy on `subscriptions` or
+`users`, migration or no migration. Every write goes through an edge function
+holding the service role key. If a signed-in user could update their own row,
+they could clear `device_id` and move the licence to another PC, or set
+`subscription_status` to `active` and stop paying — and if they could insert
+a `subscriptions` row, they could write themselves a paid term Razorpay never
+saw.
 
 ### Where the profile reads from
 
 | Shown | Source |
 | --- | --- |
 | Status tag, days left, renewal date | `users.subscription_status`, `users.subscriptions_end_date` |
-| Plan name, term start | The newest `active` row in `subscriptions`, joined to `plans` |
-| Payment history | Every `subscriptions` row, newest first |
+| Plan name, term start | `users.current_subscription_id`, embedded by `login`/`validate-token` |
+| Payment history | Every `subscriptions` row, newest first — via `get-user-subscriptions` |
+
+All three come back from `login` or `validate-token` in the one call each
+already makes; none of it is read separately.
 
 A trial has no `subscriptions` row at all — nothing was ordered and nothing was
 paid — so the card falls back to the account's own dates and reads "Trial".
@@ -48,7 +71,7 @@ or deploy them with the CLI:
 
 ```bash
 supabase link --project-ref YOUR-PROJECT-REF
-supabase functions deploy register login validate-token send-otp forgot-password get-plans create-order verify-payment
+supabase functions deploy register login validate-token send-otp forgot-password get-plans create-order verify-payment get-user-subscriptions change-password
 ```
 
 If you paste them in the dashboard, turn **Verify JWT** off on all of them —
@@ -56,8 +79,8 @@ none can require a verified JWT, since either nobody is signed in yet or
 (`get-plans`) nobody needs to be.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
-by the platform. `register`, `send-otp` and `forgot-password` send mail through
-Resend, so they need one secret of their own:
+by the platform. `register`, `send-otp`, `forgot-password` and `change-password`
+send mail through Resend, so they need one secret of their own:
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
@@ -65,8 +88,8 @@ supabase secrets set RESEND_API_KEY=re_xxxxxxxx
 
 The sender is `Waste Log <noreply@pictoria.shop>`, hard-coded at the top of each
 function — the same verified domain Pictoria sends from. The mailbox does not
-have to exist; the domain does. `forgot-password` additionally reads
-`RESEND_FROM` if you would rather set the sender as a secret there.
+have to exist; the domain does. `forgot-password` is the exception: it
+hard-codes nothing and **requires** `RESEND_FROM` as a secret, failing without it.
 
 `create-order` and `verify-payment` need two secrets of their own, the same
 Razorpay account for both:
@@ -88,9 +111,11 @@ one a deploy is charging against.
 | `validate-token` | The six-hourly re-check `auth_validate` calls: still a real token, still this PC, still active, and whatever the subscription status now is — writing `expired` back to `public.users` if a term has run out since the last check. | yes | not required |
 | `send-otp` | Mails a 4-digit code to prove an address before `register` is called with it. Rate-limited per address (one a minute, five an hour) in the function itself. | yes | not required |
 | `forgot-password` | Rolls a password, emails it via Resend, then sets it. Never returns it. | not yet | not required |
-| `get-plans` | The renewal catalogue shown on the profile once a subscription has expired or is close to it. Takes no token and needs none — a price list is not private, and the operator it exists for may hold one that is mid-refresh. | not yet | not required |
-| `create-order` | Reads a plan's real price from `plans` and opens a Razorpay order against it. Refuses a `users.status` that is not `active`. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a name, email and phone for anyone who could guess a uuid. | not yet | not required |
-| `verify-payment` | Recomputes the Razorpay HMAC signature server-side — the only place that check can happen — then records the paid term and unblocks the account. Refuses to insert a second row for a `razorpay_payment_id` already on file, so a retried call cannot extend the licence twice for one payment. | not yet | not required |
+| `get-plans` | The renewal catalogue shown on the profile once a subscription has expired or is close to it. Takes no token and needs none — a price list is not private, and the operator it exists for may hold one that is mid-refresh. | yes | not required |
+| `create-order` | Reads a plan's real price from `plans` and opens a Razorpay order against it. Refuses a `users.status` that is not `active`. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a name, email and phone for anyone who could guess a uuid. | yes | not required |
+| `verify-payment` | Recomputes the Razorpay HMAC signature server-side — the only place that check can happen — then records the paid term and unblocks the account. Refuses to insert a second row for a `razorpay_payment_id` already on file, so a retried call cannot extend the licence twice for one payment. | yes | not required |
+| `get-user-subscriptions` | The payment history table on the profile: every `subscriptions` row for the caller, newest first. Carries the operator's `accessToken` in the body, checked with `auth.getUser()` — never a bare `user_id`, which would hand back a stranger's payment history to anyone who could guess a uuid. | yes | not required |
+| `change-password` | The profile's "Reset password" dialog. Proves the current password with a throwaway sign-in, sets the new one, revokes every session for the account, and mails a confirmation. Carries the operator's `accessToken` and `deviceId` in the body and runs the same account/device checks `validate-token` does. | not yet | not required |
 
 None of them can require a verified JWT: they are all called before anybody is
 signed in, or (`get-plans`, `create-order`, `verify-payment`) check the
@@ -101,13 +126,23 @@ Every one of them needs the **service role key**, which cannot live in the
 desktop binary — that is what makes each of these a function rather than a
 PostgREST call with the anon key. `register` inserts a profile row and checks
 this PC against every other account; `login` and `validate-token` read and
-write the device binding and subscription status; `forgot-password` sets
-somebody else's password; `get-plans` reads a table with no select policy for
-an unauthenticated caller; `create-order` and `verify-payment` write to
+write the device binding, subscription status and now the current-subscription
+pointer, and embed it back in the same read; `forgot-password` sets somebody
+else's password; `get-plans` reads a table with no select policy for an
+unauthenticated caller; `create-order` and `verify-payment` write to
 `subscriptions` and `users`, which carry no insert or update policy for
-anyone. Everything else Rust can do with the anon key and the user's own
-credentials — payments and profile reads while signed in go straight through
-PostgREST, protected by row level security instead.
+anyone; `get-user-subscriptions` reads the payment history with the caller
+proved through `auth.getUser()` rather than trusted from a bare `user_id` in
+the request; `change-password` sets a password with `auth.admin.updateUserById`
+and revokes every session with `auth.admin.signOut`, neither of which the anon
+key can do. **Nothing Rust does goes through PostgREST with the anon key any
+more** — `fetch_profile` and `fetch_current_subscription` were the last two
+reads that did, and both moved onto `login`/`validate-token`'s existing
+service-role read once it turned out the RLS policies they depended on were
+never actually created live (see "1. The schema" above). Signing in and
+changing a password used to go through GoTrue directly with the anon key too;
+both moved onto `login` and `change-password` respectively, so the only GoTrue
+call left in `src-tauri/src/supabase.rs` is refreshing a stale access token.
 
 ## 3. The app
 
@@ -119,8 +154,9 @@ and [`src-tauri/src/auth.rs`](../src-tauri/src/auth.rs).
 Both values are already filled in there, and both are overridable by
 `SUPABASE_URL` / `SUPABASE_ANON_KEY` so a developer can point a build at their
 own project without editing the source. The anon key is safe to compile in —
-RLS is what protects the data. The service role key belongs only on the edge
-functions.
+it can read nothing on its own, since RLS is enabled with no policy granting
+it access to anything (see "1. The schema"). The service role key belongs
+only on the edge functions.
 
 Session tokens are written to `session.json` in the app data directory, **not**
 into `worker-log.db`. Settings tells the operator that copying the database

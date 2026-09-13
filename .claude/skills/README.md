@@ -3,7 +3,9 @@
 - `scaffold-entity/` — a new entity end-to-end: Angular + Rust models, service,
   repo SQL, commands and registration.
 - `supabase/` — the account/licence layer: auth, device binding, subscription
-  plans, Razorpay, and an index of the `.claude/plans/` design notes.
+  plans, Razorpay. `SKILL.md` is the overview; `registration.md`,
+  `sessions.md`, `payments.md` and `deployment.md` beside it hold the design
+  decisions and the live deploy state.
 - `extract-static-text/` — move hardcoded UI copy into `assets/i18n/en.json` and
   repeated non-text literals into `models/constants.ts`.
 
@@ -21,6 +23,11 @@ See https://code.claude.com/docs/en/skills for the frontmatter format
   a `paths:` glob and costs nothing until it matches. This is where detail
   belongs by default.
 - **`.claude/skills/`** — a procedure you *invoke* to do a specific job.
+  Supporting `.md` files beside a `SKILL.md` are read on demand, so a skill can
+  carry deep reference material without costing context until it is needed.
+- **`.claude/plans/`** — design notes for work in progress. Once the work
+  ships, move the reasoning worth keeping into the skill or rule for that area
+  and delete the plan.
 
 When CLAUDE.md grows, the fix is to move the new material into a rule, not to
 trim the prose.

@@ -164,14 +164,13 @@ from their description.
 | `rules/data-model.md` | waste-log invariants, refused deletes, migration style |
 | `rules/angular-ui.md` | PrimeNG module, i18n copy, shared range state, routing |
 | `rules/theming.md` | the two palettes, and the three things that opt out |
-| `skills/supabase/` | the whole account layer: auth, licence binding, plans, Razorpay, and the five `.claude/plans/` design notes |
+| `skills/supabase/` | the whole account layer — auth, licence binding, plans, Razorpay — its design decisions, and what is live |
 | `skills/scaffold-entity/` | adding an entity end-to-end |
 | `skills/extract-static-text/` | moving copy into `en.json` and literals into `constants.ts` |
 
-`.claude/plans/` holds five design notes, all for the account layer, carrying
-reasoning the code only implies. Their **Status** headers are frozen at writing
-time and nothing in this repo deploys an edge function, so never read one as a
-statement of what is live. The `supabase` skill indexes them.
+`.claude/plans/` is for work in progress only. Once a plan ships, fold its
+lasting reasoning into the skill or rule that owns that area and delete the
+plan.
 
 ## Known doc drift
 

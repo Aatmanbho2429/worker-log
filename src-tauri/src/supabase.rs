@@ -5,17 +5,22 @@
 //! layer, and no key ever crosses the Tauri bridge — the window receives
 //! answers, never credentials.
 //!
-//! Three different Supabase surfaces are used, and which one a call goes to is
+//! Two different Supabase surfaces are used, and which one a call goes to is
 //! decided by what privilege the call needs:
 //!
-//! * **GoTrue** (`/auth/v1`) — signing in, refreshing, changing a password.
-//!   The anon key is enough; the user's own password is the proof.
-//! * **PostgREST** (`/rest/v1`) — reading the profile and the payment history.
-//!   Row level security limits both to the signed-in user's own rows.
-//! * **Edge functions** (`/functions/v1`) — anything needing the service role
-//!   key, which is registration. That key exists only on the function, never
-//!   here: a secret compiled into a desktop binary is a secret that ships to
-//!   every customer.
+//! * **GoTrue** (`/auth/v1`) — refreshing a stale access token. The anon key
+//!   is enough for this alone; nothing privileged happens on this path.
+//! * **Edge functions** (`/functions/v1`) — everything else: registration,
+//!   signing in, the licence check, changing a password, the profile and
+//!   payment history reads, and Razorpay. All of it needs the service role
+//!   key, which exists only on the function, never here — a secret compiled
+//!   into a desktop binary is a secret that ships to every customer.
+//!
+//! There used to be a third surface, PostgREST with the anon key, for reading
+//! the profile and the payment history as the signed-in user. Both moved
+//! behind edge functions once it turned out the row level security policies
+//! those reads depended on were never actually created on the live project,
+//! so they were reading nothing — see the `supabase` skill's `payments.md`.
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -31,9 +36,9 @@ pub fn project_url() -> String {
         .unwrap_or_else(|_| "https://ujalkizozxeshrheuhkb.supabase.co".to_string())
 }
 
-/// The publishable key. Safe to compile in: on its own it can read nothing,
-/// because every table it can reach has row level security limiting it to the
-/// signed-in user's own rows.
+/// The publishable key. Safe to compile in: on its own it can read nothing at
+/// all, since row level security is enabled on every table it can reach with
+/// no policy granting it access — see the module doc above.
 pub fn anon_key() -> String {
     std::env::var("SUPABASE_ANON_KEY").unwrap_or_else(|_| {
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqYWxraXpvenhlc2hyaGV1aGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NDUyNTMsImV4cCI6MjEwMzMyMTI1M30.1pxwcWgnXIuOEDm1-jw7g3PaGQvDSaHrRFw_hmhRYsI"
@@ -157,44 +162,19 @@ pub async fn call_function<B: Serialize, T: DeserializeOwned>(
     read(response, fallback).await
 }
 
-/// Calls GoTrue. `path` is everything after `/auth/v1/`.
+/// Calls GoTrue. `path` is everything after `/auth/v1/`. Its only caller is
+/// `refresh` — signing in moved to the `login` function and changing a
+/// password moved to `change-password`, both of which need the service role
+/// key this always-anon-key call cannot carry.
 pub async fn call_auth<B: Serialize, T: DeserializeOwned>(
     path: &str,
     body: &B,
-    access_token: Option<&str>,
-    fallback: &str,
-) -> AppResult<T> {
-    let mut request = client()?
-        .post(format!("{}/auth/v1/{path}", project_url()))
-        .header("apikey", anon_key())
-        .json(body);
-
-    // A password change acts on the signed-in user, so it carries their token
-    // rather than the bare anon key.
-    request = match access_token {
-        Some(token) => request.header("Authorization", format!("Bearer {token}")),
-        None => request.header("Authorization", format!("Bearer {}", anon_key())),
-    };
-
-    let response = request
-        .send()
-        .await
-        .map_err(|err| transport_error(err, fallback))?;
-
-    read(response, fallback).await
-}
-
-/// Updates the signed-in user through GoTrue. A password change is a `PUT`
-/// on `/auth/v1/user`, carrying the user's own token rather than the anon key.
-pub async fn update_user<B: Serialize, T: DeserializeOwned>(
-    body: &B,
-    access_token: &str,
     fallback: &str,
 ) -> AppResult<T> {
     let response = client()?
-        .put(format!("{}/auth/v1/user", project_url()))
+        .post(format!("{}/auth/v1/{path}", project_url()))
         .header("apikey", anon_key())
-        .header("Authorization", format!("Bearer {access_token}"))
+        .header("Authorization", format!("Bearer {}", anon_key()))
         .json(body)
         .send()
         .await
@@ -203,20 +183,3 @@ pub async fn update_user<B: Serialize, T: DeserializeOwned>(
     read(response, fallback).await
 }
 
-/// Reads through PostgREST as the signed-in user, so row level security is
-/// what decides which rows come back.
-pub async fn select<T: DeserializeOwned>(
-    query: &str,
-    access_token: &str,
-    fallback: &str,
-) -> AppResult<T> {
-    let response = client()?
-        .get(format!("{}/rest/v1/{query}", project_url()))
-        .header("apikey", anon_key())
-        .header("Authorization", format!("Bearer {access_token}"))
-        .send()
-        .await
-        .map_err(|err| transport_error(err, fallback))?;
-
-    read(response, fallback).await
-}

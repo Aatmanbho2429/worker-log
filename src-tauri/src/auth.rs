@@ -47,11 +47,35 @@ struct ProfileRow {
     subscription_status: Option<String>,
     subscriptions_end_date: Option<String>,
     created_date: String,
+    // Defaulted so a `login`/`validate-token` deployment that predates
+    // `0004_current_subscription.sql` still deserialises — it would simply
+    // arrive absent, and this reads the same as an account with no current
+    // term (`build_subscription`'s existing "No plan"/"Trial" fallback).
+    #[serde(default)]
+    current_subscription: Option<CurrentSubscriptionRow>,
 }
 
 #[derive(Debug, Deserialize)]
 struct PlanRow {
     name: String,
+}
+
+/// The `subscriptions` row `users.current_subscription_id` points at,
+/// embedded on `login`/`validate-token`'s own read of `users` — see the
+/// `supabase` skill's `payments.md`. Only `start_date` and `plans` are read;
+/// `end_date`/`status` are kept on the struct rather than dropped from the
+/// select, since `build_subscription` still gets the renewal date and status
+/// from `users.subscriptions_end_date` / `subscription_status` (an expired
+/// term keeps its pointer rather than clearing it, so the card can still name
+/// the plan that expired).
+#[derive(Debug, Deserialize)]
+struct CurrentSubscriptionRow {
+    start_date: Option<String>,
+    #[allow(dead_code)]
+    end_date: Option<String>,
+    #[allow(dead_code)]
+    status: Option<String>,
+    plans: Option<PlanRow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,6 +96,15 @@ struct SubscriptionRow {
 struct Tokens {
     access_token: String,
     refresh_token: String,
+}
+
+/// `get-user-subscriptions`'s envelope around the rows themselves —
+/// `SubscriptionRow` is already exactly the right shape (same struct
+/// `fetch_current_subscription` deserialises today, same optional fields,
+/// same `plans(name)` embed), so only this wrapper is new.
+#[derive(Debug, Deserialize)]
+struct SubscriptionsResponse {
+    subscriptions: Vec<SubscriptionRow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,12 +132,6 @@ struct StoredSession {
     access_token: String,
     refresh_token: String,
 }
-
-const PROFILE_COLUMNS: &str = "id,first_name,last_name,phone,email,company_name,device_id,\
-status,subscription_status,subscriptions_end_date,created_date";
-
-const SUBSCRIPTION_COLUMNS: &str = "amount,currency,status,start_date,end_date,\
-razorpay_order_id,razorpay_payment_id,payment_method,created_at,plans(name)";
 
 /// An `active` licence with this many days or fewer left starts nagging.
 const EXPIRING_WITHIN_DAYS: i64 = 14;
@@ -176,45 +203,20 @@ fn days_between(from: NaiveDate, to: NaiveDate) -> i64 {
 
 // ----------------------------------------------------------------- the flow --
 
-async fn sign_in(email: &str, password: &str) -> AppResult<Tokens> {
-    supabase::call_auth(
-        "token?grant_type=password",
-        &serde_json::json!({ "email": email, "password": password }),
-        None,
-        "That email and password do not match an account.",
-    )
-    .await
-}
-
 async fn refresh(refresh_token: &str) -> AppResult<Tokens> {
     supabase::call_auth(
         "token?grant_type=refresh_token",
         &serde_json::json!({ "refresh_token": refresh_token }),
-        None,
         "Your session has ended. Please sign in again.",
     )
     .await
-}
-
-async fn fetch_profile(user_id_filter: &str, access_token: &str) -> AppResult<ProfileRow> {
-    let rows: Vec<ProfileRow> = supabase::select(
-        &format!("users?select={PROFILE_COLUMNS}&{user_id_filter}"),
-        access_token,
-        "Could not load your account.",
-    )
-    .await?;
-
-    rows.into_iter()
-        .next()
-        .ok_or_else(|| AppError::NotFound("That account has no profile. Please contact support.".into()))
 }
 
 /// Signs in and checks the device binding in one round trip, through the
 /// `login` edge function rather than GoTrue plus a PostgREST read — the
 /// binding check (and claiming an unclaimed `device_id` on a first sign-in)
 /// needs the service role key, the same reason `register` cannot be done
-/// from here either. `sign_in` above is kept for `auth_change_password_impl`,
-/// which only needs to re-prove a password, not check a licence.
+/// from here either.
 async fn login_via_edge(email: &str, password: &str, device_id: &str) -> AppResult<LoginResponse> {
     supabase::call_function(
         "login",
@@ -239,18 +241,6 @@ async fn validate_token(access_token: &str, device_id: &str) -> AppResult<Profil
     .await?;
 
     Ok(response.profile)
-}
-
-/// The subscription the licence is currently running on, if there is one.
-///
-/// A trial has none — nothing was ordered and nothing was paid — so the caller
-/// falls back to the account's own dates.
-async fn fetch_current_subscription(access_token: &str) -> Option<SubscriptionRow> {
-    let query = format!(
-        "subscriptions?select={SUBSCRIPTION_COLUMNS}&status=eq.active&order=end_date.desc&limit=1"
-    );
-    let rows: Vec<SubscriptionRow> = supabase::select(&query, access_token, "").await.ok()?;
-    rows.into_iter().next()
 }
 
 /// Refuses unless this machine is the one the account is licensed to.
@@ -283,7 +273,8 @@ fn check_licence(profile: &ProfileRow) -> AppResult<()> {
     }
 }
 
-fn build_subscription(profile: &ProfileRow, current: Option<&SubscriptionRow>) -> Subscription {
+fn build_subscription(profile: &ProfileRow) -> Subscription {
+    let current = profile.current_subscription.as_ref();
     let renews_on = to_date(profile.subscriptions_end_date.as_deref());
     let started_on = match current.and_then(|row| row.start_date.as_deref()) {
         Some(start) => to_date(Some(start)),
@@ -348,9 +339,8 @@ fn build_account(profile: ProfileRow) -> UserAccount {
     }
 }
 
-async fn build_session(profile: ProfileRow, access_token: &str) -> Session {
-    let current = fetch_current_subscription(access_token).await;
-    let subscription = build_subscription(&profile, current.as_ref());
+fn build_session(profile: ProfileRow) -> Session {
+    let subscription = build_subscription(&profile);
     Session { user: build_account(profile), subscription }
 }
 
@@ -402,7 +392,7 @@ async fn auth_login_impl(app: AppHandle, payload: LoginRequest) -> AppResult<Ses
         },
     )?;
 
-    Ok(build_session(response.profile, &response.session.access_token).await)
+    Ok(build_session(response.profile))
 }
 
 #[tauri::command]
@@ -426,8 +416,8 @@ async fn validated_session(app: &AppHandle) -> Option<Session> {
     let stored = load_tokens(app)?;
     let device = device_id().ok()?;
 
-    let (profile, access_token) = match validate_token(&stored.access_token, &device).await {
-        Ok(profile) => (profile, stored.access_token),
+    let profile = match validate_token(&stored.access_token, &device).await {
+        Ok(profile) => profile,
         Err(_) => match refresh(&stored.refresh_token).await {
             Ok(fresh) => {
                 let stored = StoredSession {
@@ -438,7 +428,7 @@ async fn validated_session(app: &AppHandle) -> Option<Session> {
                     return None;
                 }
                 match validate_token(&fresh.access_token, &device).await {
-                    Ok(profile) => (profile, fresh.access_token),
+                    Ok(profile) => profile,
                     Err(_) => {
                         clear_tokens(app);
                         return None;
@@ -457,7 +447,7 @@ async fn validated_session(app: &AppHandle) -> Option<Session> {
         return None;
     }
 
-    Some(build_session(profile, &access_token).await)
+    Some(build_session(profile))
 }
 
 /// The signed-in session left over from last time, if there is one.
@@ -525,29 +515,32 @@ pub async fn auth_forgot_password(email: String) -> ApiResponse<PasswordReset> {
     auth_forgot_password_impl(email).await.into()
 }
 
-/// Changing a password, having first proved the current one.
-///
-/// GoTrue will change a password on the strength of the session alone, so the
-/// current one is checked here by signing in with it — otherwise the field
-/// would be decoration.
+/// Changing a password, through the `change-password` function rather than
+/// GoTrue directly — the current password still has to be proved, but the
+/// function also revokes every session for the account (something only the
+/// service role key can do) and mails a confirmation, so "sign in again" on
+/// the front end is a real requirement rather than a courtesy.
 async fn auth_change_password_impl(app: AppHandle, payload: ChangePasswordRequest,) -> AppResult<()> {
     let Some(stored) = load_tokens(&app) else {
         return Err(AppError::NotFound("You are not signed in.".into()));
     };
 
-    let profile = fetch_profile("select=*&limit=1", &stored.access_token).await?;
-
-    sign_in(&profile.email, &payload.current_password)
-        .await
-        .map_err(|_| AppError::BadRequest("The current password is not right.".into()))?;
-
-    let _: serde_json::Value = supabase::update_user(
-        &serde_json::json!({ "password": payload.new_password }),
-        &stored.access_token,
+    let _: serde_json::Value = supabase::call_function(
+        "change-password",
+        &serde_json::json!({
+            "accessToken": stored.access_token,
+            "deviceId": device_id()?,
+            "currentPassword": payload.current_password,
+            "newPassword": payload.new_password,
+        }),
         "Could not change the password.",
     )
     .await?;
 
+    // The function revoked every refresh token for this account, so the
+    // stored session can only fail from here — and the screen is about to
+    // send the operator to sign in again anyway.
+    clear_tokens(&app);
     Ok(())
 }
 
@@ -557,20 +550,25 @@ pub async fn auth_change_password(app: AppHandle, payload: ChangePasswordRequest
 }
 
 /// The payment history: every `subscriptions` row, newest first.
+///
+/// Goes through `get-user-subscriptions` rather than a direct PostgREST read
+/// with the operator's own token — see the `supabase` skill's `payments.md`.
+/// Nothing in this file reads a table directly any more; `SubscriptionRow` is
+/// kept only because this function still deserialises through it.
 async fn auth_payments_impl(app: AppHandle) -> AppResult<Vec<Payment>> {
     let Some(stored) = load_tokens(&app) else {
         return Err(AppError::NotFound("You are not signed in.".into()));
     };
 
-    let query = format!("subscriptions?select={SUBSCRIPTION_COLUMNS}&order=created_at.desc");
-    let rows: Vec<SubscriptionRow> = supabase::select(
-        &query,
-        &stored.access_token,
+    let response: SubscriptionsResponse = supabase::call_function(
+        "get-user-subscriptions",
+        &serde_json::json!({ "accessToken": stored.access_token }),
         "Could not load the payment history.",
     )
     .await?;
 
-    Ok(rows
+    Ok(response
+        .subscriptions
         .into_iter()
         .enumerate()
         .map(|(index, row)| Payment {
