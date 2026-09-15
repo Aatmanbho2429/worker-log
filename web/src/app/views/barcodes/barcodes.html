@@ -14,6 +14,7 @@
           <p-button
             severity="secondary"
             text
+            size="small"
             icon="pi pi-times"
             [label]="'scanField.dismiss' | translate"
             (onClick)="clearProblem()"
@@ -60,31 +61,36 @@
       </div> -->
 
       <div class="scan-page__tools">
-        <select
-          class="scan-page__select"
-          [attr.aria-label]="'rangeFilter.series' | translate"
-          [ngModel]="seriesId()"
-          (ngModelChange)="onSeriesChange($event)"
-        >
-          <option [ngValue]="null">{{ 'rangeFilter.allSeries' | translate }}</option>
-          @for (item of series(); track item.id) {
-            <option [ngValue]="item.id">{{ item.name }}</option>
-          }
-        </select>
+        <span class="scan-page__select-wrap">
+          <select
+            class="scan-page__select"
+            [attr.aria-label]="'rangeFilter.series' | translate"
+            [ngModel]="seriesId()"
+            (ngModelChange)="onSeriesChange($event)"
+          >
+            <option [ngValue]="null">{{ 'rangeFilter.allSeries' | translate }}</option>
+            @for (item of series(); track item.id) {
+              <option [ngValue]="item.id">{{ item.name }}</option>
+            }
+          </select>
+          <i class="scan-page__select-icon pi pi-chevron-down"></i>
+        </span>
 
-        <input
-          type="search"
-          class="scan-page__search"
-          [placeholder]="'waste.findWorker' | translate"
-          [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
-        />
+        <p-iconfield class="scan-page__search">
+          <p-inputicon class="pi pi-search" />
+          <input
+            pInputText
+            type="search"
+            [placeholder]="'waste.findWorker' | translate"
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)"
+          />
+        </p-iconfield>
 
         <p-button
           icon="pi pi-file-pdf"
           [label]="'barcodes.pdf' | translate"
           severity="secondary"
-          [outlined]="true"
           [loading]="exporting()"
           [disabled]="loading()"
           (onClick)="exportPdf()"

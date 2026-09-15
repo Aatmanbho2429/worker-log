@@ -9,7 +9,6 @@
         icon="pi pi-key"
         [label]="'profile.resetPassword' | translate"
         severity="secondary"
-        [outlined]="true"
         (onClick)="openPasswordDialog()"
       />
     </div>
@@ -122,7 +121,6 @@
             iconPos="right"
             [label]="'profile.viewPlans' | translate"
             severity="secondary"
-            [outlined]="true"
             styleClass="subscription__view-plans"
             (onClick)="openPlansDialog()"
           />
@@ -143,7 +141,7 @@
     @if (loading()) {
       <div class="skeleton-list">
         @for (row of [1, 2, 3]; track row) {
-          <p-skeleton height="3.6rem" borderRadius="4px" />
+          <p-skeleton height="2.25rem" borderRadius="4px" />
         }
       </div>
     } @else if (!payments().length) {
@@ -204,7 +202,8 @@
     <p-password
       inputId="current-password"
       autocomplete="current-password"
-      styleClass="field__password"
+      [fluid]="true"
+      [invalid]="!!currentError()"
       [placeholder]="'profile.placeholderCurrentPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -223,7 +222,8 @@
     <p-password
       inputId="new-password"
       autocomplete="new-password"
-      styleClass="field__password"
+      [fluid]="true"
+      [invalid]="!!newError()"
       [placeholder]="'profile.placeholderNewPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -260,7 +260,8 @@
     <p-password
       inputId="confirm-new-password"
       autocomplete="new-password"
-      styleClass="field__password"
+      [fluid]="true"
+      [invalid]="!!confirmError()"
       [placeholder]="'profile.placeholderConfirmNewPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -277,7 +278,6 @@
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"
-        [text]="true"
         [disabled]="saving()"
         (onClick)="dialogOpen.set(false)"
       />
@@ -299,7 +299,7 @@
   [draggable]="false"
   [focusOnShow]="false"
   styleClass="plans-dialog"
-  [style]="{ width: '90vw', maxWidth: '78rem' }"
+  [style]="{ width: '90vw', maxWidth: '48.75rem' }"
 >
   <ng-template #header>
     <div class="plans-dialog__head">
@@ -312,7 +312,7 @@
   @if (plansLoading()) {
     <div class="plans-dialog__grid">
       @for (row of [1, 2, 3, 4]; track row) {
-        <p-skeleton height="19rem" borderRadius="10px" />
+        <p-skeleton height="11.875rem" borderRadius="10px" />
       }
     </div>
   } @else if (!plans().length) {

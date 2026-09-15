@@ -53,18 +53,18 @@
   background: $surface-card;
   color: $text-faint;
   text-align: center;
-  width: 4rem;
+  width: to-rem(40);
 }
 
 .month-sheet__worker {
   background: $surface-card;
-  left: 4rem;
-  min-width: 16rem;
+  left: to-rem(40);
+  min-width: to-rem(160);
 }
 
 .month-sheet__series,
 .month-sheet__series--head {
-  min-width: 11rem;
+  min-width: to-rem(110);
 }
 
 .month-sheet__series {
@@ -95,7 +95,7 @@
   font-size: $fs-xs;
   font-weight: $fw-medium;
   text-align: center;
-  width: 3.6rem;
+  width: to-rem(36);
 }
 
 .month-sheet__sub--total {
@@ -109,7 +109,7 @@
 .month-sheet__box {
   @include numeric;
   text-align: center;
-  width: 3.6rem;
+  width: to-rem(36);
 }
 
 .month-sheet__box--edge {

@@ -8,25 +8,6 @@
 // partial that may name `.p-*` classes or use `!important`.
 // App-wide PrimeNG appearance belongs in `app/theme.ts`, not here.
 
-// PrimeNG's password wrapper is inline-flex, so on its own it shrinks to the
-// input's default width and sits narrower than every field beside it.
-.field__password,
-.field__password input {
-  width: 100%;
-}
-
-// `p-password` is a component, and unlike the `pInputText` directive it takes
-// no `pSize` input — a `pSize` written on the element is an inert attribute.
-// The large size is handed to its inner input by class instead, reading the
-// same theme tokens `pSize="large"` would have. Qualified by the element:
-// PrimeNG injects its own sheet at runtime, so a bare class of the same
-// specificity would lose on document order.
-input.field__input--lg {
-  font-size: var(--p-form-field-lg-font-size);
-  padding-block: var(--p-form-field-lg-padding-y);
-  padding-inline-start: var(--p-form-field-lg-padding-x);
-}
-
 // PrimeNG's own body-cell rule out-specifies a bare class, so the muted index
 // and meta columns have to match it to stay muted.
 .data-table .p-datatable-tbody > tr > td.data-table__cell--index {
@@ -39,14 +20,14 @@ input.field__input--lg {
 
 // The digit boxes are rendered inside `InputOtp`'s own template — no
 // `::ng-deep` needed, since this file is already global rather than a
-// component stylesheet.
+// component stylesheet. Width comes from the `inputotp.input.lg.width` token
+// in `theme.ts`; only what has no token equivalent is set here.
 .otp-field__input .p-inputotp-input {
   border-radius: $radius-md;
   font-size: $fs-xl;
   font-weight: $fw-semibold;
-  height: 5.6rem;
+  height: to-rem(56);
   text-align: center;
-  width: 4.8rem;
 }
 
 // The spec queries by tag inside its own template; `display: flex` on the
@@ -58,9 +39,9 @@ input.field__input--lg {
 // `inputStyleClass` / `styleClass` land these on PrimeNG's own inner input —
 // no `::ng-deep` needed, since this file is already global.
 .range-filter__input {
-  width: 14rem;
+  width: to-rem(140);
 }
 
 .range-filter__select {
-  min-width: 16rem;
+  min-width: to-rem(160);
 }

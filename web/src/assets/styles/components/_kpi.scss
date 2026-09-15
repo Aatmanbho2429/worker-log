@@ -4,7 +4,7 @@
 .kpi-grid {
   display: grid;
   gap: $space-lg;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(to-rem(200), 1fr));
 }
 
 // One headline number. Inside a `grade-tone--N` its stripe takes that grade's
@@ -27,7 +27,7 @@
     content: '';
     inset: 0 auto 0 0;
     position: absolute;
-    width: 0.4rem;
+    width: to-rem(4);
   }
 
   &--muted::before {

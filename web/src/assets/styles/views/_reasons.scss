@@ -9,7 +9,7 @@
   border-bottom: 1px solid $border-subtle;
   display: grid;
   gap: $space-md;
-  grid-template-columns: 3rem 1fr auto auto;
+  grid-template-columns: to-rem(30) 1fr auto auto;
   padding: $space-md $space-xl;
 
   &:hover {

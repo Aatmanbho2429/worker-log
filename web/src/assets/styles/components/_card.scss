@@ -22,7 +22,7 @@
   flex-wrap: wrap;
   gap: $space-md;
   justify-content: space-between;
-  min-height: 5.6rem;
+  min-height: to-rem(56);
   padding: $space-lg $space-xl;
 }
 

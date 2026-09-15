@@ -59,8 +59,8 @@
   --success-text: #{$green-700};
   --success-soft: #{rgba($green-600, 0.1)};
 
-  --shadow-card: 0 0.1rem 0.2rem #{rgba($gray-800, 0.06)};
-  --shadow-raised: 0 1.2rem 3.2rem -0.4rem #{rgba($gray-800, 0.18)};
+  --shadow-card: 0 #{to-rem(1)} #{to-rem(2)} #{rgba($gray-800, 0.06)};
+  --shadow-raised: 0 #{to-rem(12)} #{to-rem(32)} #{to-rem(-4)} #{rgba($gray-800, 0.18)};
 
   --wash-hover: #{rgba($gray-800, 0.035)};
   --wash-inset: #{rgba($gray-800, 0.05)};
@@ -124,8 +124,8 @@
   --success-text: #{$green-400};
   --success-soft: #{rgba($green-400, 0.12)};
 
-  --shadow-card: 0 0.1rem 0.2rem #{rgba($black, 0.3)};
-  --shadow-raised: 0 1.6rem 4rem #{rgba($black, 0.45)};
+  --shadow-card: 0 #{to-rem(1)} #{to-rem(2)} #{rgba($black, 0.3)};
+  --shadow-raised: 0 #{to-rem(16)} #{to-rem(40)} #{rgba($black, 0.45)};
 
   --wash-hover: #{rgba($white, 0.04)};
   --wash-inset: #{rgba($black, 0.2)};

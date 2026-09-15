@@ -30,9 +30,9 @@
   flex: 0 0 auto;
   font-size: $fs-lg;
   font-weight: $fw-semibold;
-  height: 5.6rem;
+  height: to-rem(56);
   justify-content: center;
-  width: 5.6rem;
+  width: to-rem(56);
 }
 
 .profile__name {
@@ -78,7 +78,7 @@
 
 .profile__bound-icon {
   color: $text-accent;
-  margin-top: 0.2rem;
+  margin-top: to-rem(2);
 }
 
 // -------------------------------------------------------- subscription ---
@@ -128,7 +128,7 @@
 .subscription__bar {
   background: $wash-inset;
   border-radius: $radius-pill;
-  height: 0.6rem;
+  height: to-rem(6);
   margin: $space-md 0 $space-lg;
   overflow: hidden;
 }
@@ -154,9 +154,9 @@
 // --------------------------------------------------------------- plans ---
 //
 // Rendered inside a `p-dialog` sized off the window (`90vw`, capped at
-// `78rem`) rather than a fixed rem width, so it reads well anywhere from the
-// app's 1024px minimum up through its 1440px default. Four columns at that
-// width, stepping down as the window narrows.
+// `48.75rem` — 780px at the 16px root) rather than a fixed rem width, so it
+// reads well anywhere from the app's 1024px minimum up through its 1440px
+// default. Four columns at that width, stepping down as the window narrows.
 
 .plans-dialog__head {
   display: flex;
@@ -237,9 +237,9 @@
   border-radius: $radius-pill;
   color: $text-on-accent;
   left: $space-lg;
-  padding: 0.3rem $space-sm;
+  padding: to-rem(3) $space-sm;
   position: absolute;
-  top: -0.9rem;
+  top: to-rem(-9);
 }
 
 .plan-card__name {

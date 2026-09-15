@@ -128,7 +128,7 @@ export class Reasons {
       acceptLabel: this.translate.instant('common.delete'),
       rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
-      rejectButtonStyleClass: 'p-button-text',
+      rejectButtonStyleClass: 'p-button-secondary',
       accept: async () => {
         try {
           await this.reason.delete(reason.id);

@@ -21,7 +21,7 @@
   align-items: center;
   display: grid;
   gap: $space-md;
-  grid-template-columns: 1fr auto 4rem 4.5rem;
+  grid-template-columns: 1fr auto to-rem(40) to-rem(45);
   padding: $space-sm $space-xl;
   position: relative;
 }
@@ -31,10 +31,10 @@
 .breakdown__bar {
   background: var(--grade-soft, #{$accent-soft});
   border-radius: $radius-sm;
-  bottom: 0.4rem;
+  bottom: to-rem(4);
   left: 0;
   position: absolute;
-  top: 0.4rem;
+  top: to-rem(4);
   z-index: 0;
 }
 
@@ -53,7 +53,7 @@
 
 .breakdown__sep {
   color: $text-faint;
-  margin: 0 0.3rem;
+  margin: 0 to-rem(3);
 }
 
 // Each count in its grade's own colour, so the split reads without a legend —
@@ -89,7 +89,7 @@
   border-bottom: 1px solid $border-subtle;
   display: grid;
   gap: $space-md;
-  grid-template-columns: 2.4rem 1fr auto 3.5rem;
+  grid-template-columns: to-rem(24) 1fr auto to-rem(35);
   padding: $space-sm $space-xl;
 
   &--last {

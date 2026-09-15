@@ -39,6 +39,7 @@
           type="email"
           autocomplete="username"
           pSize="large"
+          [invalid]="!!emailError()"
           [placeholder]="'auth.placeholderLoginEmail' | translate"
           [ngModel]="email()"
           name="email"
@@ -61,8 +62,9 @@
         <p-password
           inputId="login-password"
           autocomplete="current-password"
-          styleClass="field__password"
-          inputStyleClass="field__input field__input--lg"
+          [fluid]="true"
+          size="large"
+          [invalid]="!!passwordError()"
           [placeholder]="'auth.placeholderLoginPassword' | translate"
           [feedback]="false"
           [toggleMask]="true"
@@ -78,6 +80,7 @@
       <div class="auth-card__actions">
         <p-button
           type="submit"
+          size="large"
           [label]="'auth.login.submit' | translate"
           icon="pi pi-sign-in"
           styleClass="auth-card__submit"
@@ -116,6 +119,7 @@
           id="forgot-email"
           type="email"
           autocomplete="email"
+          [invalid]="!!forgotError()"
           [placeholder]="'auth.placeholderLoginEmail' | translate"
           [ngModel]="forgotEmail()"
           name="forgotEmail"
@@ -140,6 +144,7 @@
           [integerOnly]="true"
           autocomplete="one-time-code"
           size="large"
+          [invalid]="!!forgotCodeError()"
           [ngModel]="forgotCode()"
           name="forgotCode"
           (ngModelChange)="forgotCode.set($event)"
@@ -184,7 +189,6 @@
           <p-button
             [label]="'common.cancel' | translate"
             severity="secondary"
-            [text]="true"
             [disabled]="forgotSending()"
             (onClick)="onForgotVisibleChange(false)"
           />
@@ -199,7 +203,6 @@
           <p-button
             [label]="'common.cancel' | translate"
             severity="secondary"
-            [text]="true"
             [disabled]="forgotSending()"
             (onClick)="onForgotVisibleChange(false)"
           />

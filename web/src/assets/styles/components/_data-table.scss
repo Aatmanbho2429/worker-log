@@ -7,7 +7,7 @@
 .data-table__cell--index {
   @include numeric;
   color: $text-faint;
-  width: 5.6rem;
+  width: to-rem(56);
 }
 
 .data-table__cell--meta {
@@ -27,7 +27,7 @@
 }
 
 .data-table__cell--actions {
-  width: 10rem;
+  width: to-rem(100);
 }
 
 .data-table__name {

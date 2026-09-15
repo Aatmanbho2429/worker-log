@@ -31,7 +31,7 @@
     @if (loading()) {
       <div class="skeleton-list">
         @for (row of [1, 2, 3, 4]; track row) {
-          <p-skeleton height="3.6rem" borderRadius="4px" />
+          <p-skeleton height="2.25rem" borderRadius="4px" />
         }
       </div>
     } @else if (!filtered().length) {
@@ -75,6 +75,7 @@
                   icon="pi pi-pencil"
                   severity="secondary"
                   [text]="true"
+                  size="small"
                   [pTooltip]="'common.edit' | translate"
                   tooltipPosition="top"
                   (onClick)="openEdit(item)"
@@ -83,6 +84,7 @@
                   icon="pi pi-trash"
                   severity="danger"
                   [text]="true"
+                  size="small"
                   [pTooltip]="'common.delete' | translate"
                   tooltipPosition="top"
                   (onClick)="remove(item)"
@@ -110,6 +112,7 @@
       pInputText
       id="series-name"
       autocomplete="off"
+      [invalid]="nameInvalid()"
       [placeholder]="'series.namePlaceholder' | translate"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
@@ -125,7 +128,6 @@
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"
-        [text]="true"
         [disabled]="saving()"
         (onClick)="dialogOpen.set(false)"
       />

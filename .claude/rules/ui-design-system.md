@@ -106,8 +106,14 @@ for any of these:
 The only exceptions are fixed geometry (column widths, sticky offsets, tile
 sizes) and the `.barcode-tile` block.
 
-Mixins: `overline`, `numeric`, `focus-ring`, `truncate`. There are no utility
-classes; include the mixin in the block that needs it.
+Sizes are written in pixels through `to-rem($px)` (`base/_tokens.scss`), never
+a bare `rem` literal. The app's root is 16px — the browser default, and what
+PrimeNG's Aura preset itself expects — so no rule ever sets a root font size;
+`to-rem(16)` reads as 1rem.
+
+Mixins: `overline`, `numeric`, `focus-ring`, `truncate`, plus the `to-rem()`
+function. There are no utility classes; include the mixin in the block that
+needs it.
 
 ## Typography
 
@@ -121,7 +127,8 @@ classes; include the mixin in the block that needs it.
 | Page title | `$fs-xl` 24px | semibold | `$ls-tight` (via `h1`) |
 | Dialog / section title | `$fs-lg` 20px | semibold | |
 | Card title, names on the waste screen | `$fs-md` 17px | semibold | |
-| Body, table cells, inputs, buttons, nav | `$fs-base` 15px | regular (buttons and nav: medium/semibold) | |
+| Body, table cells, nav | `$fs-base` 15px | regular (nav: medium) | |
+| Text inside controls (inputs, selects, buttons, presets) | `$fs-control` 16px | regular; buttons medium | PrimeNG's own size; `inputtext`/`button`/`select` hard-code `font-size: 1rem` in their own CSS, no token, so the app root stays 16px to match |
 | Secondary, meta, hints, field labels, dense grids | `$fs-sm` 13px | regular (labels: medium) | |
 | Overline (KPI label, sidebar section) | `$fs-xs` 12px | `@include overline` | the only uppercase |
 | KPI value | `$fs-2xl` 32px | semibold | `@include numeric` |
@@ -137,7 +144,7 @@ classes; include the mixin in the block that needs it.
 - **Minimum size.** `$fs-sm` is the floor for anything an operator must read
   to act; `$fs-xs` is only for overlines. The barcode tile caption is the one
   thing smaller.
-- **Weight.** 400 body, 500 names/labels/nav, 600 titles/buttons/values. No
+- **Weight.** 400 body, 500 names/labels/nav/buttons, 600 titles/values. No
   700.
 - Running text is capped at `max-width: 70ch`.
 
@@ -214,15 +221,33 @@ them in a view partial.
 - **Loading:** `.skeleton-list` holding `p-skeleton` rows.
 - **Empty:** `.empty-state` with `__icon`, `__title`, one `__text` line, and at
   most one action.
+- **Buttons:** one visible hierarchy everywhere, driven by `severity` and
+  `size` on `p-button` — never `[outlined]` for a secondary action.
+
+  | Variant | `p-button` | Look | Use |
+  | --- | --- | --- | --- |
+  | Primary | no `severity` | solid `$accent`, white text | one per region: the page's main action, a dialog's confirm, the auth submit |
+  | Secondary | `severity="secondary"` | white fill, `$border-default` border, `$text-secondary` text | every other visible action — Refresh, exports, Reset password, a dialog's **Cancel** |
+  | Text | `severity="secondary" [text]="true"` | no fill, `$text-muted`, hover wash | icon-only row actions, sign out, dismiss |
+  | Danger | `severity="danger"` (add `[text]="true"` for a row's delete icon) | solid `$danger` / danger text | destructive confirms, row delete |
+
+  Sizes: `size="small"` (32px) for row actions and inline dismisses; default
+  (40px) otherwise; `size="large"` (48px) for the auth submits and the scan
+  box's Record button, matching the `pSize="large"` / `size="large"` inputs
+  beside them.
 - **Forms:** in a `p-dialog`, with `.field` / `__label` / `__hint` / `__error`
-  (`--flush` on a last field) and a `.dialog-footer`.
+  (`--flush` on a last field) and a `.dialog-footer`. Every control with a
+  `.field__error` also binds `[invalid]` to the same condition — the message
+  is not the only signal. Use `[fluid]="true"` to fill a field's width rather
+  than CSS; dialog widths come from `DIALOG_WIDTH` in `models/constants.ts`.
 - **Data tables:**
   - `p-table styleClass="data-table"` in a card: light grey header from the
     preset, no vertical rules.
   - Cells are `data-table__cell` plus `--index`, `--meta`, `--numeric` or
     `--actions`.
-  - Row actions are icon text buttons with a tooltip (`severity="secondary"`,
-    or `"danger"` for delete) inside `.data-table__actions`.
+  - Row actions are `size="small"` icon text buttons with a tooltip
+    (`severity="secondary"`, or `"danger"` for delete) inside
+    `.data-table__actions`.
 - **Register grids:** only the month sheet and the scanning matrix get slate
   `$band` headers, vertical rules and zebra rows, because they imitate the
   paper register.
@@ -277,3 +302,6 @@ them in a view partial.
 - [ ] Looks right at 1024×640 (the window minimum) and 1440×900, and still
   reads as medium-toned.
 - [ ] If you used a new token, checked it with `class="app-dark"` on `<html>`.
+- [ ] Any new PrimeNG control reads 32/40/48px, not 20/25/30 — a hard-coded
+  `font-size: 1rem` in a few PrimeNG components (`inputtext`, `button`,
+  `select`) only comes out right at the app's 16px root.

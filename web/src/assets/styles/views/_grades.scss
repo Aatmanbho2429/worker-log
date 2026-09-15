@@ -14,6 +14,6 @@
   border-radius: $radius-sm;
   display: inline-block;
   flex: none;
-  height: 1.6rem;
-  width: 1.6rem;
+  height: to-rem(16);
+  width: to-rem(16);
 }

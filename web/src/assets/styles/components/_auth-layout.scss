@@ -10,7 +10,7 @@
 
 .auth-layout {
   display: grid;
-  grid-template-columns: 44rem 1fr;
+  grid-template-columns: to-rem(440) 1fr;
   height: 100vh;
 }
 

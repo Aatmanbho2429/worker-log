@@ -10,7 +10,6 @@
         icon="pi pi-file-excel"
         [label]="'reports.exportCsv' | translate"
         severity="secondary"
-        [outlined]="true"
         [disabled]="loading() || exporting()"
         (onClick)="download('csv')"
       />
@@ -139,7 +138,7 @@
         [paginator]="entries().length > 12"
         [rows]="12"
         [scrollable]="true"
-        scrollHeight="34rem"
+        scrollHeight="21.25rem"
         styleClass="data-table"
       >
         <ng-template #header>

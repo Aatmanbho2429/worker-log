@@ -10,7 +10,6 @@
         icon="pi pi-refresh"
         [label]="'common.refresh' | translate"
         severity="secondary"
-        [outlined]="true"
         [disabled]="loading()"
         (onClick)="reload()"
       />
@@ -83,7 +82,7 @@
     @if (loading()) {
       <div class="skeleton-list">
         @for (row of [1, 2, 3, 4, 5, 6]; track row) {
-          <p-skeleton height="5.6rem" borderRadius="6px" />
+          <p-skeleton height="3.5rem" borderRadius="6px" />
         }
       </div>
     } @else if (!grades().length) {

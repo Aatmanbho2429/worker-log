@@ -21,7 +21,7 @@
   border: 1px solid $border-default;
   color: $text-secondary;
   cursor: pointer;
-  font-size: $fs-sm;
+  font-size: $fs-control;
   font-weight: $fw-medium;
   height: $control-h;
   padding: 0 $space-lg;
@@ -45,7 +45,15 @@
 
   &:hover:not(:disabled) {
     background: $surface-hover;
+    border-color: $border-strong;
     color: $text-primary;
+  }
+
+  // The global :focus-visible outline would otherwise sit half-hidden under
+  // the next preset's overlapping border.
+  &:focus-visible {
+    position: relative;
+    z-index: 1;
   }
 
   &:disabled {

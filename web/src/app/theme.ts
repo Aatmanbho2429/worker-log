@@ -18,6 +18,11 @@ import { definePreset } from '@primeuix/themes';
  * This deliberately overrides Aura's own `blue`, `gray` and `slate`
  * primitives: one set of each in the app, matching `base/_tokens.scss`
  * exactly. `red` / `amber` / `green` / `cyan` are left as Aura ships them.
+ *
+ * Sizes here are plain px/rem strings, not run through the app's `to-rem()` —
+ * `_tokens.scss` is Sass and this file is TypeScript, so the two can't share
+ * a function. The app's root is 16px (see `_reset.scss`), so a bare `1rem`
+ * here means 16px, matching `to-rem(16)` in Sass.
  */
 export const WasteLogPreset = definePreset(Aura, {
   primitive: {
@@ -86,24 +91,24 @@ export const WasteLogPreset = definePreset(Aura, {
       offset: '2px',
     },
 
+    // Geometry only — sizes, not colours. Colours are per-scheme, below.
     formField: {
-      paddingX: '1.2rem',
-      paddingY: '0.8rem',
+      paddingX: '0.75rem',
+      paddingY: '0.5625rem', // ~40px with 16px text
       borderRadius: '6px',
-
-      sm: {
-        fontSize: '1.3rem',
-        paddingX: '1rem',
-        paddingY: '0.6rem',
+      // The halo itself (`shadow`) is coloured per scheme, set under
+      // `colorScheme.{light,dark}.formField.focusRing` below — a
+      // border-colour change alone (Aura's default) is too quiet to find at
+      // a glance, so this adds the same soft ring the hand-rolled scan box
+      // draws (`focus-ring` mixin in `_tokens.scss`).
+      focusRing: {
+        width: '0',
+        style: 'none',
+        color: 'transparent',
+        offset: '0',
       },
-
-      // The large variant the account screens wear. Target heights are 4.0rem
-      // default and 4.8rem large.
-      lg: {
-        fontSize: '1.6rem',
-        paddingX: '1.4rem',
-        paddingY: '1.1rem',
-      },
+      sm: { fontSize: '0.875rem', paddingX: '0.625rem', paddingY: '0.375rem' }, // ~32px
+      lg: { fontSize: '1rem', paddingX: '0.875rem', paddingY: '0.8125rem' }, // ~48px
     },
 
     colorScheme: {
@@ -134,6 +139,25 @@ export const WasteLogPreset = definePreset(Aura, {
           900: '{gray.850}',
           950: '{gray.900}',
         },
+        formField: {
+          background: '{gray.0}',
+          disabledBackground: '{gray.100}',
+          filledBackground: '{gray.50}',
+          borderColor: '{gray.300}',
+          hoverBorderColor: '{gray.400}',
+          focusBorderColor: '{blue.600}',
+          invalidBorderColor: '{red.600}',
+          color: '{gray.800}',
+          disabledColor: '{gray.500}',
+          placeholderColor: '{gray.500}',
+          invalidPlaceholderColor: '{gray.500}',
+          iconColor: '{gray.500}',
+          shadow: 'none',
+          // The visible focus halo, coloured for this scheme (light/dark
+          // read the ring at opposite ends of the blue ramp, same as
+          // `--focus-ring` in `_theme.scss`).
+          focusRing: { shadow: '0 0 0 3px rgba(37, 99, 235, 0.18)' },
+        },
       },
 
       dark: {
@@ -163,6 +187,22 @@ export const WasteLogPreset = definePreset(Aura, {
           900: '{gray.850}',
           950: '{gray.900}',
         },
+        formField: {
+          background: '{gray.900}',
+          disabledBackground: '{gray.750}',
+          filledBackground: '{gray.850}',
+          borderColor: '{gray.700}',
+          hoverBorderColor: '{gray.600}',
+          focusBorderColor: '{blue.400}',
+          invalidBorderColor: '{red.400}',
+          color: '{gray.50}',
+          disabledColor: '{gray.500}',
+          placeholderColor: '{gray.400}',
+          invalidPlaceholderColor: '{gray.400}',
+          iconColor: '{gray.400}',
+          shadow: 'none',
+          focusRing: { shadow: '0 0 0 3px rgba(96, 165, 250, 0.3)' },
+        },
       },
     },
   },
@@ -171,19 +211,22 @@ export const WasteLogPreset = definePreset(Aura, {
     button: {
       root: {
         borderRadius: '6px',
-        paddingX: '1.6rem',
-        paddingY: '0.8rem',
-        gap: '0.8rem',
-        label: { fontWeight: '600' },
+        gap: '0.5rem',
+        paddingX: '1rem',
+        paddingY: '0.5625rem', // ~40px
+        iconOnlyWidth: '2.5rem',
+        label: { fontWeight: '500' },
         sm: {
-          fontSize: '1.3rem',
-          paddingX: '1.2rem',
-          paddingY: '0.6rem',
+          fontSize: '0.875rem',
+          paddingX: '0.75rem',
+          paddingY: '0.375rem',
+          iconOnlyWidth: '2rem',
         },
         lg: {
-          fontSize: '1.6rem',
-          paddingX: '2rem',
-          paddingY: '1.1rem',
+          fontSize: '1rem',
+          paddingX: '1.25rem',
+          paddingY: '0.8125rem',
+          iconOnlyWidth: '3rem',
         },
       },
       colorScheme: {
@@ -203,6 +246,43 @@ export const WasteLogPreset = definePreset(Aura, {
               hoverColor: '#ffffff',
               activeColor: '#ffffff',
               focusRing: { color: '{blue.500}' },
+            },
+            // The secondary button's own visible fill — bordered white, not
+            // text-only — so Refresh/Cancel/CSV read as a real button next
+            // to the solid blue primary.
+            secondary: {
+              background: '{gray.0}',
+              hoverBackground: '{gray.50}',
+              activeBackground: '{gray.100}',
+              borderColor: '{gray.300}',
+              hoverBorderColor: '{gray.400}',
+              activeBorderColor: '{gray.400}',
+              color: '{gray.700}',
+              hoverColor: '{gray.800}',
+              activeColor: '{gray.800}',
+              focusRing: { color: '{blue.500}' },
+            },
+            danger: {
+              background: '{red.600}',
+              hoverBackground: '{red.700}',
+              activeBackground: '{red.800}',
+              borderColor: '{red.600}',
+              hoverBorderColor: '{red.700}',
+              activeBorderColor: '{red.800}',
+              color: '#ffffff',
+              hoverColor: '#ffffff',
+              activeColor: '#ffffff',
+              focusRing: { color: '{red.500}' },
+            },
+          },
+          // A safety net for any button that still sets `[outlined]` — the
+          // templates themselves stop using it for secondary actions.
+          outlined: {
+            secondary: {
+              hoverBackground: '{gray.50}',
+              activeBackground: '{gray.100}',
+              borderColor: '{gray.300}',
+              color: '{gray.700}',
             },
           },
           // Row-action buttons sit on a white table; the stock text colours are
@@ -234,6 +314,38 @@ export const WasteLogPreset = definePreset(Aura, {
               activeColor: '#ffffff',
               focusRing: { color: '{blue.500}' },
             },
+            secondary: {
+              background: '{gray.800}',
+              hoverBackground: '{gray.750}',
+              activeBackground: '{gray.700}',
+              borderColor: '{gray.700}',
+              hoverBorderColor: '{gray.600}',
+              activeBorderColor: '{gray.600}',
+              color: '{gray.200}',
+              hoverColor: '{gray.50}',
+              activeColor: '{gray.50}',
+              focusRing: { color: '{blue.400}' },
+            },
+            danger: {
+              background: '{red.600}',
+              hoverBackground: '{red.700}',
+              activeBackground: '{red.800}',
+              borderColor: '{red.600}',
+              hoverBorderColor: '{red.700}',
+              activeBorderColor: '{red.800}',
+              color: '#ffffff',
+              hoverColor: '#ffffff',
+              activeColor: '#ffffff',
+              focusRing: { color: '{red.500}' },
+            },
+          },
+          outlined: {
+            secondary: {
+              hoverBackground: '{gray.750}',
+              activeBackground: '{gray.700}',
+              borderColor: '{gray.700}',
+              color: '{gray.200}',
+            },
           },
           // Row-action buttons sit on a dark table; the stock text colours are
           // too dim to find at a glance.
@@ -263,11 +375,11 @@ export const WasteLogPreset = definePreset(Aura, {
             background: '{gray.50}',
             color: '{gray.600}',
             borderColor: '{gray.200}',
-            padding: '1rem 1.6rem',
+            padding: '0.625rem 1rem',
           },
           columnTitle: { fontWeight: '600' },
           bodyCell: {
-            padding: '1.2rem 1.6rem',
+            padding: '0.75rem 1rem',
             borderColor: '{gray.200}',
           },
           row: { hoverBackground: '{gray.50}' },
@@ -282,11 +394,11 @@ export const WasteLogPreset = definePreset(Aura, {
             background: '{gray.750}',
             color: '{gray.400}',
             borderColor: '{gray.700}',
-            padding: '1rem 1.6rem',
+            padding: '0.625rem 1rem',
           },
           columnTitle: { fontWeight: '600' },
           bodyCell: {
-            padding: '1.2rem 1.6rem',
+            padding: '0.75rem 1rem',
             borderColor: '{gray.750}',
           },
           row: {
@@ -303,10 +415,10 @@ export const WasteLogPreset = definePreset(Aura, {
 
     dialog: {
       root: { borderRadius: '12px' },
-      header: { padding: '2rem 2.4rem 1.2rem' },
-      title: { fontSize: '1.8rem', fontWeight: '600' },
-      content: { padding: '0 2.4rem 2rem' },
-      footer: { padding: '0 2.4rem 2rem', gap: '0.8rem' },
+      header: { padding: '1.25rem 1.5rem 0.75rem' },
+      title: { fontSize: '1.125rem', fontWeight: '600' },
+      content: { padding: '0 1.5rem 1.25rem' },
+      footer: { padding: '0 1.5rem 1.25rem', gap: '0.5rem' },
     },
 
     toast: {
@@ -320,23 +432,23 @@ export const WasteLogPreset = definePreset(Aura, {
       root: {
         background: '{slate.700}',
         color: '#ffffff',
-        padding: '0.6rem 1rem',
+        padding: '0.375rem 0.625rem',
         borderRadius: '6px',
       },
     },
 
     tag: {
       root: {
-        fontSize: '1.2rem',
+        fontSize: '0.75rem',
         fontWeight: '600',
-        padding: '0.2rem 0.8rem',
+        padding: '0.125rem 0.5rem',
         borderRadius: '4px',
       },
     },
 
     tabs: {
       tab: {
-        padding: '1.2rem 1.6rem',
+        padding: '0.75rem 1rem',
         fontWeight: '500',
       },
       activeBar: { background: '{blue.600}' },
@@ -346,6 +458,46 @@ export const WasteLogPreset = definePreset(Aura, {
       colorScheme: {
         light: { root: { background: '{gray.200}' } },
       },
+    },
+
+    inputgroup: {
+      addon: { padding: '0.5rem 0.75rem', minWidth: '2.5rem' },
+      colorScheme: {
+        light: { addon: { background: '{gray.50}', color: '{gray.600}' } },
+        dark: { addon: { background: '{gray.800}', color: '{gray.400}' } },
+      },
+    },
+
+    datepicker: {
+      dropdown: { width: '2.5rem' },
+      colorScheme: {
+        light: {
+          dropdown: {
+            background: '{gray.50}',
+            hoverBackground: '{gray.100}',
+            activeBackground: '{gray.200}',
+            borderColor: '{gray.300}',
+            hoverBorderColor: '{gray.400}',
+            color: '{gray.600}',
+            hoverColor: '{gray.800}',
+          },
+        },
+        dark: {
+          dropdown: {
+            background: '{gray.800}',
+            hoverBackground: '{gray.750}',
+            activeBackground: '{gray.700}',
+            borderColor: '{gray.700}',
+            hoverBorderColor: '{gray.600}',
+            color: '{gray.400}',
+            hoverColor: '{gray.50}',
+          },
+        },
+      },
+    },
+
+    inputotp: {
+      input: { lg: { width: '3rem' } },
     },
   },
 });

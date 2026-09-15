@@ -10,7 +10,6 @@
         icon="pi pi-file-excel"
         [label]="'sheet.csv' | translate"
         severity="secondary"
-        [outlined]="true"
         [disabled]="loading() || exporting()"
         (onClick)="download('csv')"
       />
@@ -43,7 +42,7 @@
     @if (loading()) {
       <div class="skeleton-list">
         @for (row of [1, 2, 3, 4, 5, 6, 7, 8]; track row) {
-          <p-skeleton height="3.2rem" borderRadius="4px" />
+          <p-skeleton height="2rem" borderRadius="4px" />
         }
       </div>
     } @else if (!rows().length) {

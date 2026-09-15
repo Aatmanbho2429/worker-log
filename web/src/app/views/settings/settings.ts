@@ -47,7 +47,7 @@ export class Settings {
       acceptLabel: this.translate.instant('settings.replaceEverything'),
       rejectLabel: this.translate.instant('common.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
-      rejectButtonStyleClass: 'p-button-text',
+      rejectButtonStyleClass: 'p-button-secondary',
       accept: () => void this.run(true),
     });
   }

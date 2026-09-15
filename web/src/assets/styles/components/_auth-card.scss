@@ -10,11 +10,11 @@
 }
 
 .auth-card--narrow {
-  max-width: 42rem;
+  max-width: to-rem(420);
 }
 
 .auth-card--wide {
-  max-width: 60rem;
+  max-width: to-rem(600);
 }
 
 .auth-card--code {
@@ -100,10 +100,10 @@
   background: $accent-soft;
   border-radius: $radius-pill;
   display: flex;
-  height: 5.6rem;
+  height: to-rem(56);
   justify-content: center;
   margin: 0 auto $space-lg;
-  width: 5.6rem;
+  width: to-rem(56);
 }
 
 .auth-card__mark-icon {

@@ -24,9 +24,9 @@
   background: $accent;
   border-radius: $radius-md;
   display: flex;
-  height: 3.2rem;
+  height: to-rem(32);
   justify-content: center;
-  width: 3.2rem;
+  width: to-rem(32);
 }
 
 .shell__mark-icon {
@@ -100,7 +100,7 @@
   display: flex;
   gap: $space-sm;
   height: $control-h;
-  max-width: 24rem;
+  max-width: to-rem(240);
   padding: 0 $space-md 0 $space-xs;
   text-decoration: none;
   transition:
@@ -122,9 +122,9 @@
   flex: 0 0 auto;
   font-size: $fs-xs;
   font-weight: $fw-semibold;
-  height: 3.2rem;
+  height: to-rem(32);
   justify-content: center;
-  width: 3.2rem;
+  width: to-rem(32);
 }
 
 .shell__user-name {
@@ -177,7 +177,7 @@
 
   &--active {
     background: $sidebar-active-bg;
-    box-shadow: inset 0.3rem 0 0 $sidebar-indicator;
+    box-shadow: inset to-rem(3) 0 0 $sidebar-indicator;
     color: $sidebar-active-text;
     font-weight: $fw-semibold;
   }
@@ -186,7 +186,7 @@
 .shell__link-icon {
   color: $sidebar-text-muted;
   font-size: $icon-md;
-  width: 2rem;
+  width: to-rem(20);
 }
 
 .shell__link:hover .shell__link-icon {
@@ -232,7 +232,7 @@
   }
 
   .shell__link--active {
-    box-shadow: inset 0 -0.3rem 0 $sidebar-indicator;
+    box-shadow: inset 0 to-rem(-3) 0 $sidebar-indicator;
   }
 
   .shell__main {

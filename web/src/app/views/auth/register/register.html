@@ -55,6 +55,7 @@
               id="first-name"
               autocomplete="given-name"
               pSize="large"
+              [invalid]="!!problem('firstName')"
               [placeholder]="'auth.placeholderFirstName' | translate"
               [ngModel]="form().firstName"
               name="firstName"
@@ -75,6 +76,7 @@
               id="last-name"
               autocomplete="family-name"
               pSize="large"
+              [invalid]="!!problem('lastName')"
               [placeholder]="'auth.placeholderLastName' | translate"
               [ngModel]="form().lastName"
               name="lastName"
@@ -96,6 +98,7 @@
                 inputmode="tel"
                 autocomplete="tel-national"
                 pSize="large"
+                [invalid]="!!problem('phone')"
                 [placeholder]="'auth.placeholderPhone' | translate"
                 [ngModel]="form().phone"
                 name="phone"
@@ -118,6 +121,7 @@
               type="email"
               autocomplete="email"
               pSize="large"
+              [invalid]="!!problem('email')"
               [placeholder]="'auth.placeholderEmail' | translate"
               [ngModel]="form().email"
               name="email"
@@ -138,6 +142,7 @@
               id="company"
               autocomplete="organization"
               pSize="large"
+              [invalid]="!!problem('companyName')"
               [placeholder]="'auth.placeholderCompany' | translate"
               [ngModel]="form().companyName"
               name="companyName"
@@ -156,8 +161,9 @@
             <p-password
               inputId="password"
               autocomplete="new-password"
-              styleClass="field__password"
-              inputStyleClass="field__input field__input--lg"
+              [fluid]="true"
+              size="large"
+              [invalid]="!!problem('password')"
               [placeholder]="'auth.placeholderPassword' | translate"
               [feedback]="false"
               [toggleMask]="true"
@@ -196,8 +202,9 @@
             <p-password
               inputId="confirm-password"
               autocomplete="new-password"
-              styleClass="field__password"
-              inputStyleClass="field__input field__input--lg"
+              [fluid]="true"
+              size="large"
+              [invalid]="!!problem('confirmPassword')"
               [placeholder]="'auth.placeholderConfirmPassword' | translate"
               [feedback]="false"
               [toggleMask]="true"
@@ -217,6 +224,7 @@
         <div class="auth-card__actions">
           <p-button
             type="submit"
+            size="large"
             [label]="'auth.register.submit' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
@@ -252,6 +260,7 @@
             [integerOnly]="true"
             autocomplete="one-time-code"
             size="large"
+            [invalid]="!!otpFieldProblem()"
             [ngModel]="otpCode()"
             name="otpCode"
             (ngModelChange)="otpCode.set($event)"
@@ -267,6 +276,7 @@
         <div class="auth-card__actions">
           <p-button
             type="submit"
+            size="large"
             [label]="'auth.register.codeSubmit' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
@@ -301,6 +311,7 @@
         <div class="auth-card__actions">
           <p-button
             type="button"
+            size="large"
             [label]="'auth.register.successCta' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"

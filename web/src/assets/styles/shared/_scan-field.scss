@@ -26,22 +26,26 @@
 
 .scan-field__input {
   background: $surface-card;
-  border: 1px solid $border-strong;
+  border: 1px solid $border-default;
   border-radius: $radius-md;
   color: $text-primary;
-  flex: 1 1 26rem;
+  flex: 1 1 to-rem(260);
   font-family: $font-mono;
   font-size: $fs-md;
   letter-spacing: 0.04em;
-  min-width: 22rem;
+  min-width: to-rem(220);
   padding: 0 $space-md;
   height: $control-h-lg;
 
   &::placeholder {
     color: $text-faint;
     font-family: $font-body;
-    font-size: $fs-base;
+    font-size: $fs-control;
     letter-spacing: 0;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $border-strong;
   }
 
   &:focus {

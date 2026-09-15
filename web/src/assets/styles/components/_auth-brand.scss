@@ -26,9 +26,9 @@
   background: $accent;
   border-radius: $radius-md;
   display: flex;
-  height: 4rem;
+  height: to-rem(40);
   justify-content: center;
-  width: 4rem;
+  width: to-rem(40);
 }
 
 .auth-brand__mark-icon {
@@ -73,7 +73,7 @@
   display: grid;
   font-size: $fs-base;
   gap: 0 $space-md;
-  grid-template-columns: 2.4rem 1fr;
+  grid-template-columns: to-rem(24) 1fr;
 }
 
 .auth-brand__point-icon {

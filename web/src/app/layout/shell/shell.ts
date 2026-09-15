@@ -117,7 +117,7 @@ export class Shell implements OnDestroy {
       icon: 'pi pi-sign-out',
       acceptLabel: this.translate.instant('shell.signOutAccept'),
       rejectLabel: this.translate.instant('shell.signOutReject'),
-      rejectButtonStyleClass: 'p-button-text',
+      rejectButtonStyleClass: 'p-button-secondary',
       accept: async () => {
         await this.auth.logout();
         await this.router.navigate([ROUTE_LOGIN]);

@@ -99,6 +99,13 @@ allowed only in `base/_tokens.scss`, `base/_theme.scss`,
   `darkModeSelector: '.app-dark'`. Its `blue`, `gray` and `slate` primitives
   carry the same hex values as the Sass ramps. Change a shade in one and
   change it in the other.
+  - Field colours (border, hover, focus, invalid) live in
+    `semantic.colorScheme.{light,dark}.formField`; the focus halo is
+    `semantic.formField.focusRing.shadow`, one value shared by both schemes.
+  - Button colours live in `components.button.colorScheme.{light,dark}` —
+    `root.secondary` is the bordered white/`$gray-800` fill the button
+    hierarchy in `ui-design-system.md` calls secondary; `root.danger` is the
+    solid destructive fill.
 
 A few literal colours legitimately live elsewhere. Update them with the
 palette:

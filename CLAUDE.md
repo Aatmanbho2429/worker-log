@@ -172,8 +172,7 @@ from their description.
 
 `.claude/plans/` is for work in progress only. Once a plan ships, fold its
 lasting reasoning into the skill or rule that owns that area and delete the
-plan. In flight now: `controls-refresh.md` — inputs, buttons, and the move back
-to a 16px root.
+plan.
 
 ## Known doc drift
 
