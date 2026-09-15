@@ -138,7 +138,8 @@ screen; `shared/` holds reusable pieces plus the single PrimeNG import module;
 
 Conventions — the PrimeNG module, copy in `en.json`, the shared date range,
 routing and guards — are in `.claude/rules/angular-ui.md`. Colours are in
-`.claude/rules/theming.md`; never hardcode one.
+`.claude/rules/theming.md`, type/spacing/layout in `ui-design-system.md`; never
+hardcode either.
 
 ## Data model
 
@@ -163,7 +164,8 @@ from their description.
 | `rules/models.md` | the request/response split both sides, and where it isn't retrofitted |
 | `rules/data-model.md` | waste-log invariants, refused deletes, migration style |
 | `rules/angular-ui.md` | PrimeNG module, i18n copy, shared range state, routing |
-| `rules/theming.md` | the two palettes, and the three things that opt out |
+| `rules/theming.md` | the medium blue/grey/slate palette, semantic colour tokens, the two palettes, and the three things that opt out |
+| `rules/ui-design-system.md` | where CSS lives (no component stylesheets), BEM rules, type scale, spacing, control sizes, screen anatomy, declutter and contrast rules |
 | `skills/supabase/` | the whole account layer — auth, licence binding, plans, Razorpay — its design decisions, and what is live |
 | `skills/scaffold-entity/` | adding an entity end-to-end |
 | `skills/extract-static-text/` | moving copy into `en.json` and literals into `constants.ts` |

@@ -10,6 +10,18 @@ Standalone components with signals throughout — no `NgModule`s for
 declarations, no `@Input()`/`@Output()` decorators where `input()`/`output()`
 will do. PrimeNG 21 on the Aura preset.
 
+## No component stylesheets
+
+> Pending: `.claude/plans/theme-refresh.md` is removing the existing
+> `styleUrl`s. Delete this line once it ships.
+
+Components carry no CSS: no `styleUrl`, no `styles`, no `.scss` beside the
+component, no `:host` or `::ng-deep`. Custom CSS goes in a BEM partial under
+`web/src/assets/styles/` (`components/`, `shared/` or `views/`), registered in
+`main.scss`. A host element that needs styling gets `host: { class: '…' }` in
+its decorator. `angular.json` generates components with `"style": "none"`.
+File layout and BEM rules are in `.claude/rules/ui-design-system.md`.
+
 ## One PrimeNG import, not a dozen
 
 `web/src/app/shared/primeng-components-module.ts` bundles the PrimeNG surface
