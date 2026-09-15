@@ -1,13 +1,13 @@
-<div class="scanbox">
-  <label class="scanbox__label" for="scan-code">
-    <i class="pi pi-qrcode"></i>
+<div class="scan-field">
+  <label class="scan-field__label" for="scan-code">
+    <i class="scan-field__label-icon pi pi-qrcode"></i>
     {{ 'scanField.label' | translate }}
   </label>
 
   <input
     #box
     id="scan-code"
-    class="scanbox__input tabular"
+    class="scan-field__input"
     type="text"
     inputmode="numeric"
     autocomplete="off"
@@ -29,22 +29,22 @@
   @if (!showResult()) {
     <!-- The host screen reports the outcome itself. -->
   } @else if (problem(); as issue) {
-    <div class="scanbox__result scanbox__result--problem" role="alert">
+    <div class="scan-field__result scan-field__result--problem" role="alert">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ issue }}</span>
-      <button type="button" class="scanbox__dismiss" (click)="dismiss()">
+      <button type="button" class="scan-field__dismiss" (click)="dismiss()">
         {{ 'scanField.dismiss' | translate }}
       </button>
     </div>
   } @else if (last(); as entry) {
-    <div class="scanbox__result scanbox__result--ok" role="status">
+    <div class="scan-field__result scan-field__result--ok" role="status">
       <i class="pi pi-check-circle"></i>
       <span>
-        <strong>{{ entry.workerName }}</strong>
+        <span class="scan-field__result-value">{{ entry.workerName }}</span>
         · {{ entry.reasonName }} · {{ entry.gradeName }}
       </span>
     </div>
   } @else {
-    <span class="scanbox__hint">{{ 'scanField.hint' | translate }}</span>
+    <span class="scan-field__hint">{{ 'scanField.hint' | translate }}</span>
   }
 </div>

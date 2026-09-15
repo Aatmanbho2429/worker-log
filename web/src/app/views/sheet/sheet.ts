@@ -29,7 +29,6 @@ import { ScanField } from '../../shared/scan-field/scan-field';
   selector: 'app-sheet',
   imports: [PrimengComponentsModule, RangeFilterBar, ScanField],
   templateUrl: './sheet.html',
-  styleUrl: './sheet.scss',
 })
 export class Sheet {
   private readonly waste = inject(WasteService);

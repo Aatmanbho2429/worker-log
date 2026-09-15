@@ -1,12 +1,5 @@
 @use 'base/tokens' as *;
 
-.skeletons {
-  display: flex;
-  flex-direction: column;
-  gap: $space-sm;
-  padding: $space-lg;
-}
-
 // The swatch is the point: it is the same colour the grade's button, column
 // and tally are drawn in everywhere else, so this list doubles as the key.
 .grade-chip {
@@ -21,6 +14,6 @@
   border-radius: $radius-sm;
   display: inline-block;
   flex: none;
-  height: 1.4rem;
-  width: 1.4rem;
+  height: 1.6rem;
+  width: 1.6rem;
 }

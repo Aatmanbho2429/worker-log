@@ -1,0 +1,18 @@
+@use 'base/tokens' as *;
+
+// Shared between the register screen's own code step and the login screen's
+// forgot-password dialog. The digit boxes themselves are styled in
+// `_primeng.scss`, since they are PrimeNG's own template.
+
+.otp-field {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.otp-field__input {
+  align-items: center;
+  gap: $space-sm;
+  justify-content: center;
+  margin-bottom: $space-sm;
+}

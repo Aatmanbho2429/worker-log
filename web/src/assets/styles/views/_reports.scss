@@ -1,51 +1,6 @@
 @use 'base/tokens' as *;
 
-.card__hint {
-  color: $text-faint;
-  font-size: $fs-sm;
-}
-
-.stats {
-  display: grid;
-  gap: $space-md;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-}
-
-.stat {
-  background: linear-gradient(150deg, $surface-raised, $surface-card);
-  border: 1px solid $border-default;
-  border-radius: $radius-md;
-  border-top: 0.3rem solid $navy-400;
-  display: flex;
-  flex-direction: column;
-  gap: $space-xs;
-  padding: $space-lg;
-
-  &--grade {
-    border-top-color: var(--grade-edge, #{$navy-300});
-  }
-
-  &--muted {
-    border-top-color: $border-strong;
-  }
-}
-
-.stat__label {
-  color: $text-muted;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.stat__value {
-  font-family: $font-display;
-  font-size: $fs-2xl;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.split {
+.report-split {
   display: grid;
   gap: $space-lg;
   grid-template-columns: 1.4fr 1fr;
@@ -67,15 +22,15 @@
   display: grid;
   gap: $space-md;
   grid-template-columns: 1fr auto 4rem 4.5rem;
-  padding: $space-sm $space-lg;
+  padding: $space-sm $space-xl;
   position: relative;
 }
 
 // The bar sits behind the numbers rather than beside them, so the row stays
 // scannable at a glance without a chart library.
 .breakdown__bar {
-  background: linear-gradient(90deg, var(--grade-soft, #{rgba($navy-300, 0.22)}), transparent);
-  border-radius: 0 $radius-sm $radius-sm 0;
+  background: var(--grade-soft, #{$accent-soft});
+  border-radius: $radius-sm;
   bottom: 0.4rem;
   left: 0;
   position: absolute;
@@ -92,10 +47,8 @@
 }
 
 .breakdown__name {
-  font-family: $font-display;
   font-size: $fs-base;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: $fw-medium;
 }
 
 .breakdown__sep {
@@ -106,16 +59,19 @@
 // Each count in its grade's own colour, so the split reads without a legend —
 // the same colours the waste screen's buttons and the Grades list use.
 .breakdown__count {
-  color: var(--grade-bright, #{$navy-200});
-  font-weight: 600;
+  @include numeric;
+  color: var(--grade-bright, #{$text-accent});
+  font-weight: $fw-semibold;
 }
 
 .breakdown__total {
-  font-weight: 700;
+  @include numeric;
+  font-weight: $fw-semibold;
   text-align: right;
 }
 
 .breakdown__share {
+  @include numeric;
   color: $text-muted;
   font-size: $fs-sm;
   text-align: right;
@@ -123,73 +79,62 @@
 
 // --------------------------------------------------------------- top workers --
 
-.top {
+.top-workers {
   list-style: none;
   padding: $space-sm 0;
 }
 
-.top__row {
+.top-workers__row {
   align-items: center;
   border-bottom: 1px solid $border-subtle;
   display: grid;
   gap: $space-md;
   grid-template-columns: 2.4rem 1fr auto 3.5rem;
-  padding: $space-sm $space-lg;
+  padding: $space-sm $space-xl;
 
-  &:last-child {
+  &--last {
     border-bottom: none;
   }
 }
 
-.top__rank {
+.top-workers__rank {
+  @include numeric;
   color: $text-faint;
-  font-family: $font-display;
-  font-size: $fs-md;
+  font-size: $fs-base;
 }
 
-.top__ident {
+.top-workers__ident {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.top__name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.top-workers__name {
+  @include truncate;
+  font-weight: $fw-medium;
 }
 
-.top__series {
+.top-workers__series {
   color: $text-muted;
-  font-size: $fs-xs;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: $fs-sm;
 }
 
-.top__total {
-  font-family: $font-display;
+.top-workers__total {
+  @include numeric;
   font-size: $fs-md;
-  font-weight: 600;
+  font-weight: $fw-semibold;
   text-align: right;
 }
 
 // The entry history lists one entry at a time, so its grade is a label rather
 // than a column — but the same colour as everywhere else.
-.entry-grade {
-  background: var(--grade-soft, #{rgba($navy-300, 0.16)});
-  border: 1px solid var(--grade-edge, #{$navy-400});
+.grade-badge {
+  background: var(--grade-soft, #{$accent-soft});
   border-radius: $radius-pill;
-  color: var(--grade-bright, #{$navy-200});
+  color: var(--grade-bright, #{$text-accent});
   display: inline-block;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 0.2rem 0.9rem;
-  text-transform: uppercase;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+  padding: $space-2xs $space-sm;
   white-space: nowrap;
-}
-
-.numeric {
-  text-align: right;
 }

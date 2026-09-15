@@ -23,8 +23,10 @@ body {
   background-color: $surface-page;
   color: $text-primary;
   font-family: $font-body;
+  font-feature-settings: 'cv05', 'cv08';
   font-size: $fs-base;
-  line-height: 1.55;
+  font-weight: $fw-regular;
+  line-height: $lh-body;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -32,15 +34,14 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: $font-display;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
+  font-weight: $fw-semibold;
+  letter-spacing: $ls-tight;
+  line-height: $lh-tight;
 }
 
-// Counts sit in columns, so their digits have to line up.
-.tabular {
-  font-variant-numeric: tabular-nums;
+:focus-visible {
+  outline: 0.2rem solid $accent;
+  outline-offset: 0.2rem;
 }
 
 ::-webkit-scrollbar {
@@ -49,15 +50,16 @@ h4 {
 }
 
 ::-webkit-scrollbar-track {
-  background: $surface-sunken;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: $border-strong;
-  border: 0.2rem solid $surface-sunken;
+  background: $border-default;
+  background-clip: padding-box;
+  border: 0.2rem solid transparent;
   border-radius: $radius-pill;
 
   &:hover {
-    background: $navy-400;
+    background: $border-strong;
   }
 }

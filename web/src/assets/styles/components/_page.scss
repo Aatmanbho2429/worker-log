@@ -1,0 +1,42 @@
+@use 'base/tokens' as *;
+
+// The header and body every signed-in screen composes its content inside.
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xl;
+  min-height: 100%;
+}
+
+// The shell's main region is what scrolls; nothing on the page may be
+// squeezed to make a tall screen fit. Given to a direct child only when a
+// screen actually needs it (a table that should not be squeezed, say).
+.page__section {
+  flex: 0 0 auto;
+}
+
+.page__head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-lg;
+  justify-content: space-between;
+}
+
+.page__title {
+  font-size: $fs-xl;
+  font-weight: $fw-semibold;
+}
+
+.page__subtitle {
+  color: $text-muted;
+  font-size: $fs-base;
+  margin-top: $space-xs;
+}
+
+.page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}

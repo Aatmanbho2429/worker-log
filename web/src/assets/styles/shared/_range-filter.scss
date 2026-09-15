@@ -1,0 +1,79 @@
+@use 'base/tokens' as *;
+
+// The period + series picker shared by the waste log, the month sheet and the
+// reports screen.
+
+.range-filter {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-lg;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.range-filter__presets {
+  display: flex;
+}
+
+.range-filter__preset {
+  background: $surface-card;
+  border: 1px solid $border-default;
+  color: $text-secondary;
+  cursor: pointer;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+  height: $control-h;
+  padding: 0 $space-lg;
+  transition:
+    background $duration-fast $ease-standard,
+    color $duration-fast $ease-standard,
+    border-color $duration-fast $ease-standard;
+
+  // Overlaps the shared border with its neighbour rather than doubling it.
+  & + & {
+    margin-left: -1px;
+  }
+
+  &--first {
+    border-radius: $radius-md 0 0 $radius-md;
+  }
+
+  &--last {
+    border-radius: 0 $radius-md $radius-md 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &--active {
+    background: $accent;
+    border-color: $accent;
+    color: $text-on-accent;
+  }
+}
+
+.range-filter__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.range-filter__field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.range-filter__label {
+  color: $text-secondary;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+}

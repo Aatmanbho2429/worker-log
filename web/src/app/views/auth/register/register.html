@@ -1,51 +1,51 @@
-<div class="auth">
-  <aside class="auth__brand">
-    <div class="auth__brand-head">
-      <div class="auth__mark"><i class="pi pi-shield"></i></div>
-      <div class="auth__wordmark">
-        <span class="auth__name">{{ 'common.brandName' | translate }}</span>
-        <span class="auth__tagline">{{ 'common.brandTagline' | translate }}</span>
+<div class="auth-layout">
+  <aside class="auth-layout__brand auth-brand">
+    <div class="auth-brand__head">
+      <div class="auth-brand__mark"><i class="auth-brand__mark-icon pi pi-shield"></i></div>
+      <div class="auth-brand__wordmark">
+        <span class="auth-brand__name">{{ 'common.brandName' | translate }}</span>
+        <span class="auth-brand__tagline">{{ 'common.brandTagline' | translate }}</span>
       </div>
     </div>
 
-    <h2 class="auth__pitch">{{ 'auth.register.pitch' | translate }}</h2>
+    <h2 class="auth-brand__pitch">{{ 'auth.register.pitch' | translate }}</h2>
 
-    <ul class="auth__points">
-      <li class="auth__point">
-        <i class="pi pi-desktop"></i>
-        <span>{{ 'auth.register.point1Title' | translate }}</span>
-        <p>{{ 'auth.register.point1Body' | translate }}</p>
+    <ul class="auth-brand__points">
+      <li class="auth-brand__point">
+        <i class="auth-brand__point-icon pi pi-desktop"></i>
+        <span class="auth-brand__point-title">{{ 'auth.register.point1Title' | translate }}</span>
+        <p class="auth-brand__point-text">{{ 'auth.register.point1Body' | translate }}</p>
       </li>
-      <li class="auth__point">
-        <i class="pi pi-bolt"></i>
-        <span>{{ 'auth.register.point2Title' | translate }}</span>
-        <p>{{ 'auth.register.point2Body' | translate }}</p>
+      <li class="auth-brand__point">
+        <i class="auth-brand__point-icon pi pi-bolt"></i>
+        <span class="auth-brand__point-title">{{ 'auth.register.point2Title' | translate }}</span>
+        <p class="auth-brand__point-text">{{ 'auth.register.point2Body' | translate }}</p>
       </li>
-      <li class="auth__point">
-        <i class="pi pi-database"></i>
-        <span>{{ 'auth.register.point3Title' | translate }}</span>
-        <p>{{ 'auth.register.point3Body' | translate }}</p>
+      <li class="auth-brand__point">
+        <i class="auth-brand__point-icon pi pi-database"></i>
+        <span class="auth-brand__point-title">{{ 'auth.register.point3Title' | translate }}</span>
+        <p class="auth-brand__point-text">{{ 'auth.register.point3Body' | translate }}</p>
       </li>
     </ul>
   </aside>
 
-  <div class="auth__pane">
+  <div class="auth-layout__pane">
     @if (step() === 'details') {
-      <form class="auth__card auth__card--wide" (ngSubmit)="requestCode()" novalidate>
-        <header class="auth__head">
-          <h1 class="auth__title">{{ 'auth.register.title' | translate }}</h1>
-          <p class="auth__subtitle">{{ 'auth.register.subtitle' | translate }}</p>
+      <form class="auth-card auth-card--wide" (ngSubmit)="requestCode()" novalidate>
+        <header class="auth-card__head">
+          <h1 class="auth-card__title">{{ 'auth.register.title' | translate }}</h1>
+          <p class="auth-card__subtitle">{{ 'auth.register.subtitle' | translate }}</p>
         </header>
 
-        <div class="auth__device">
-          <i class="pi pi-lock"></i>
-          <div>
-            <span class="auth__device-title">{{ 'auth.register.deviceTitle' | translate }}</span>
-            <p>{{ 'auth.register.deviceBody' | translate }}</p>
+        <div class="device-notice">
+          <i class="device-notice__icon pi pi-lock"></i>
+          <div class="device-notice__body">
+            <span class="device-notice__title">{{ 'auth.register.deviceTitle' | translate }}</span>
+            <p class="device-notice__text">{{ 'auth.register.deviceBody' | translate }}</p>
           </div>
         </div>
 
-        <div class="auth__grid">
+        <div class="auth-card__grid">
           <div class="field">
             <label class="field__label" for="first-name">{{
               'auth.fieldFirstName' | translate
@@ -131,7 +131,7 @@
             }
           </div>
 
-          <div class="field auth__span">
+          <div class="field auth-card__span">
             <label class="field__label" for="company">{{ 'auth.fieldCompany' | translate }}</label>
             <input
               pInputText
@@ -156,7 +156,8 @@
             <p-password
               inputId="password"
               autocomplete="new-password"
-              inputStyleClass="field__input--lg"
+              styleClass="field__password"
+              inputStyleClass="field__input field__input--lg"
               [placeholder]="'auth.placeholderPassword' | translate"
               [feedback]="false"
               [toggleMask]="true"
@@ -167,30 +168,36 @@
             />
 
             @if (form().password) {
-              <div [class]="'meter meter--' + scoreTone()">
-                @for (step of [1, 2, 3, 4]; track step) {
-                  <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
-                }
+              <div [class]="'password-meter password-meter--' + scoreTone()">
+                <div class="password-meter__steps">
+                  @for (step of [1, 2, 3, 4]; track step) {
+                    <span
+                      class="password-meter__step"
+                      [class.password-meter__step--on]="score() >= step"
+                    ></span>
+                  }
+                </div>
               </div>
             }
 
             @if (problem('password'); as message) {
               <span class="field__error">{{ message | translate }}</span>
             } @else if (form().password) {
-              <span class="meter__label">{{ scoreLabel() | translate }}</span>
+              <span class="password-meter__label">{{ scoreLabel() | translate }}</span>
             } @else {
               <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
             }
           </div>
 
-          <div class="field">
+          <div class="field field--flush">
             <label class="field__label" for="confirm-password">{{
               'auth.fieldConfirmPassword' | translate
             }}</label>
             <p-password
               inputId="confirm-password"
               autocomplete="new-password"
-              inputStyleClass="field__input--lg"
+              styleClass="field__password"
+              inputStyleClass="field__input field__input--lg"
               [placeholder]="'auth.placeholderConfirmPassword' | translate"
               [feedback]="false"
               [toggleMask]="true"
@@ -207,43 +214,39 @@
           </div>
         </div>
 
-        <div class="auth__actions">
+        <div class="auth-card__actions">
           <p-button
             type="submit"
             [label]="'auth.register.submit' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
-            styleClass="auth__submit"
+            styleClass="auth-card__submit"
             [loading]="saving()"
           />
         </div>
 
-        <p class="auth__foot">
+        <p class="auth-card__foot">
           {{ 'auth.register.footPrompt' | translate }}
-          <a class="auth__link" [routerLink]="ROUTE_LOGIN">{{
+          <a class="auth-card__link" [routerLink]="ROUTE_LOGIN">{{
             'auth.register.footLink' | translate
           }}</a>
         </p>
       </form>
     } @else if (step() === 'code') {
-      <form
-        class="auth__card auth__card--narrow auth__card--code"
-        (ngSubmit)="confirm()"
-        novalidate
-      >
-        <div class="auth__code-mark"><i class="pi pi-envelope"></i></div>
+      <form class="auth-card auth-card--narrow auth-card--code" (ngSubmit)="confirm()" novalidate>
+        <div class="auth-card__mark"><i class="auth-card__mark-icon pi pi-envelope"></i></div>
 
-        <header class="auth__head">
-          <h1 class="auth__title">{{ 'auth.register.codeTitle' | translate }}</h1>
-          <p class="auth__subtitle">
+        <header class="auth-card__head">
+          <h1 class="auth-card__title">{{ 'auth.register.codeTitle' | translate }}</h1>
+          <p class="auth-card__subtitle">
             {{ 'auth.register.codeSubtitle' | translate: { email: otpEmail() } }}
           </p>
         </header>
 
-        <div class="field auth__otp-field">
+        <div class="field otp-field">
           <label class="field__label" for="otp-code">{{ 'auth.fieldOtp' | translate }}</label>
           <p-inputotp
-            class="auth__otp"
+            styleClass="otp-field__input"
             inputId="otp-code"
             [length]="4"
             [integerOnly]="true"
@@ -261,47 +264,47 @@
           }
         </div>
 
-        <div class="auth__actions">
+        <div class="auth-card__actions">
           <p-button
             type="submit"
             [label]="'auth.register.codeSubmit' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
-            styleClass="auth__submit"
+            styleClass="auth-card__submit"
             [loading]="saving()"
           />
         </div>
 
-        <p class="auth__foot">
+        <p class="auth-card__foot">
           @if (cooldown() > 0) {
             {{ 'auth.register.resendIn' | translate: { seconds: cooldown() } }}
           } @else {
-            <button class="auth__link" type="button" (click)="resend()">
+            <button class="auth-card__link" type="button" (click)="resend()">
               {{ 'auth.register.resend' | translate }}
             </button>
           }
         </p>
       </form>
     } @else {
-      <div class="auth__card auth__card--narrow auth__card--code">
-        <div class="auth__code-mark auth__code-mark--success">
-          <i class="pi pi-check-circle"></i>
+      <div class="auth-card auth-card--narrow auth-card--code">
+        <div class="auth-card__mark auth-card__mark--success">
+          <i class="auth-card__mark-icon pi pi-check-circle"></i>
         </div>
 
-        <header class="auth__head">
-          <h1 class="auth__title">{{ 'auth.register.successTitle' | translate }}</h1>
-          <p class="auth__subtitle">
+        <header class="auth-card__head">
+          <h1 class="auth-card__title">{{ 'auth.register.successTitle' | translate }}</h1>
+          <p class="auth-card__subtitle">
             {{ 'auth.register.successBody' | translate: { name: firstName() } }}
           </p>
         </header>
 
-        <div class="auth__actions">
+        <div class="auth-card__actions">
           <p-button
             type="button"
             [label]="'auth.register.successCta' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
-            styleClass="auth__submit"
+            styleClass="auth-card__submit"
             (onClick)="goToLogin()"
           />
         </div>

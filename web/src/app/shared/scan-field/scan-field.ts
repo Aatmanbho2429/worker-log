@@ -40,7 +40,6 @@ const CODE_LENGTH = 12;
   selector: 'app-scan-field',
   imports: [PrimengComponentsModule],
   templateUrl: './scan-field.html',
-  styleUrl: './scan-field.scss',
 })
 export class ScanField {
   private readonly barcode = inject(BarcodeService);

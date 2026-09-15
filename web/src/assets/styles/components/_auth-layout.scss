@@ -1,0 +1,39 @@
+@use 'base/tokens' as *;
+
+// The chrome the sign-in and register pages share: a fixed brand panel that
+// says what the app is, and a scrolling pane holding the form.
+//
+// These two screens sit outside the shell — there is no sidebar to navigate to
+// before you are signed in — so they own the whole window and their own
+// scrolling. `html, body` are `overflow: hidden`, so the pane, not the page, is
+// what moves.
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: 44rem 1fr;
+  height: 100vh;
+}
+
+.auth-layout__pane {
+  align-items: center;
+  background: $surface-page;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  padding: $space-2xl;
+}
+
+@media (max-width: 900px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-layout__brand {
+    display: none;
+  }
+
+  .auth-layout__pane {
+    align-items: flex-start;
+    padding: $space-lg;
+  }
+}

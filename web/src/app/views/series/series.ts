@@ -9,15 +9,17 @@ import { NotifyService } from '../../core/notify.service';
 import { SeriesService } from '../../services/series/series.service';
 import { SeriesOfProduct } from '../../models';
 import { affects } from '../../models/events';
+import { DIALOG_WIDTH } from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 @Component({
   selector: 'app-series',
   imports: [PrimengComponentsModule, FormsModule],
   templateUrl: './series.html',
-  styleUrl: './series.scss',
 })
 export class Series {
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
+
   private readonly series = inject(SeriesService);
   private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);

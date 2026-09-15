@@ -1,15 +1,15 @@
-<section class="page scan">
+<section class="page scan-page">
   <!-- Everything that moves, and every control, above the grid: the grid is
        the only thing that scrolls, so feedback the operator has scrolled past
        is no feedback at all. -->
-  <header class="scan__bar">
-    <div class="scan__status" [class.scan__status--problem]="problem()">
+  <header class="scan-page__bar">
+    <div class="scan-status" [class.scan-status--problem]="problem()">
       @if (problem(); as issue) {
-        <div class="scan__state scan__state--problem">
-          <i class="pi pi-exclamation-triangle"></i>
-          <div>
-            <span class="scan__state-label">{{ 'barcodes.notRecorded' | translate }}</span>
-            <strong>{{ issue }}</strong>
+        <div class="scan-status__state scan-status__state--problem">
+          <i class="scan-status__state-icon pi pi-exclamation-triangle"></i>
+          <div class="scan-status__state-body">
+            <span class="scan-status__state-label">{{ 'barcodes.notRecorded' | translate }}</span>
+            <strong class="scan-status__state-value">{{ issue }}</strong>
           </div>
           <p-button
             severity="secondary"
@@ -20,46 +20,48 @@
           />
         </div>
       } @else if (recent()[0]; as last) {
-        <div class="scan__state scan__state--ok">
-          <i class="pi pi-check-circle"></i>
-          <div>
-            <span class="scan__state-label">{{
+        <div class="scan-status__state scan-status__state--ok">
+          <i class="scan-status__state-icon pi pi-check-circle"></i>
+          <div class="scan-status__state-body">
+            <span class="scan-status__state-label">{{
               'barcodes.recordedLabel' | translate: { count: scannedTotal() }
             }}</span>
-            <strong>
+            <strong class="scan-status__state-value">
               {{ last.worker }}
-              <span class="scan__state-grade" [class]="last.tone">
+              <span class="scan-status__state-grade" [class]="last.tone">
                 {{ last.reason }} · {{ last.grade }}
               </span>
             </strong>
           </div>
         </div>
       } @else {
-        <div class="scan__state">
-          <i class="pi pi-qrcode"></i>
-          <div>
-            <span class="scan__state-label">{{ 'barcodes.ready' | translate }}</span>
-            <strong>{{ 'barcodes.scanPrompt' | translate }}</strong>
+        <div class="scan-status__state">
+          <i class="scan-status__state-icon pi pi-qrcode"></i>
+          <div class="scan-status__state-body">
+            <span class="scan-status__state-label">{{ 'barcodes.ready' | translate }}</span>
+            <strong class="scan-status__state-value">{{
+              'barcodes.scanPrompt' | translate
+            }}</strong>
           </div>
         </div>
       }
 
-      <!-- <div class="scan__recent">
+      <!-- <div class="scan-status__recent">
         @for (entry of recent(); track $index) {
-          <div class="scan__recent-row" [class]="entry.tone">
-            <span class="scan__recent-time tabular">{{ entry.at }}</span>
-            <span class="scan__recent-worker">{{ entry.worker }}</span>
-            <span class="scan__recent-reason">{{ entry.reason }}</span>
-            <span class="scan__recent-grade">{{ entry.grade }}</span>
+          <div class="scan-status__recent-row" [class]="entry.tone">
+            <span class="scan-status__recent-time">{{ entry.at }}</span>
+            <span class="scan-status__recent-worker">{{ entry.worker }}</span>
+            <span class="scan-status__recent-reason">{{ entry.reason }}</span>
+            <span class="scan-status__recent-grade">{{ entry.grade }}</span>
           </div>
         } @empty {
-          <p class="scan__recent-empty">Entries recorded by the reader appear here.</p>
+          <p class="scan-status__recent-empty">Entries recorded by the reader appear here.</p>
         }
       </div> -->
 
-      <div class="scan__tools">
+      <div class="scan-page__tools">
         <select
-          class="scan__select"
+          class="scan-page__select"
           [attr.aria-label]="'rangeFilter.series' | translate"
           [ngModel]="seriesId()"
           (ngModelChange)="onSeriesChange($event)"
@@ -72,7 +74,7 @@
 
         <input
           type="search"
-          class="scan__search"
+          class="scan-page__search"
           [placeholder]="'waste.findWorker' | translate"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
@@ -90,7 +92,7 @@
       </div>
     </div>
 
-    <div class="scan__box">
+    <div class="scan-page__box">
       <app-scan-field
         [showResult]="false"
         (recorded)="onRecorded($event)"
@@ -101,12 +103,12 @@
     @if (groups().length > 1) {
       <!-- Jump links, not tabs: nothing is hidden, this only saves dragging
            across a grid wider than the screen. -->
-      <nav class="jumps" [attr.aria-label]="'barcodes.jumpNav' | translate">
-        <span class="jumps__label">{{
+      <nav class="jump-links" [attr.aria-label]="'barcodes.jumpNav' | translate">
+        <span class="jump-links__label">{{
           'barcodes.barcodeCountLabel' | translate: { count: barcodeCount() }
         }}</span>
         @for (group of groups(); track group.reasonId) {
-          <button type="button" class="jumps__chip" (click)="jumpTo(group.reasonId)">
+          <button type="button" class="jump-links__chip" (click)="jumpTo(group.reasonId)">
             {{ group.reasonName }}
           </button>
         }
@@ -115,38 +117,44 @@
   </header>
 
   @if (loading()) {
-    <p class="scan__empty">{{ 'barcodes.buildingSheet' | translate }}</p>
+    <p class="scan-page__empty">{{ 'barcodes.buildingSheet' | translate }}</p>
   } @else if (!rows().length) {
-    <p class="scan__empty">
+    <p class="scan-page__empty">
       {{ (search() ? 'barcodes.noMatchWorkers' : 'barcodes.noWorkersToShow') | translate }}
     </p>
   } @else {
     <!-- The paper register's own shape: workers down the left, a column per
          grade under each reason across the top, a barcode where they meet. -->
-    <div class="matrix">
-      <table class="grid" [style.--grid-columns]="columns().length">
+    <div class="scan-matrix">
+      <table class="scan-matrix__table" [style.--grid-columns]="columns().length">
         <!-- The column widths are declared here rather than on the cells: the
              identity columns are pinned by a `left` offset built from those
              same widths, and under a table's default auto layout the browser
              is free to render something else, which slides the pinned columns
              off the ones they are meant to cover. -->
         <colgroup>
-          <col class="col col--sr" />
-          <col class="col col--worker" />
-          <col class="col col--series" />
+          <col class="scan-matrix__col scan-matrix__col--sr" />
+          <col class="scan-matrix__col scan-matrix__col--worker" />
+          <col class="scan-matrix__col scan-matrix__col--series" />
           @for (column of columns(); track $index) {
-            <col class="col col--cell" />
+            <col class="scan-matrix__col scan-matrix__col--cell" />
           }
         </colgroup>
 
         <thead>
           <tr>
-            <th class="grid__sr" rowspan="2">{{ 'common.sr' | translate }}</th>
-            <th class="grid__worker" rowspan="2">{{ 'sheet.worker' | translate }}</th>
-            <th class="grid__series" rowspan="2">{{ 'sheet.itemSeries' | translate }}</th>
+            <th class="scan-matrix__sr scan-matrix__sr--head" rowspan="2">
+              {{ 'common.sr' | translate }}
+            </th>
+            <th class="scan-matrix__worker scan-matrix__worker--head" rowspan="2">
+              {{ 'sheet.worker' | translate }}
+            </th>
+            <th class="scan-matrix__series scan-matrix__series--head" rowspan="2">
+              {{ 'sheet.itemSeries' | translate }}
+            </th>
             @for (group of groups(); track group.reasonId) {
               <th
-                class="grid__group"
+                class="scan-matrix__group"
                 [id]="'reason-' + group.reasonId"
                 [attr.colspan]="grades().length"
               >
@@ -156,38 +164,38 @@
           </tr>
           <tr>
             @for (column of columns(); track $index) {
-              <th class="grid__gradehead" [class]="column.tone">{{ column.gradeName }}</th>
+              <th class="scan-matrix__grade-head" [class]="column.tone">{{ column.gradeName }}</th>
             }
           </tr>
         </thead>
 
         <tbody>
           @for (row of rows(); track row.workerId; let i = $index) {
-            <tr>
-              <td class="grid__sr tabular">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</td>
-              <td class="grid__worker">{{ row.name }}</td>
-              <td class="grid__series">{{ row.seriesName }}</td>
+            <tr class="scan-matrix__row">
+              <td class="scan-matrix__sr">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</td>
+              <td class="scan-matrix__worker">{{ row.name }}</td>
+              <td class="scan-matrix__series">{{ row.seriesName }}</td>
 
               @for (cell of row.cells; track $index) {
-                <td class="grid__cell" [class]="cell.tone">
+                <td class="scan-matrix__cell" [class]="cell.tone">
                   @if (cell.code) {
-                    <figure class="tile">
+                    <figure class="barcode-tile">
                       <svg
-                        class="tile__bars"
+                        class="barcode-tile__bars"
                         [attr.viewBox]="'0 0 ' + barcodeWidth + ' ' + barcodeHeight"
                         [attr.width]="barcodeWidth"
                         [attr.height]="barcodeHeight"
                         role="img"
                         [attr.aria-label]="row.name + ', ' + cell.gradeName"
                       >
-                        <rect class="tile__quiet" width="100%" height="100%" />
-                        <path class="tile__bar" [attr.d]="cell.path" />
+                        <rect class="barcode-tile__quiet" width="100%" height="100%" />
+                        <path class="barcode-tile__bar" [attr.d]="cell.path" />
                       </svg>
-                      <figcaption class="tile__caption">
-                        <span class="tile__code tabular">{{ cell.code }}</span>
+                      <figcaption class="barcode-tile__caption">
+                        <span class="barcode-tile__code">{{ cell.code }}</span>
                         <span
-                          class="tile__count tabular"
-                          [class.tile__count--on]="scanned(row.workerId, cell)"
+                          class="barcode-tile__count"
+                          [class.barcode-tile__count--on]="scanned(row.workerId, cell)"
                         >
                           {{ scanned(row.workerId, cell) }}
                         </span>

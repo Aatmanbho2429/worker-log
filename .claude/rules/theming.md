@@ -8,10 +8,6 @@ paths:
 
 # Colour and theme
 
-> Pending: the palette below is being introduced by
-> `.claude/plans/theme-refresh.md`. Until it ships, the code still has the
-> navy palette. Delete this line once it does.
-
 Type, spacing, sizes, BEM and where CSS files live are in
 `ui-design-system.md`.
 

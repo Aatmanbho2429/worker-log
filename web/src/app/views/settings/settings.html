@@ -6,15 +6,15 @@
     </div>
   </header>
 
-  <div class="card card--pad">
+  <div class="card card--padded">
     <h2 class="card__title settings__heading">{{ 'settings.application' | translate }}</h2>
 
     <dl class="settings__facts">
-      <dt>{{ 'settings.version' | translate }}</dt>
-      <dd class="tabular">{{ info()?.version ?? '—' }}</dd>
+      <dt class="settings__fact-term">{{ 'settings.version' | translate }}</dt>
+      <dd class="settings__fact-value">{{ info()?.version ?? '—' }}</dd>
 
-      <dt>{{ 'settings.databaseFile' | translate }}</dt>
-      <dd class="settings__path">{{ info()?.databasePath ?? '—' }}</dd>
+      <dt class="settings__fact-term">{{ 'settings.databaseFile' | translate }}</dt>
+      <dd class="settings__fact-value settings__path">{{ info()?.databasePath ?? '—' }}</dd>
     </dl>
 
     <p class="settings__note">{{ 'settings.note' | translate }}</p>

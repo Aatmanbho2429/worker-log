@@ -8,10 +8,6 @@ paths:
 
 # UI design system
 
-> Pending: introduced by `.claude/plans/theme-refresh.md`. Until that plan
-> ships, some tokens, mixins, partials and classes named here do not exist
-> yet. Delete this line once it does.
-
 The look: calm, modern, **medium-toned** industrial.
 
 - A soft grey page with white cards.

@@ -1,0 +1,29 @@
+@use 'base/tokens' as *;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  margin-bottom: $space-lg;
+}
+
+.field--flush {
+  margin-bottom: 0;
+}
+
+.field__label {
+  color: $text-secondary;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+}
+
+.field__hint {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.field__error {
+  color: $danger-text;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+}

@@ -45,9 +45,8 @@ A grade is one thing appearing in four places, and adding one fills all four in:
 a button in every worker's row on the waste screen, a column under every reason
 on the month sheet and in both exports, a barcode per worker and reason on the
 scanning sheet, and a tone in the palette so it is told apart by colour and not
-only by name. The first grade is the app's navy and the second the red that says
-scrap, so the two that ship keep exactly the colours the floor already reads
-them by.
+only by name. The first grade is blue and the second the red that says scrap,
+so the two that ship keep exactly the colours the floor already reads them by.
 
 Screens read the grade list rather than assuming two, so nothing needs a code
 change to follow. What does move is how much fits on a page: an extra grade is
@@ -382,24 +381,26 @@ has to carry Gujarati names.
 
 ## Theming
 
-The app ships light. Every colour it paints with is a CSS custom property
-declared in **`web/src/assets/styles/base/_theme.scss`**, so re-theming the
-whole application means editing that one file — nothing else in the code base
-names a surface, a text colour or a border directly.
+The app ships **medium-toned**: a soft grey page with white cards, a medium
+slate sidebar and register header bands, dark grey text rather than black, and
+blue for anything interactive or selected. Every colour it paints with is a
+CSS custom property declared in **`web/src/assets/styles/base/_theme.scss`**,
+so re-theming the whole application means editing that one file — nothing else
+in the code base names a surface, a text colour or a border directly.
 
 ```
-_tokens.scss   the palette (navy, ink, red …) and the Sass aliases
+_tokens.scss   the palette (blue, gray, slate …) and the Sass aliases
 _theme.scss    :root  -> the light theme that ships
-               .app-dark -> the dark one
+               .app-dark -> the dim one
 ```
 
 `_tokens.scss` aliases each Sass name to its variable — `$surface-card` *is*
 `var(--surface-card)` — which is what let the theme become swappable without
 every rule in the app spelling out `var(...)`. It holds no CSS rules of its own,
-deliberately: every component stylesheet `@use`s it, so anything emitted there
-would be stamped out again in each of them.
+deliberately: every SCSS partial `@use`s it, so anything emitted there would be
+stamped out again in each of them.
 
-To switch to dark, add `class="app-dark"` to `<html>` in `web/src/index.html`.
+To switch to dim, add `class="app-dark"` to `<html>` in `web/src/index.html`.
 That one class drives both the app's own tokens and PrimeNG's dark colour scheme
 (`darkModeSelector` in `app.config.ts`), so the components and the page chrome
 always agree. To add a third theme, copy one of the two blocks and change the
@@ -408,12 +409,13 @@ values.
 Three things deliberately ignore the theme, because they are not page chrome:
 the **barcode tiles**, which stay dark bars on white since inverted barcodes
 read poorly on cheap laser readers and not at all on some; the **header bands**
-on the sheets and tables, which keep the brand navy so a sheet reads as the
-register it replaces rather than as a spreadsheet; and the **grade colours**,
-which are saturated fills that carry white text either way. Grade colours do
+on the sheets and tables, which keep a medium slate in both schemes so a sheet
+reads as the register it replaces rather than as a spreadsheet; and the **grade
+colours**, which are saturated fills that carry white text either way (the
+first grade stays blue, the second the red that says scrap). Grade colours do
 carry a light and a dark variant for text *drawn in* the grade's colour, since a
 pale tint legible on the dark theme is invisible on the light one — see
-`_grades.scss`.
+`components/_grade-tone.scss`.
 
 Since a Sass alias holds a `var()` reference rather than a colour, Sass colour
 functions (`rgba()`, `darken()`, …) cannot be applied to them. Reach for a
@@ -422,7 +424,10 @@ palette variable, or one of the `--wash-*` tokens, instead.
 ## Tech
 
 Tauri 2 for the shell, IPC and installers. Angular 21 standalone components
-with signals, on a PrimeNG 21 Aura preset in navy with red reserved for danger
-states and the scrap grade; Oswald and Inter are self-hosted so the app keeps
-its typography offline. Rust with rusqlite (bundled SQLite) and chrono, behind
-a single guarded connection — which suits one terminal on one shop floor.
+with signals, on a PrimeNG 21 Aura preset in blue/grey/slate with red reserved
+for danger states and the scrap grade; Inter Variable is self-hosted (via
+`@fontsource-variable/inter`) so the app keeps its typography offline. All
+custom CSS lives in BEM partials under `web/src/assets/styles/` — no component
+carries a stylesheet of its own. Rust with rusqlite (bundled SQLite) and
+chrono, behind a single guarded connection — which suits one terminal on one
+shop floor.

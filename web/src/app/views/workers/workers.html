@@ -11,8 +11,8 @@
 
   <div class="card">
     <div class="card__head">
-      <div class="master__toolbar">
-        <div class="master__filters">
+      <div class="master-toolbar">
+        <div class="master-toolbar__filters">
           <p-iconfield>
             <p-inputicon class="pi pi-search" />
             <input
@@ -33,32 +33,38 @@
             appendTo="body"
           />
         </div>
-        <span class="master__count">{{
+        <span class="master-toolbar__count">{{
           'common.countOf' | translate: { count: filtered().length, total: items().length }
         }}</span>
       </div>
     </div>
 
     @if (loading()) {
-      <div class="skeletons">
+      <div class="skeleton-list">
         @for (row of [1, 2, 3, 4, 5]; track row) {
           <p-skeleton height="3.6rem" borderRadius="4px" />
         }
       </div>
     } @else if (!filtered().length) {
-      <div class="empty">
-        <i class="pi pi-users"></i>
-        <span class="empty__title">
-          {{ (search() || seriesFilter() ? 'common.noMatch' : 'workers.noWorkersTitle') | translate }}
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-users"></i>
+        <span class="empty-state__title">
+          {{
+            (search() || seriesFilter() ? 'common.noMatch' : 'workers.noWorkersTitle') | translate
+          }}
         </span>
-        <p>
+        <p class="empty-state__text">
           {{
             (search() || seriesFilter() ? 'workers.noMatchBody' : 'workers.noWorkersBody')
               | translate
           }}
         </p>
         @if (!search() && !seriesFilter()) {
-          <p-button icon="pi pi-plus" [label]="'workers.addWorker' | translate" (onClick)="openNew()" />
+          <p-button
+            icon="pi pi-plus"
+            [label]="'workers.addWorker' | translate"
+            (onClick)="openNew()"
+          />
         }
       </div>
     } @else {
@@ -66,32 +72,32 @@
         [value]="filtered()"
         [paginator]="filtered().length > 15"
         [rows]="15"
-        styleClass="p-datatable-sm"
+        styleClass="data-table"
       >
         <ng-template #header>
           <tr>
-            <th class="master__sr">{{ 'common.sr' | translate }}</th>
+            <th class="data-table__cell--index">{{ 'common.sr' | translate }}</th>
             <th>{{ 'common.name' | translate }}</th>
             <th>{{ 'auth.fieldPhone' | translate }}</th>
             <th>{{ 'series.title' | translate }}</th>
-            <th style="width: 10rem"></th>
+            <th class="data-table__cell data-table__cell--actions"></th>
           </tr>
         </ng-template>
 
         <ng-template #body let-worker let-i="rowIndex">
           <tr>
-            <td class="master__sr tabular">{{ i + 1 }}</td>
-            <td class="master__name">{{ workerFullName(worker) }}</td>
-            <td class="worker__phone">
+            <td class="data-table__cell--index">{{ i + 1 }}</td>
+            <td class="data-table__name">{{ workerFullName(worker) }}</td>
+            <td class="data-table__cell--phone">
               @if (worker.phone) {
                 {{ worker.phone }}
               } @else {
-                <span class="master__na">{{ 'workers.notGiven' | translate }}</span>
+                <span class="data-table__empty-value">{{ 'workers.notGiven' | translate }}</span>
               }
             </td>
             <td><p-tag [value]="worker.seriesName" severity="secondary" /></td>
             <td>
-              <div class="master__actions">
+              <div class="data-table__actions">
                 <p-button
                   icon="pi pi-pencil"
                   severity="secondary"
@@ -122,10 +128,10 @@
   (visibleChange)="dialogOpen.set($event)"
   [modal]="true"
   [draggable]="false"
-  [style]="{ width: '40rem' }"
+  [style]="{ width: DIALOG_WIDTH.formWide }"
   [header]="(editing() ? 'workers.editHeader' : 'workers.addWorker') | translate"
 >
-  <div class="form__grid">
+  <div class="worker-form__grid">
     <div class="field">
       <label class="field__label" for="first-name">{{ 'auth.fieldFirstName' | translate }}</label>
       <input
@@ -154,7 +160,7 @@
       }
     </div>
 
-    <div class="field form__span">
+    <div class="field worker-form__span">
       <label class="field__label" for="phone">{{ 'auth.fieldPhone' | translate }}</label>
       <input
         pInputText
@@ -168,7 +174,7 @@
       <span class="field__hint">{{ 'workers.phoneHint' | translate }}</span>
     </div>
 
-    <div class="field form__span">
+    <div class="field worker-form__span">
       <label class="field__label" for="worker-series">{{ 'series.title' | translate }}</label>
       <p-select
         inputId="worker-series"
@@ -187,7 +193,7 @@
   </div>
 
   <ng-template #footer>
-    <div class="dialog__footer">
+    <div class="dialog-footer">
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"

@@ -1,0 +1,93 @@
+@use 'base/tokens' as *;
+
+// The panel that says what the app is, mixed onto `.auth-layout__brand`
+// (`class="auth-layout__brand auth-brand"`): the parent class positions it,
+// this one styles its look.
+
+.auth-brand {
+  align-items: center;
+  background: $sidebar-bg;
+  color: $sidebar-text;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xl;
+  justify-content: center;
+  padding: $space-3xl;
+}
+
+.auth-brand__head {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+}
+
+.auth-brand__mark {
+  align-items: center;
+  background: $accent;
+  border-radius: $radius-md;
+  display: flex;
+  height: 4rem;
+  justify-content: center;
+  width: 4rem;
+}
+
+.auth-brand__mark-icon {
+  color: $text-on-accent;
+  font-size: $icon-lg;
+}
+
+.auth-brand__wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: $lh-tight;
+}
+
+.auth-brand__name {
+  color: $sidebar-active-text;
+  font-size: $fs-md;
+  font-weight: $fw-semibold;
+}
+
+.auth-brand__tagline {
+  color: $sidebar-text-muted;
+  font-size: $fs-sm;
+}
+
+.auth-brand__pitch {
+  color: $sidebar-active-text;
+  font-size: $fs-2xl;
+  font-weight: $fw-semibold;
+  letter-spacing: $ls-tight;
+  line-height: $lh-tight;
+  max-width: 18ch;
+}
+
+.auth-brand__points {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  list-style: none;
+}
+
+.auth-brand__point {
+  display: grid;
+  font-size: $fs-base;
+  gap: 0 $space-md;
+  grid-template-columns: 2.4rem 1fr;
+}
+
+.auth-brand__point-icon {
+  color: $sidebar-indicator;
+  font-size: $icon-lg;
+}
+
+.auth-brand__point-title {
+  color: $sidebar-active-text;
+  font-weight: $fw-semibold;
+}
+
+.auth-brand__point-text {
+  color: $sidebar-text-muted;
+  font-size: $fs-sm;
+  grid-column: 2;
+}

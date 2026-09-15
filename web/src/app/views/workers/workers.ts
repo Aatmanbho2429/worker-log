@@ -10,6 +10,7 @@ import { SeriesService } from '../../services/series/series.service';
 import { WorkerService } from '../../services/worker/worker.service';
 import { SeriesOfProduct, Worker, WorkerPayload, workerFullName } from '../../models';
 import { affects } from '../../models/events';
+import { DIALOG_WIDTH } from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 interface FormState {
@@ -25,9 +26,10 @@ const EMPTY_FORM: FormState = { firstName: '', lastName: '', phone: '', seriesOf
   selector: 'app-workers',
   imports: [PrimengComponentsModule, FormsModule],
   templateUrl: './workers.html',
-  styleUrl: './workers.scss',
 })
 export class Workers {
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
+
   private readonly worker = inject(WorkerService);
   private readonly seriesApi = inject(SeriesService);
   private readonly dataChanges = inject(DataChangesService);
@@ -203,10 +205,7 @@ export class Workers {
   private async load(): Promise<void> {
     this.loading.set(true);
 
-    const [series, workers] = await Promise.allSettled([
-      this.seriesApi.list(),
-      this.worker.list(),
-    ]);
+    const [series, workers] = await Promise.allSettled([this.seriesApi.list(), this.worker.list()]);
 
     if (series.status === 'fulfilled') {
       this.series.set(series.value);

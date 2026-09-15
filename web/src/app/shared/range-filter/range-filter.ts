@@ -15,7 +15,6 @@ type Preset = 'today' | 'thisMonth' | 'lastMonth';
   selector: 'app-range-filter',
   imports: [PrimengComponentsModule],
   templateUrl: './range-filter.html',
-  styleUrl: './range-filter.scss',
 })
 export class RangeFilterBar {
   private readonly translate = inject(TranslateService);

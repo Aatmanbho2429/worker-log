@@ -138,9 +138,12 @@ until its refresh token next meets a device check. Known and accepted, not
 built around.
 
 The dialog itself lives in `views/auth/login/login.ts` / `.html`, sharing its
-OTP input styling (`.auth__otp-field`, `.auth__otp`) with the register
-screen's code step — both now pull those classes from the shared
-`assets/styles/components/_auth.scss` rather than each having its own copy.
+OTP input styling (`.otp-field`, `.otp-field__input`) with the register
+screen's code step — both pull those classes from the shared
+`assets/styles/components/_otp-field.scss` (plus `_password-meter.scss` for
+the strength meter and the `_auth-card.scss` / `_auth-layout.scss` /
+`_auth-brand.scss` partials for the surrounding chrome) rather than each
+having its own copy.
 
 ## Email
 

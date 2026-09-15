@@ -1,0 +1,37 @@
+@use 'base/tokens' as *;
+
+.reason-list {
+  list-style: none;
+}
+
+.reason-list__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-md;
+  grid-template-columns: 3rem 1fr auto auto;
+  padding: $space-md $space-xl;
+
+  &:hover {
+    background: $wash-hover;
+  }
+
+  &--last {
+    border-bottom: none;
+  }
+}
+
+.reason-list__pos {
+  @include numeric;
+  color: $text-faint;
+  font-size: $fs-base;
+}
+
+.reason-list__name {
+  font-size: $fs-base;
+  font-weight: $fw-medium;
+}
+
+.reason-list__order {
+  display: flex;
+}

@@ -17,7 +17,6 @@ import { SettingsService } from '../../services/settings/settings.service';
   selector: 'app-settings',
   imports: [PrimengComponentsModule],
   templateUrl: './settings.html',
-  styleUrl: './settings.scss',
 })
 export class Settings {
   private readonly settingsApi = inject(SettingsService);

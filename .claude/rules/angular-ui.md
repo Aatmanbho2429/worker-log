@@ -12,9 +12,6 @@ will do. PrimeNG 21 on the Aura preset.
 
 ## No component stylesheets
 
-> Pending: `.claude/plans/theme-refresh.md` is removing the existing
-> `styleUrl`s. Delete this line once it ships.
-
 Components carry no CSS: no `styleUrl`, no `styles`, no `.scss` beside the
 component, no `:host` or `::ng-deep`. Custom CSS goes in a BEM partial under
 `web/src/assets/styles/` (`components/`, `shared/` or `views/`), registered in

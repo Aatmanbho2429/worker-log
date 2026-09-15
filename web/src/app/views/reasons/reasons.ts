@@ -9,6 +9,7 @@ import { NotifyService } from '../../core/notify.service';
 import { ReasonService } from '../../services/reason/reason.service';
 import { Reason } from '../../models';
 import { affects } from '../../models/events';
+import { DIALOG_WIDTH } from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 /**
@@ -19,7 +20,6 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   selector: 'app-reasons',
   imports: [PrimengComponentsModule, FormsModule],
   templateUrl: './reasons.html',
-  styleUrl: './reasons.scss',
 })
 export class Reasons {
   private readonly reason = inject(ReasonService);
@@ -28,6 +28,8 @@ export class Reasons {
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translate = inject(TranslateService);
+
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
 
   protected readonly items = signal<Reason[]>([]);
   protected readonly loading = signal(true);
@@ -130,7 +132,9 @@ export class Reasons {
       accept: async () => {
         try {
           await this.reason.delete(reason.id);
-          this.notify.success(this.translate.instant('common.deletedSuccess', { name: reason.name }));
+          this.notify.success(
+            this.translate.instant('common.deletedSuccess', { name: reason.name }),
+          );
           await this.load();
         } catch (error) {
           this.notify.fromCommand(error, this.translate.instant('reasons.deleteFailed'));

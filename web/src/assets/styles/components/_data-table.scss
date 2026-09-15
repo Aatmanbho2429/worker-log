@@ -1,0 +1,45 @@
+@use 'base/tokens' as *;
+
+// Cell modifiers for `p-table styleClass="data-table"` — the light-header
+// PrimeNG preset carries the table look itself (`app/theme.ts`); this is only
+// the per-column treatment a screen's template opts into.
+
+.data-table__cell--index {
+  @include numeric;
+  color: $text-faint;
+  width: 5.6rem;
+}
+
+.data-table__cell--meta {
+  font-size: $fs-sm;
+}
+
+.data-table__cell--numeric {
+  @include numeric;
+  text-align: right;
+}
+
+// A worker's phone number: digits that should line up, but read left to
+// right like the rest of the row rather than as a total.
+.data-table__cell--phone {
+  @include numeric;
+  text-align: left;
+}
+
+.data-table__cell--actions {
+  width: 10rem;
+}
+
+.data-table__name {
+  font-weight: $fw-medium;
+}
+
+.data-table__empty-value {
+  color: $text-faint;
+}
+
+.data-table__actions {
+  display: flex;
+  gap: $space-2xs;
+  justify-content: flex-end;
+}

@@ -9,18 +9,16 @@
   gap: $space-sm $space-lg;
   grid-template-columns: max-content 1fr;
   margin-bottom: $space-md;
+}
 
-  dt {
-    color: $text-muted;
-    font-size: $fs-xs;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
+.settings__fact-term {
+  color: $text-muted;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+}
 
-  dd {
-    color: $text-primary;
-  }
+.settings__fact-value {
+  color: $text-primary;
 }
 
 .settings__path {
@@ -44,14 +42,14 @@
 
 .settings__warning {
   align-items: flex-start;
-  color: $amber-400;
+  color: $warning-text;
   display: flex;
   font-size: $fs-sm;
   gap: $space-sm;
   margin-top: $space-lg;
   max-width: 70ch;
+}
 
-  i {
-    margin-top: 0.2rem;
-  }
+.settings__warning-icon {
+  margin-top: 0.2rem;
 }

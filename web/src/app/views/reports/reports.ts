@@ -39,7 +39,6 @@ interface ReasonBreakdown {
   selector: 'app-reports',
   imports: [PrimengComponentsModule, RangeFilterBar],
   templateUrl: './reports.html',
-  styleUrl: './reports.scss',
 })
 export class Reports {
   private readonly waste = inject(WasteService);
@@ -182,10 +181,7 @@ export class Reports {
     if (entries.status === 'fulfilled') {
       this.entries.set(entries.value);
     } else {
-      this.notify.fromCommand(
-        entries.reason,
-        this.translate.instant('reports.historyFailed'),
-      );
+      this.notify.fromCommand(entries.reason, this.translate.instant('reports.historyFailed'));
     }
 
     this.loading.set(false);

@@ -10,6 +10,7 @@ import { NotifyService } from '../../core/notify.service';
 import { GradeService } from '../../services/grade/grade.service';
 import { Grade } from '../../models';
 import { affects } from '../../models/events';
+import { DIALOG_WIDTH } from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 
 /**
@@ -25,12 +26,12 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
   selector: 'app-grades',
   imports: [PrimengComponentsModule, FormsModule],
   templateUrl: './grades.html',
-  styleUrl: './grades.scss',
 })
 export class Grades {
   private readonly grade = inject(GradeService);
   private readonly dataChanges = inject(DataChangesService);
   private readonly notify = inject(NotifyService);
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
   private readonly confirm = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translate = inject(TranslateService);
@@ -138,7 +139,9 @@ export class Grades {
       accept: async () => {
         try {
           await this.grade.delete(grade.id);
-          this.notify.success(this.translate.instant('common.deletedSuccess', { name: grade.name }));
+          this.notify.success(
+            this.translate.instant('common.deletedSuccess', { name: grade.name }),
+          );
           await this.load();
         } catch (error) {
           this.notify.fromCommand(error, this.translate.instant('grades.deleteFailed'));

@@ -1,4 +1,6 @@
-:host {
+@use 'base/tokens' as *;
+
+.app {
   display: block;
   height: 100%;
 }

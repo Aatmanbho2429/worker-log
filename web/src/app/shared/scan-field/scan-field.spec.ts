@@ -140,7 +140,10 @@ describe('ScanField', () => {
   });
 
   it('leaves a rejected code reported and the box ready for the next one', async () => {
-    recordScan.mockRejectedValue({ kind: 'notFound', message: 'That barcode is not on the sheet.' });
+    recordScan.mockRejectedValue({
+      kind: 'notFound',
+      message: 'That barcode is not on the sheet.',
+    });
 
     type('399999000444');
     await fixture.whenStable();

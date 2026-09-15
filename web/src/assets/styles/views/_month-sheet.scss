@@ -1,0 +1,150 @@
+@use 'base/tokens' as *;
+
+.month-sheet__notice {
+  margin: $space-lg $space-lg 0;
+}
+
+.month-sheet__scroll {
+  overflow: auto;
+  padding: $space-lg;
+}
+
+.month-sheet__table {
+  border-collapse: collapse;
+  font-size: $fs-sm;
+  width: 100%;
+}
+
+// Every cell in the sheet shares the same border, padding and wrapping —
+// listed together rather than reached through a `th, td` tag selector.
+.month-sheet__head-cell,
+.month-sheet__sr,
+.month-sheet__worker,
+.month-sheet__series,
+.month-sheet__box,
+.month-sheet__foot-cell {
+  border: 1px solid $border-subtle;
+  padding: $space-xs $space-sm;
+  white-space: nowrap;
+}
+
+.month-sheet__head-cell {
+  background: $band-strong;
+  color: $band-text;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+// The two identity columns stay put while the reason columns scroll past.
+.month-sheet__sr,
+.month-sheet__sr--head,
+.month-sheet__worker,
+.month-sheet__worker--head {
+  left: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.month-sheet__sr {
+  @include numeric;
+  background: $surface-card;
+  color: $text-faint;
+  text-align: center;
+  width: 4rem;
+}
+
+.month-sheet__worker {
+  background: $surface-card;
+  left: 4rem;
+  min-width: 16rem;
+}
+
+.month-sheet__series,
+.month-sheet__series--head {
+  min-width: 11rem;
+}
+
+.month-sheet__series {
+  color: $text-muted;
+}
+
+// The corner cells: pinned both ways, so they sit above the rest of the
+// header band.
+.month-sheet__sr--head,
+.month-sheet__worker--head {
+  background: $band-strong;
+  z-index: 3;
+}
+
+.month-sheet__group {
+  background: $band;
+  font-size: $fs-xs;
+  text-align: center;
+}
+
+.month-sheet__group--total {
+  background: $band-strong;
+}
+
+.month-sheet__sub {
+  background: $band-strong;
+  color: $band-text-muted;
+  font-size: $fs-xs;
+  font-weight: $fw-medium;
+  text-align: center;
+  width: 3.6rem;
+}
+
+.month-sheet__sub--total {
+  color: $band-text;
+}
+
+.month-sheet__sub--edge {
+  border-right: 1px solid $band-divider;
+}
+
+.month-sheet__box {
+  @include numeric;
+  text-align: center;
+  width: 3.6rem;
+}
+
+.month-sheet__box--edge {
+  border-right: 1px solid $border-strong;
+}
+
+.month-sheet__box--total {
+  background: $wash-inset;
+  font-weight: $fw-semibold;
+}
+
+.month-sheet__row:nth-child(even) .month-sheet__box {
+  background: $wash-hover;
+}
+
+.month-sheet__row:nth-child(even) .month-sheet__sr,
+.month-sheet__row:nth-child(even) .month-sheet__worker {
+  background: $surface-hover;
+}
+
+.month-sheet__row:hover .month-sheet__box {
+  background: $wash-hover;
+}
+
+.month-sheet__row:hover .month-sheet__sr,
+.month-sheet__row:hover .month-sheet__worker {
+  background: $surface-hover;
+}
+
+.month-sheet__foot-cell {
+  @include numeric;
+  background: $band;
+  bottom: 0;
+  color: $band-text;
+  font-weight: $fw-semibold;
+  position: sticky;
+  z-index: 2;
+}

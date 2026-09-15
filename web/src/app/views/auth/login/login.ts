@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/auth.service';
 import { NotifyService } from '../../../core/notify.service';
 import { TranslateService } from '@ngx-translate/core';
 import { PasswordReset, emailProblem, otpProblem } from '../../../models/auth';
-import { ROUTE_REGISTER, ROUTE_WASTE } from '../../../models/constants';
+import { DIALOG_WIDTH, ROUTE_REGISTER, ROUTE_WASTE } from '../../../models/constants';
 import { PrimengComponentsModule } from '../../../shared/primeng-components-module';
 
 /** How long, in seconds, a resend is blocked for once one has gone out. */
@@ -33,7 +33,6 @@ type ForgotStep = 'email' | 'code' | 'done';
   selector: 'app-login',
   imports: [PrimengComponentsModule, FormsModule, RouterLink],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
 })
 export class Login implements OnDestroy {
   private readonly auth = inject(AuthService);
@@ -42,6 +41,7 @@ export class Login implements OnDestroy {
   private readonly translate = inject(TranslateService);
 
   protected readonly ROUTE_REGISTER = ROUTE_REGISTER;
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
 
   protected readonly email = signal('');
   protected readonly password = signal('');

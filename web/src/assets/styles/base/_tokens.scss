@@ -1,75 +1,91 @@
 // ============================================================== the palette ==
 //
 // Raw paint, and the only place a literal colour is written. These do not
-// change with the theme — the theme below picks from them.
+// change with the theme — `_theme.scss` picks from them. Partials use the
+// semantic aliases further down, never these (.claude/rules/theming.md).
 
-$navy-50: #eef3fa;
-$navy-100: #d3e0f0;
-$navy-200: #a8c0e0;
-$navy-300: #7098cb;
-$navy-400: #3f6fa8;
-$navy-500: #1e4e86;
-$navy-600: #173d6b;
-$navy-700: #122e52;
-$navy-800: #0e2440;
-$navy-900: #0a1a2f;
-$navy-950: #060f1c;
+$white: #ffffff;
+$black: #000000;
 
-// Neutrals, light to dark. The light theme reads this top-down for its surfaces
-// and bottom-up for its text; the dark theme reads it the other way about.
-$ink-0: #ffffff;
-$ink-50: #f5f7fa;
-$ink-100: #eef1f6;
-$ink-200: #e2e8f0;
-$ink-300: #cbd5e1;
-$ink-400: #94a3b8;
-$ink-450: #78889d; // faint text on white: 3.5:1, matching the dark theme's
-$ink-500: #5f6d80; // muted text on white sits at 4.6:1, just clear of AA
-$ink-600: #475569;
-$ink-700: #334155;
-$ink-800: #1e293b;
-$ink-900: #0f172a;
+// Blue: interactive and selected. Same values as `blue` in `app/theme.ts`.
+$blue-50: #eff6ff;
+$blue-100: #dbeafe;
+$blue-200: #bfdbfe;
+$blue-300: #93c5fd;
+$blue-400: #60a5fa;
+$blue-500: #3b82f6;
+$blue-600: #2563eb;
+$blue-700: #1d4ed8;
+$blue-800: #1e40af;
+$blue-900: #1e3a8a;
+$blue-950: #172554;
 
-$red-300: #ff8787;
-$red-400: #ff6b6b;
-$red-500: #e03131;
-$red-600: #c92a2a;
-$red-700: #a51111;
+// Neutral greys, white to charcoal: surfaces, borders, text. Same values as
+// `gray` in `app/theme.ts`. 750/850 exist for the dim (dark) theme.
+$gray-0: #ffffff;
+$gray-50: #f7f8fa;
+$gray-100: #f0f2f5;
+$gray-200: #e3e6eb;
+$gray-300: #d0d5dd;
+$gray-400: #a3abb6;
+$gray-500: #7c8491;
+$gray-600: #58616d;
+$gray-700: #3f4753;
+$gray-750: #2f3540;
+$gray-800: #262c35;
+$gray-850: #1d222a;
+$gray-900: #161a21;
 
-$amber-400: #ffc078;
-$amber-500: #f59f00;
-$amber-600: #d68000;
-$amber-700: #ad6800;
+// Slate: the medium blue-grey chrome — sidebar, auth panel, register bands.
+// Same values as `slate` in `app/theme.ts`.
+$slate-200: #e2e8f0;
+$slate-300: #cbd5e1;
+$slate-400: #94a3b8;
+$slate-500: #64748b;
+$slate-550: #55657a;
+$slate-600: #475569;
+$slate-700: #334155;
 
-$green-400: #51cf66;
-$green-500: #2f9e44;
-$green-600: #237536;
-$green-700: #1a5828;
+// Status and grade identity. Reached only through the semantic tokens below
+// or `components/_grade-tone.scss`.
+$red-400: #f87171;
+$red-500: #ef4444;
+$red-600: #dc2626;
+$red-700: #b91c1c;
+$red-800: #991b1b;
 
-$violet-400: #9775fa;
-$violet-500: #7048e8;
-$violet-600: #5f3dc4;
-$violet-700: #4a2fa0;
+$amber-400: #fbbf24;
+$amber-500: #f59e0b;
+$amber-600: #d97706;
+$amber-700: #b45309;
+$amber-800: #92400e;
+$amber-900: #78350f;
 
-$teal-400: #3bc9db;
-$teal-500: #0c8599;
-$teal-600: #0b7285;
-$teal-700: #085a69;
+$green-400: #4ade80;
+$green-500: #22c55e;
+$green-600: #16a34a;
+$green-700: #15803d;
+$green-800: #166534;
+$green-900: #14532d;
+
+$cyan-400: #22d3ee;
+$cyan-500: #06b6d4;
+$cyan-600: #0891b2;
+$cyan-700: #0e7490;
+$cyan-800: #155e75;
+$cyan-900: #164e63;
 
 // ================================================================ the theme ==
 //
 // The values live in `_theme.scss`, which emits the `:root` / `.app-dark`
 // blocks and is pulled in once by `main.scss`. This file must stay free of CSS
-// rules: every component stylesheet `@use`s it, and anything emitted here would
-// be stamped out again in each of them.
-//
-// Sass aliases, so a stylesheet writes `$surface-card` and gets the variable.
-// Keeping the old names is what let the theme become swappable without every
-// rule in the app having to spell out `var(...)`.
+// rules: every partial `@use`s it, and anything emitted here would be stamped
+// out again in each of them. (Mixins are fine — they emit nothing until
+// included.)
 //
 // These hold a `var()` reference rather than a colour, so Sass colour functions
-// (`rgba()`, `darken()`, …) cannot be applied to them — reach for a palette
-// variable or one of the `--wash-*` tokens instead.
+// cannot be applied to them — reach for a `-soft` or `wash-*` token instead.
+
 $surface-page: var(--surface-page);
 $surface-sunken: var(--surface-sunken);
 $surface-card: var(--surface-card);
@@ -86,6 +102,26 @@ $text-secondary: var(--text-secondary);
 $text-muted: var(--text-muted);
 $text-faint: var(--text-faint);
 $text-accent: var(--text-accent);
+$text-on-accent: var(--text-on-accent);
+
+$accent: var(--accent);
+$accent-hover: var(--accent-hover);
+$accent-active: var(--accent-active);
+$accent-soft: var(--accent-soft);
+$accent-soft-strong: var(--accent-soft-strong);
+$focus-ring: var(--focus-ring);
+
+// `$danger` etc. are fills that carry white text; `-text` is the same meaning
+// written on a page or card; `-soft` is a tinted background.
+$danger: var(--danger);
+$danger-text: var(--danger-text);
+$danger-soft: var(--danger-soft);
+$warning: var(--warning);
+$warning-text: var(--warning-text);
+$warning-soft: var(--warning-soft);
+$success: var(--success);
+$success-text: var(--success-text);
+$success-soft: var(--success-soft);
 
 $shadow-card: var(--shadow-card);
 $shadow-raised: var(--shadow-raised);
@@ -94,44 +130,117 @@ $wash-hover: var(--wash-hover);
 $wash-inset: var(--wash-inset);
 $wash-on-accent: var(--wash-on-accent);
 
+$table-head-bg: var(--table-head-bg);
+$table-head-text: var(--table-head-text);
+
 $band: var(--band);
 $band-strong: var(--band-strong);
 $band-text: var(--band-text);
 $band-text-muted: var(--band-text-muted);
+$band-divider: var(--band-divider);
+
+$sidebar-bg: var(--sidebar-bg);
+$sidebar-border: var(--sidebar-border);
+$sidebar-text: var(--sidebar-text);
+$sidebar-text-muted: var(--sidebar-text-muted);
+$sidebar-hover: var(--sidebar-hover);
+$sidebar-active-bg: var(--sidebar-active-bg);
+$sidebar-active-text: var(--sidebar-active-text);
+$sidebar-indicator: var(--sidebar-indicator);
 
 // ================================================================== the rest ==
 //
 // Type, spacing and geometry, which do not change with the theme.
+// 1rem == 10px (see `_reset.scss`), so every value reads in whole pixels.
 
-$font-display: 'Oswald', 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
 $font-body:
+  'Inter Variable',
   'Inter',
   'Segoe UI',
-  Roboto,
   system-ui,
   -apple-system,
+  Roboto,
   sans-serif;
-$font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+// Machine strings only: barcode digits, device ids, references, file paths.
+$font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'SF Mono', ui-monospace, monospace;
 
-$fs-xs: 1.1rem;
-$fs-sm: 1.25rem;
-$fs-base: 1.4rem;
-$fs-md: 1.6rem;
-$fs-lg: 1.9rem;
-$fs-xl: 2.4rem;
-$fs-2xl: 3.2rem;
+$fs-xs: 1.2rem; // overline labels, tiny captions
+$fs-sm: 1.3rem; // secondary text, meta, hints, labels, dense grids
+$fs-base: 1.5rem; // body, table cells, inputs, buttons, nav
+$fs-md: 1.7rem; // card titles, names on the waste screen
+$fs-lg: 2rem; // dialog titles, counts on grade counters
+$fs-xl: 2.4rem; // page titles
+$fs-2xl: 3.2rem; // KPI values
 
+$fw-regular: 400;
+$fw-medium: 500;
+$fw-semibold: 600;
+
+$lh-tight: 1.2;
+$lh-snug: 1.35;
+$lh-body: 1.5;
+
+$ls-tight: -0.01em;
+$ls-overline: 0.06em;
+
+// 4px grid.
+$space-2xs: 0.2rem;
 $space-xs: 0.4rem;
 $space-sm: 0.8rem;
 $space-md: 1.2rem;
 $space-lg: 1.6rem;
 $space-xl: 2.4rem;
 $space-2xl: 3.2rem;
+$space-3xl: 4.8rem;
 
-$radius-sm: 0.3rem;
+$radius-sm: 0.4rem;
 $radius-md: 0.6rem;
-$radius-lg: 1rem;
+$radius-lg: 0.8rem;
+$radius-xl: 1.2rem;
 $radius-pill: 9999px;
 
+$control-h-sm: 3.2rem;
+$control-h: 4rem;
+// Anything tapped on the floor, possibly with a glove.
+$control-h-lg: 4.8rem;
+
+$icon-sm: 1.4rem;
+$icon-md: 1.6rem;
+$icon-lg: 2rem;
+$icon-xl: 2.4rem;
+$icon-hero: 3.2rem;
+
+$duration-fast: 120ms;
+$duration-base: 180ms;
+$ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
 $shell-sidebar-width: 24rem;
-$shell-topbar-height: 6.4rem;
+$shell-topbar-height: 5.6rem;
+
+// ================================================================== mixins ==
+
+// The only sanctioned uppercase: a small label sitting above a value.
+@mixin overline {
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  letter-spacing: $ls-overline;
+  line-height: $lh-snug;
+  text-transform: uppercase;
+}
+
+// Digits that sit in columns or tick over must not shift width.
+@mixin numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+// Focus halo for hand-rolled inputs; buttons use the global :focus-visible.
+@mixin focus-ring {
+  box-shadow: 0 0 0 0.3rem $focus-ring;
+  outline: none;
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,25 @@
+@use 'base/tokens' as *;
+
+// Shared chrome for the master screens (workers, series, reasons, grades),
+// which wear the same toolbar over a `_data-table.scss` table.
+
+.master-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.master-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.master-toolbar__count {
+  @include numeric;
+  color: $text-muted;
+  font-size: $fs-sm;
+}

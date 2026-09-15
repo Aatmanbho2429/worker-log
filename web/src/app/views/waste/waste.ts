@@ -37,7 +37,6 @@ import { ScanField } from '../../shared/scan-field/scan-field';
   selector: 'app-waste',
   imports: [PrimengComponentsModule, FormsModule, RangeFilterBar, ScanField],
   templateUrl: './waste.html',
-  styleUrl: './waste.scss',
 })
 export class Waste {
   private readonly waste = inject(WasteService);

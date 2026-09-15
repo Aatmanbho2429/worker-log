@@ -1,12 +1,5 @@
 @use 'base/tokens' as *;
 
-.skeletons {
-  display: flex;
-  flex-direction: column;
-  gap: $space-sm;
-  padding: $space-lg;
-}
-
 // The account and the licence sit side by side; the payment history runs the
 // full width underneath, because it is the part with columns to line up.
 .profile__columns {
@@ -30,22 +23,21 @@
 
 .profile__avatar {
   align-items: center;
-  background: linear-gradient(140deg, $navy-500, $navy-700);
-  border: 1px solid $navy-400;
+  background: $accent;
   border-radius: $radius-pill;
-  color: $ink-0;
+  color: $text-on-accent;
   display: flex;
   flex: 0 0 auto;
-  font-family: $font-display;
   font-size: $fs-lg;
+  font-weight: $fw-semibold;
   height: 5.6rem;
   justify-content: center;
-  letter-spacing: 0.06em;
   width: 5.6rem;
 }
 
 .profile__name {
   font-size: $fs-lg;
+  font-weight: $fw-semibold;
 }
 
 .profile__company {
@@ -57,22 +49,20 @@
   display: grid;
   gap: $space-sm $space-lg;
   grid-template-columns: max-content 1fr;
-
-  dt {
-    color: $text-muted;
-    font-size: $fs-xs;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  dd {
-    color: $text-primary;
-    overflow-wrap: anywhere;
-  }
 }
 
-.profile__device {
+.profile__fact-term {
+  @include overline;
+  color: $text-muted;
+}
+
+.profile__fact-value {
+  color: $text-primary;
+  overflow-wrap: anywhere;
+}
+
+.profile__device,
+.profile__reference {
   font-family: $font-mono;
   font-size: $fs-sm;
 }
@@ -84,61 +74,58 @@
   font-size: $fs-sm;
   gap: $space-sm;
   margin-top: $space-lg;
+}
 
-  i {
-    color: $text-accent;
-    margin-top: 0.2rem;
-  }
+.profile__bound-icon {
+  color: $text-accent;
+  margin-top: 0.2rem;
 }
 
 // -------------------------------------------------------- subscription ---
 
-.profile__plan-head {
+.subscription__head {
   align-items: flex-start;
   display: flex;
   justify-content: space-between;
   margin-bottom: $space-lg;
 }
 
-.profile__eyebrow {
+.subscription__eyebrow {
+  @include overline;
   color: $text-faint;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
-.profile__plan {
+.subscription__plan {
   font-size: $fs-lg;
+  font-weight: $fw-semibold;
 }
 
-.profile__days {
+.subscription__days {
   align-items: baseline;
   display: flex;
   gap: $space-sm;
 }
 
-.profile__days-count {
+.subscription__days-count {
+  @include numeric;
   color: $text-accent;
-  font-family: $font-display;
   font-size: $fs-2xl;
-  line-height: 1;
-}
-
-.profile__days-label {
-  color: $text-muted;
-  font-size: $fs-sm;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: $fw-semibold;
+  line-height: $lh-tight;
 }
 
 // A run-out licence is the one number on this page that has to be read as bad
 // news rather than as a count.
-.profile__days--out .profile__days-count {
-  color: $red-500;
+.subscription__days-count--expired {
+  color: $danger-text;
 }
 
-.profile__bar {
+.subscription__days-label {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.subscription__bar {
   background: $wash-inset;
   border-radius: $radius-pill;
   height: 0.6rem;
@@ -146,21 +133,21 @@
   overflow: hidden;
 }
 
-.profile__bar-fill {
-  background: $text-accent;
+.subscription__bar-fill {
+  background: $accent;
   display: block;
   height: 100%;
-  transition: width 0.3s ease;
+  transition: width $duration-base $ease-standard;
 }
 
-.profile__facts + p-message {
+.subscription__message {
   display: block;
   margin-top: $space-lg;
 }
 
 // The button that reopens the plans dialog once it has been dismissed —
 // follows the expired/expiring message on the subscription card.
-.profile__view-plans {
+.subscription__view-plans {
   margin-top: $space-lg;
 }
 
@@ -183,19 +170,14 @@
 }
 
 .plans-dialog__eyebrow {
+  @include overline;
   color: $text-faint;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 .plans-dialog__title {
-  font-family: $font-display;
   font-size: $fs-xl;
-  letter-spacing: 0.02em;
+  font-weight: $fw-semibold;
   margin-top: $space-xs;
-  text-transform: uppercase;
 }
 
 .plans-dialog__body {
@@ -204,7 +186,7 @@
   margin-top: $space-sm;
 }
 
-.profile__plans {
+.plans-dialog__grid {
   display: grid;
   gap: $space-xl;
   grid-template-columns: repeat(4, 1fr);
@@ -222,61 +204,51 @@
   }
 }
 
-.profile__plan-card {
-  background: $surface-sunken;
+.plan-card {
+  background: $surface-card;
   border: 1px solid $border-subtle;
   border-radius: $radius-lg;
   display: flex;
   flex-direction: column;
   gap: $space-sm;
-  padding: $space-xl $space-lg;
+  padding: $space-xl;
   position: relative;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+  transition: border-color $duration-base $ease-standard;
 
   &:hover {
     border-color: $border-strong;
-    box-shadow: $shadow-raised;
-    transform: translateY(-0.2rem);
   }
 }
 
 // The cheapest plan per day of term — computed in `Profile.bestPlanId`, not a
 // flag from the catalogue, since a longer term is not automatically the
 // cheaper one to hold.
-.profile__plan-card--best {
-  border-color: $band;
+.plan-card--best {
+  border-color: $accent;
 
   &:hover {
-    border-color: $band;
+    border-color: $accent;
   }
 }
 
-.profile__plan-card-ribbon {
-  background: $band;
+.plan-card__ribbon {
+  @include overline;
+  background: $accent;
   border-radius: $radius-pill;
-  color: $band-text;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  color: $text-on-accent;
   left: $space-lg;
   padding: 0.3rem $space-sm;
   position: absolute;
-  text-transform: uppercase;
   top: -0.9rem;
 }
 
-.profile__plan-card-name {
+.plan-card__name {
   color: $text-secondary;
-  font-family: $font-display;
   font-size: $fs-sm;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-weight: $fw-semibold;
 }
 
-.profile__plan-card-price {
+.plan-card__price {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
@@ -284,30 +256,24 @@
   margin-top: $space-sm;
 }
 
-.profile__plan-card-amount {
-  color: $text-accent;
-  font-family: $font-display;
+.plan-card__amount {
+  @include numeric;
+  color: $text-primary;
   font-size: $fs-2xl;
-  line-height: 1;
+  font-weight: $fw-semibold;
+  line-height: $lh-tight;
 }
 
-.profile__plan-card-term {
+.plan-card__term {
   color: $text-muted;
   font-size: $fs-sm;
 }
 
-.profile__plan-card-button {
+.plan-card__button {
   // `auto` rather than a fixed length: the grid stretches every card in a
   // row to match the tallest, so this is what absorbs whatever's left and
   // keeps every button sitting on the same line however tall its neighbours
   // are — a fixed margin would only be right for one card's content.
   margin-top: auto;
   width: 100%;
-}
-
-// ----------------------------------------------------------- payments ---
-
-.profile__reference {
-  font-family: $font-mono;
-  font-size: $fs-sm;
 }

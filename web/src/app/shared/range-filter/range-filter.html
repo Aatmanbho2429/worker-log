@@ -1,10 +1,12 @@
-<div class="filter">
-  <div class="filter__presets">
-    @for (preset of presets; track preset.key) {
+<div class="range-filter">
+  <div class="range-filter__presets">
+    @for (preset of presets; track preset.key; let first = $first, last = $last) {
       <button
         type="button"
-        class="filter__preset"
-        [class.filter__preset--active]="isPreset(preset.key)"
+        class="range-filter__preset"
+        [class.range-filter__preset--first]="first"
+        [class.range-filter__preset--last]="last"
+        [class.range-filter__preset--active]="isPreset(preset.key)"
         [disabled]="busy()"
         (click)="applyPreset(preset.key)"
       >
@@ -13,9 +15,9 @@
     }
   </div>
 
-  <div class="filter__dates">
-    <label class="filter__field">
-      <span class="filter__label">{{ 'rangeFilter.from' | translate }}</span>
+  <div class="range-filter__dates">
+    <label class="range-filter__field">
+      <span class="range-filter__label">{{ 'rangeFilter.from' | translate }}</span>
       <p-datepicker
         [ngModel]="fromDate()"
         (ngModelChange)="setFrom($event)"
@@ -23,12 +25,12 @@
         [showIcon]="true"
         [disabled]="busy()"
         appendTo="body"
-        inputStyleClass="filter__input"
+        inputStyleClass="range-filter__input"
       />
     </label>
 
-    <label class="filter__field">
-      <span class="filter__label">{{ 'rangeFilter.to' | translate }}</span>
+    <label class="range-filter__field">
+      <span class="range-filter__label">{{ 'rangeFilter.to' | translate }}</span>
       <p-datepicker
         [ngModel]="toDate()"
         (ngModelChange)="setTo($event)"
@@ -36,12 +38,12 @@
         [showIcon]="true"
         [disabled]="busy()"
         appendTo="body"
-        inputStyleClass="filter__input"
+        inputStyleClass="range-filter__input"
       />
     </label>
 
-    <label class="filter__field">
-      <span class="filter__label">{{ 'rangeFilter.series' | translate }}</span>
+    <label class="range-filter__field">
+      <span class="range-filter__label">{{ 'rangeFilter.series' | translate }}</span>
       <p-select
         [options]="seriesOptions()"
         [ngModel]="value().seriesId"
@@ -50,7 +52,7 @@
         optionValue="value"
         [disabled]="busy()"
         appendTo="body"
-        styleClass="filter__select"
+        styleClass="range-filter__select"
       />
     </label>
   </div>

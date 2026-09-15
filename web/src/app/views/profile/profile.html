@@ -17,7 +17,7 @@
 
   <div class="profile__columns">
     <!-- ------------------------------------------------------ account -->
-    <div class="card card--pad">
+    <div class="card card--padded">
       @if (user(); as account) {
         <div class="profile__identity">
           <span class="profile__avatar">{{ initials() }}</span>
@@ -28,42 +28,42 @@
         </div>
 
         <dl class="profile__facts">
-          <dt>{{ 'profile.labelEmail' | translate }}</dt>
-          <dd>{{ account.email }}</dd>
+          <dt class="profile__fact-term">{{ 'profile.labelEmail' | translate }}</dt>
+          <dd class="profile__fact-value">{{ account.email }}</dd>
 
-          <dt>{{ 'profile.labelPhone' | translate }}</dt>
-          <dd class="tabular">+91 {{ formatPhone(account.phone) }}</dd>
+          <dt class="profile__fact-term">{{ 'profile.labelPhone' | translate }}</dt>
+          <dd class="profile__fact-value">+91 {{ formatPhone(account.phone) }}</dd>
 
-          <dt>{{ 'profile.labelCompany' | translate }}</dt>
-          <dd>{{ account.companyName }}</dd>
+          <dt class="profile__fact-term">{{ 'profile.labelCompany' | translate }}</dt>
+          <dd class="profile__fact-value">{{ account.companyName }}</dd>
 
-          <dt>{{ 'profile.labelRegistered' | translate }}</dt>
-          <dd>{{ date(account.createdDate) }}</dd>
+          <dt class="profile__fact-term">{{ 'profile.labelRegistered' | translate }}</dt>
+          <dd class="profile__fact-value">{{ date(account.createdDate) }}</dd>
 
-          <!-- <dt>{{ 'profile.labelLicensedPc' | translate }}</dt>
-          <dd class="profile__device">
+          <!-- <dt class="profile__fact-term">{{ 'profile.labelLicensedPc' | translate }}</dt>
+          <dd class="profile__fact-value profile__device">
             @if (account.deviceId; as device) {
               {{ shortDeviceId(device) }}
             } @else {
-              <span class="master__na">{{ 'profile.deviceUnclaimed' | translate }}</span>
+              <span class="data-table__empty-value">{{ 'profile.deviceUnclaimed' | translate }}</span>
             }
           </dd> -->
         </dl>
 
         <!-- <p class="profile__bound">
-          <i class="pi pi-lock"></i>
+          <i class="profile__bound-icon pi pi-lock"></i>
           <span>{{ 'profile.boundNote' | translate }}</span>
         </p> -->
       }
     </div>
 
     <!-- ------------------------------------------------- subscription -->
-    <div class="card card--pad">
+    <div class="card card--padded">
       @if (subscription(); as plan) {
-        <div class="profile__plan-head">
+        <div class="subscription__head">
           <div>
-            <span class="profile__eyebrow">{{ 'profile.subscription' | translate }}</span>
-            <h2 class="profile__plan">{{ plan.plan }}</h2>
+            <span class="subscription__eyebrow">{{ 'profile.subscription' | translate }}</span>
+            <h2 class="subscription__plan">{{ plan.plan }}</h2>
           </div>
           <p-tag
             [value]="subscriptionLabel(plan.status) | translate"
@@ -71,38 +71,47 @@
           />
         </div>
 
-        <div class="profile__days" [class.profile__days--out]="plan.status === 'expired'">
-          <span class="profile__days-count tabular">{{ plan.daysLeft }}</span>
-          <span class="profile__days-label">
+        <div class="subscription__days">
+          <span
+            class="subscription__days-count"
+            [class.subscription__days-count--expired]="plan.status === 'expired'"
+            >{{ plan.daysLeft }}</span
+          >
+          <span class="subscription__days-label">
             {{ (plan.daysLeft === 1 ? 'profile.dayLeft' : 'profile.daysLeft') | translate }}
           </span>
         </div>
 
-        <div class="profile__bar">
-          <span class="profile__bar-fill" [style.width.%]="termUsed()"></span>
+        <div class="subscription__bar">
+          <span class="subscription__bar-fill" [style.width.%]="termUsed()"></span>
         </div>
 
         <dl class="profile__facts">
-          <dt>{{ startLabel() | translate }}</dt>
-          <dd>{{ date(plan.startedOn) }}</dd>
+          <dt class="profile__fact-term">{{ startLabel() | translate }}</dt>
+          <dd class="profile__fact-value">{{ date(plan.startedOn) }}</dd>
 
-          <dt>
+          <dt class="profile__fact-term">
             {{
               (plan.status === 'expired' ? 'profile.labelExpired' : 'profile.labelRenews')
                 | translate
             }}
           </dt>
-          <dd>{{ date(plan.renewsOn) }}</dd>
+          <dd class="profile__fact-value">{{ date(plan.renewsOn) }}</dd>
 
-          <!-- <dt>{{ 'profile.labelPaidToDate' | translate }}</dt>
-          <dd class="tabular">{{ money(paidTotal(), totalCurrency()) }}</dd> -->
+          <!-- <dt class="profile__fact-term">{{ 'profile.labelPaidToDate' | translate }}</dt>
+          <dd class="profile__fact-value">{{ money(paidTotal(), totalCurrency()) }}</dd> -->
         </dl>
 
         @if (plan.status === 'expired') {
-          <p-message severity="error" [text]="'profile.expiredMessage' | translate" />
+          <p-message
+            severity="error"
+            styleClass="subscription__message"
+            [text]="'profile.expiredMessage' | translate"
+          />
         } @else if (plan.status === 'expiring') {
           <p-message
             severity="warn"
+            styleClass="subscription__message"
             [text]="'profile.expiringMessage' | translate: { days: plan.daysLeft }"
           />
         }
@@ -114,7 +123,7 @@
             [label]="'profile.viewPlans' | translate"
             severity="secondary"
             [outlined]="true"
-            styleClass="profile__view-plans"
+            styleClass="subscription__view-plans"
             (onClick)="openPlansDialog()"
           />
         }
@@ -126,25 +135,25 @@
   <div class="card">
     <div class="card__head">
       <h2 class="card__title">{{ 'profile.paymentHistory' | translate }}</h2>
-      <span class="master__count">{{
+      <span class="master-toolbar__count">{{
         'profile.paymentCount' | translate: { count: payments().length }
       }}</span>
     </div>
 
     @if (loading()) {
-      <div class="skeletons">
+      <div class="skeleton-list">
         @for (row of [1, 2, 3]; track row) {
           <p-skeleton height="3.6rem" borderRadius="4px" />
         }
       </div>
     } @else if (!payments().length) {
-      <div class="empty">
-        <i class="pi pi-receipt"></i>
-        <span class="empty__title">{{ 'profile.noPayments' | translate }}</span>
-        <p>{{ 'profile.noPaymentsBody' | translate }}</p>
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-receipt"></i>
+        <span class="empty-state__title">{{ 'profile.noPayments' | translate }}</span>
+        <p class="empty-state__text">{{ 'profile.noPaymentsBody' | translate }}</p>
       </div>
     } @else {
-      <p-table [value]="payments()" styleClass="p-datatable-sm">
+      <p-table [value]="payments()" styleClass="data-table">
         <ng-template #header>
           <tr>
             <th>{{ 'profile.columnDate' | translate }}</th>
@@ -152,21 +161,21 @@
             <th>{{ 'profile.columnPlan' | translate }}</th>
             <th>{{ 'profile.columnPeriod' | translate }}</th>
             <th>{{ 'profile.columnMethod' | translate }}</th>
-            <th class="numeric">{{ 'profile.columnAmount' | translate }}</th>
+            <th class="data-table__cell--numeric">{{ 'profile.columnAmount' | translate }}</th>
             <th>{{ 'profile.columnStatus' | translate }}</th>
           </tr>
         </ng-template>
 
         <ng-template #body let-payment>
           <tr>
-            <td class="tabular">{{ date(payment.paidOn) }}</td>
+            <td>{{ date(payment.paidOn) }}</td>
             <td class="profile__reference">{{ payment.reference }}</td>
             <td>{{ payment.plan }}</td>
-            <td class="master__meta">
+            <td class="data-table__cell--meta">
               {{ date(payment.periodFrom) }} — {{ date(payment.periodTo) }}
             </td>
             <td>{{ payment.method }}</td>
-            <td class="numeric tabular">{{ money(payment.amount, payment.currency) }}</td>
+            <td class="data-table__cell--numeric">{{ money(payment.amount, payment.currency) }}</td>
             <td>
               <p-tag
                 [value]="payment.status | titlecase"
@@ -185,7 +194,7 @@
   (visibleChange)="dialogOpen.set($event)"
   [modal]="true"
   [draggable]="false"
-  [style]="{ width: '38rem' }"
+  [style]="{ width: DIALOG_WIDTH.account }"
   [header]="'profile.changePasswordHeader' | translate"
 >
   <div class="field">
@@ -195,6 +204,7 @@
     <p-password
       inputId="current-password"
       autocomplete="current-password"
+      styleClass="field__password"
       [placeholder]="'profile.placeholderCurrentPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -213,6 +223,7 @@
     <p-password
       inputId="new-password"
       autocomplete="new-password"
+      styleClass="field__password"
       [placeholder]="'profile.placeholderNewPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -221,29 +232,35 @@
     />
 
     @if (form().newPassword) {
-      <div [class]="'meter meter--' + scoreTone()">
-        @for (step of [1, 2, 3, 4]; track step) {
-          <span class="meter__step" [class.meter__step--on]="score() >= step"></span>
-        }
+      <div [class]="'password-meter password-meter--' + scoreTone()">
+        <div class="password-meter__steps">
+          @for (step of [1, 2, 3, 4]; track step) {
+            <span
+              class="password-meter__step"
+              [class.password-meter__step--on]="score() >= step"
+            ></span>
+          }
+        </div>
       </div>
     }
 
     @if (newError(); as message) {
       <span class="field__error">{{ message | translate }}</span>
     } @else if (form().newPassword) {
-      <span class="meter__label">{{ scoreLabel() | translate }}</span>
+      <span class="password-meter__label">{{ scoreLabel() | translate }}</span>
     } @else {
       <span class="field__hint">{{ 'auth.hintPassword' | translate }}</span>
     }
   </div>
 
-  <div class="field">
+  <div class="field field--flush">
     <label class="field__label" for="confirm-new-password">{{
       'profile.fieldConfirmNewPassword' | translate
     }}</label>
     <p-password
       inputId="confirm-new-password"
       autocomplete="new-password"
+      styleClass="field__password"
       [placeholder]="'profile.placeholderConfirmNewPassword' | translate"
       [feedback]="false"
       [toggleMask]="true"
@@ -256,7 +273,7 @@
   </div>
 
   <ng-template #footer>
-    <div class="dialog__footer">
+    <div class="dialog-footer">
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"
@@ -293,31 +310,29 @@
   </ng-template>
 
   @if (plansLoading()) {
-    <div class="profile__plans">
+    <div class="plans-dialog__grid">
       @for (row of [1, 2, 3, 4]; track row) {
         <p-skeleton height="19rem" borderRadius="10px" />
       }
     </div>
   } @else if (!plans().length) {
-    <div class="empty">
-      <i class="pi pi-tags"></i>
-      <span class="empty__title">{{ 'profile.noPlans' | translate }}</span>
+    <div class="empty-state">
+      <i class="empty-state__icon pi pi-tags"></i>
+      <span class="empty-state__title">{{ 'profile.noPlans' | translate }}</span>
     </div>
   } @else {
-    <div class="profile__plans">
+    <div class="plans-dialog__grid">
       @for (plan of orderedPlans(); track plan.id) {
-        <div class="profile__plan-card" [class.profile__plan-card--best]="plan.id === bestPlanId()">
+        <div class="plan-card" [class.plan-card--best]="plan.id === bestPlanId()">
           @if (plan.id === bestPlanId()) {
-            <span class="profile__plan-card-ribbon">{{ 'profile.bestValue' | translate }}</span>
+            <span class="plan-card__ribbon">{{ 'profile.bestValue' | translate }}</span>
           }
 
-          <span class="profile__plan-card-name">{{ plan.name }}</span>
+          <span class="plan-card__name">{{ plan.name }}</span>
 
-          <div class="profile__plan-card-price">
-            <span class="profile__plan-card-amount tabular">{{
-              money(plan.amount, plan.currency)
-            }}</span>
-            <span class="profile__plan-card-term">
+          <div class="plan-card__price">
+            <span class="plan-card__amount">{{ money(plan.amount, plan.currency) }}</span>
+            <span class="plan-card__term">
               / {{ 'profile.planDuration' | translate: { days: plan.duration } }}
             </span>
           </div>
@@ -327,7 +342,7 @@
             [outlined]="plan.id !== bestPlanId()"
             [loading]="payingPlanId() === plan.id"
             [disabled]="payingPlanId() !== null && payingPlanId() !== plan.id"
-            styleClass="profile__plan-card-button"
+            styleClass="plan-card__button"
             (onClick)="selectPlan(plan)"
           />
         </div>

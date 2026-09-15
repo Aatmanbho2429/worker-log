@@ -1,0 +1,38 @@
+@use 'base/tokens' as *;
+
+// The licence notice on the register form: the one thing on the page an
+// operator cannot undo later, so it gets a heading of its own rather than
+// being another line of small print.
+
+.device-notice {
+  align-items: flex-start;
+  background: $accent-soft;
+  border-radius: $radius-md;
+  display: flex;
+  gap: $space-md;
+  margin-bottom: $space-xl;
+  padding: $space-md $space-lg;
+}
+
+.device-notice__icon {
+  color: $text-accent;
+  font-size: $icon-lg;
+}
+
+.device-notice__body {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.device-notice__title {
+  color: $text-primary;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+}
+
+.device-notice__text {
+  color: $text-muted;
+  font-size: $fs-sm;
+  max-width: 56ch;
+}

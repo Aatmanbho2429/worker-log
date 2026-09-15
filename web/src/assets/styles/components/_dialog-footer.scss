@@ -1,0 +1,8 @@
+@use 'base/tokens' as *;
+
+.dialog-footer {
+  display: flex;
+  gap: $space-sm;
+  justify-content: flex-end;
+  padding-top: $space-md;
+}

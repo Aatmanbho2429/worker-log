@@ -17,7 +17,7 @@
     </div>
   </header>
 
-  <div class="card card--pad">
+  <div class="card card--padded">
     <app-range-filter
       [value]="filter()"
       [series]="series()"
@@ -26,34 +26,34 @@
     />
   </div>
 
-  <div class="card card--pad">
+  <div class="card card--padded">
     <app-scan-field (recorded)="onScanned($event)" />
   </div>
 
-  <div class="tally">
+  <div class="kpi-grid">
     @for (grade of grades(); track grade.id; let i = $index) {
-      <div class="tally__item" [class]="gradeToneClass(i)">
-        <span class="tally__label">{{ grade.name }} · {{ 'waste.perReasonSuffix' | translate }}</span>
-        <span class="tally__value tabular">{{ tallyFor(i) }}</span>
+      <div class="kpi" [class]="gradeToneClass(i)">
+        <span class="kpi__label">{{ grade.name }} · {{ 'waste.perReasonSuffix' | translate }}</span>
+        <span class="kpi__value">{{ tallyFor(i) }}</span>
       </div>
     }
-    <div class="tally__item tally__item--muted">
-      <span class="tally__label">{{ 'waste.everyGrade' | translate }}</span>
-      <span class="tally__value tabular">{{ grandTotalLabel() }}</span>
+    <div class="kpi kpi--muted">
+      <span class="kpi__label">{{ 'waste.everyGrade' | translate }}</span>
+      <span class="kpi__value">{{ grandTotalLabel() }}</span>
     </div>
   </div>
 
   @if (reasons().length) {
-    <nav class="reasons" [attr.aria-label]="'waste.reasonsNav' | translate">
+    <nav class="reason-chips" [attr.aria-label]="'waste.reasonsNav' | translate">
       @for (reason of reasons(); track reason.id; let i = $index) {
         <button
           type="button"
-          class="reasons__chip"
-          [class.reasons__chip--active]="activeReason()?.id === reason.id"
+          class="reason-chips__chip"
+          [class.reason-chips__chip--active]="activeReason()?.id === reason.id"
           (click)="selectReason(reason)"
         >
-          <span class="reasons__name">{{ reason.name }}</span>
-          <span class="reasons__count tabular">{{ reasonCount(i) }}</span>
+          <span class="reason-chips__name">{{ reason.name }}</span>
+          <span class="reason-chips__count">{{ reasonCount(i) }}</span>
         </button>
       }
     </nav>
@@ -81,44 +81,60 @@
     </div>
 
     @if (loading()) {
-      <div class="skeletons">
+      <div class="skeleton-list">
         @for (row of [1, 2, 3, 4, 5, 6]; track row) {
           <p-skeleton height="5.6rem" borderRadius="6px" />
         }
       </div>
     } @else if (!grades().length) {
-      <div class="empty">
-        <i class="pi pi-sliders-h"></i>
-        <span class="empty__title">{{ 'waste.noGradesTitle' | translate }}</span>
-        <p>{{ 'waste.noGradesBody' | translate }}</p>
-        <p-button [label]="'waste.goToGrades' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_GRADES" />
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-sliders-h"></i>
+        <span class="empty-state__title">{{ 'waste.noGradesTitle' | translate }}</span>
+        <p class="empty-state__text">{{ 'waste.noGradesBody' | translate }}</p>
+        <p-button
+          [label]="'waste.goToGrades' | translate"
+          icon="pi pi-arrow-right"
+          [routerLink]="ROUTE_GRADES"
+        />
       </div>
     } @else if (!reasons().length) {
-      <div class="empty">
-        <i class="pi pi-tags"></i>
-        <span class="empty__title">{{ 'waste.noReasonsTitle' | translate }}</span>
-        <p>{{ 'waste.noReasonsBody' | translate }}</p>
-        <p-button [label]="'waste.goToReasons' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_REASONS" />
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-tags"></i>
+        <span class="empty-state__title">{{ 'waste.noReasonsTitle' | translate }}</span>
+        <p class="empty-state__text">{{ 'waste.noReasonsBody' | translate }}</p>
+        <p-button
+          [label]="'waste.goToReasons' | translate"
+          icon="pi pi-arrow-right"
+          [routerLink]="ROUTE_REASONS"
+        />
       </div>
     } @else if (!rows().length) {
-      <div class="empty">
-        <i class="pi pi-users"></i>
-        <span class="empty__title">{{
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-users"></i>
+        <span class="empty-state__title">{{
           (search() ? 'common.noMatch' : 'waste.noWorkersTitle') | translate
         }}</span>
-        <p>
+        <p class="empty-state__text">
           {{ (search() ? 'waste.noMatchBody' : 'waste.noWorkersBody') | translate }}
         </p>
         @if (!search()) {
-          <p-button [label]="'waste.goToWorkers' | translate" icon="pi pi-arrow-right" [routerLink]="ROUTE_WORKERS" />
+          <p-button
+            [label]="'waste.goToWorkers' | translate"
+            icon="pi pi-arrow-right"
+            [routerLink]="ROUTE_WORKERS"
+          />
         }
       </div>
     } @else {
       <ul class="tapper">
-        @for (row of rows(); track trackRow($index, row); let i = $index) {
-          <li class="tapper__row">
+        @for (row of rows(); track trackRow($index, row); let i = $index, last = $last) {
+          <li
+            class="tapper__row"
+            [class.tapper__row--last]="last"
+            [class.tapper__row--crowded]="grades().length >= 4"
+          >
             <div class="tapper__who">
-              <span class="tapper__sr tabular">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+              <span class="tapper__sr">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
               <div class="tapper__ident">
                 <span class="tapper__name">{{ workerFullName(row.worker) }}</span>
                 <span class="tapper__series">{{ row.worker.seriesName }}</span>
@@ -128,13 +144,13 @@
             <div class="tapper__grades">
               @for (grade of grades(); track grade.id; let g = $index) {
                 <div
-                  class="grade"
+                  class="grade-counter"
                   [class]="gradeToneClass(g)"
-                  [class.grade--empty]="countFor(row, g) === 0"
+                  [class.grade-counter--empty]="countFor(row, g) === 0"
                 >
                   <button
                     type="button"
-                    class="grade__undo"
+                    class="grade-counter__undo"
                     [disabled]="countFor(row, g) === 0 || isBusy(row, grade)"
                     [pTooltip]="'waste.removeTooltip' | translate: { grade: grade.name }"
                     tooltipPosition="top"
@@ -144,14 +160,14 @@
                         | translate: { grade: grade.name, worker: workerFullName(row.worker) }
                     "
                   >
-                    <i class="pi pi-minus"></i>
+                    <i class="grade-counter__undo-icon pi pi-minus"></i>
                   </button>
 
-                  <span class="grade__count tabular">{{ countFor(row, g) }}</span>
+                  <span class="grade-counter__count">{{ countFor(row, g) }}</span>
 
                   <button
                     type="button"
-                    class="grade__add"
+                    class="grade-counter__add"
                     [disabled]="isBusy(row, grade)"
                     (click)="add(row, g)"
                     [attr.aria-label]="
@@ -159,8 +175,8 @@
                         | translate: { grade: grade.name, worker: workerFullName(row.worker) }
                     "
                   >
-                    <span class="grade__label">{{ grade.name }}</span>
-                    <i class="pi pi-plus"></i>
+                    <span class="grade-counter__label">{{ grade.name }}</span>
+                    <i class="grade-counter__add-icon pi pi-plus"></i>
                   </button>
                 </div>
               }
@@ -168,7 +184,7 @@
 
             <div class="tapper__total">
               <span class="tapper__total-label">{{ 'waste.rowLabel' | translate }}</span>
-              <span class="tapper__total-value tabular">{{ rowTotalFor(row) }}</span>
+              <span class="tapper__total-value">{{ rowTotalFor(row) }}</span>
             </div>
           </li>
         }

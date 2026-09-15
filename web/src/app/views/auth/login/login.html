@@ -1,34 +1,34 @@
-<div class="auth">
-  <aside class="auth__brand">
-    <div class="auth__brand-head">
-      <div class="auth__mark"><i class="pi pi-shield"></i></div>
-      <div class="auth__wordmark">
-        <span class="auth__name">{{ 'common.brandName' | translate }}</span>
-        <span class="auth__tagline">{{ 'common.brandTagline' | translate }}</span>
+<div class="auth-layout">
+  <aside class="auth-layout__brand auth-brand">
+    <div class="auth-brand__head">
+      <div class="auth-brand__mark"><i class="auth-brand__mark-icon pi pi-shield"></i></div>
+      <div class="auth-brand__wordmark">
+        <span class="auth-brand__name">{{ 'common.brandName' | translate }}</span>
+        <span class="auth-brand__tagline">{{ 'common.brandTagline' | translate }}</span>
       </div>
     </div>
 
-    <h2 class="auth__pitch">{{ 'auth.login.pitch' | translate }}</h2>
+    <h2 class="auth-brand__pitch">{{ 'auth.login.pitch' | translate }}</h2>
 
-    <ul class="auth__points">
-      <li class="auth__point">
-        <i class="pi pi-desktop"></i>
-        <span>{{ 'auth.login.point1Title' | translate }}</span>
-        <p>{{ 'auth.login.point1Body' | translate }}</p>
+    <ul class="auth-brand__points">
+      <li class="auth-brand__point">
+        <i class="auth-brand__point-icon pi pi-desktop"></i>
+        <span class="auth-brand__point-title">{{ 'auth.login.point1Title' | translate }}</span>
+        <p class="auth-brand__point-text">{{ 'auth.login.point1Body' | translate }}</p>
       </li>
-      <li class="auth__point">
-        <i class="pi pi-clock"></i>
-        <span>{{ 'auth.login.point2Title' | translate }}</span>
-        <p>{{ 'auth.login.point2Body' | translate }}</p>
+      <li class="auth-brand__point">
+        <i class="auth-brand__point-icon pi pi-clock"></i>
+        <span class="auth-brand__point-title">{{ 'auth.login.point2Title' | translate }}</span>
+        <p class="auth-brand__point-text">{{ 'auth.login.point2Body' | translate }}</p>
       </li>
     </ul>
   </aside>
 
-  <div class="auth__pane">
-    <form class="auth__card auth__card--narrow" (ngSubmit)="submit()" novalidate>
-      <header class="auth__head">
-        <h1 class="auth__title">{{ 'auth.login.title' | translate }}</h1>
-        <p class="auth__subtitle">{{ 'auth.login.subtitle' | translate }}</p>
+  <div class="auth-layout__pane">
+    <form class="auth-card auth-card--narrow" (ngSubmit)="submit()" novalidate>
+      <header class="auth-card__head">
+        <h1 class="auth-card__title">{{ 'auth.login.title' | translate }}</h1>
+        <p class="auth-card__subtitle">{{ 'auth.login.subtitle' | translate }}</p>
       </header>
 
       <div class="field">
@@ -50,18 +50,19 @@
       </div>
 
       <div class="field">
-        <div class="auth__aside">
+        <div class="auth-card__aside">
           <label class="field__label" for="login-password">{{
             'auth.fieldPassword' | translate
           }}</label>
-          <button class="auth__link" type="button" (click)="openForgot()">
+          <button class="auth-card__link" type="button" (click)="openForgot()">
             {{ 'auth.forgot.link' | translate }}
           </button>
         </div>
         <p-password
           inputId="login-password"
           autocomplete="current-password"
-          inputStyleClass="field__input--lg"
+          styleClass="field__password"
+          inputStyleClass="field__input field__input--lg"
           [placeholder]="'auth.placeholderLoginPassword' | translate"
           [feedback]="false"
           [toggleMask]="true"
@@ -74,19 +75,19 @@
         }
       </div>
 
-      <div class="auth__actions">
+      <div class="auth-card__actions">
         <p-button
           type="submit"
           [label]="'auth.login.submit' | translate"
           icon="pi pi-sign-in"
-          styleClass="auth__submit"
+          styleClass="auth-card__submit"
           [loading]="signingIn()"
         />
       </div>
 
-      <p class="auth__foot">
+      <p class="auth-card__foot">
         {{ 'auth.login.footPrompt' | translate }}
-        <a class="auth__link" [routerLink]="ROUTE_REGISTER">{{
+        <a class="auth-card__link" [routerLink]="ROUTE_REGISTER">{{
           'auth.login.footLink' | translate
         }}</a>
       </p>
@@ -99,12 +100,12 @@
   (visibleChange)="onForgotVisibleChange($event)"
   [modal]="true"
   [draggable]="false"
-  [style]="{ width: '38rem' }"
+  [style]="{ width: DIALOG_WIDTH.account }"
   [header]="'auth.forgot.header' | translate"
 >
   @switch (forgotStep()) {
     @case ('email') {
-      <p class="forgot__note">
+      <p class="forgot-password__note">
         {{ 'auth.forgot.prompt' | translate }}
       </p>
 
@@ -126,14 +127,14 @@
       </div>
     }
     @case ('code') {
-      <p class="forgot__note">
+      <p class="forgot-password__note">
         {{ 'auth.forgot.codeSubtitle' | translate: { email: forgotEmailLocked() } }}
       </p>
 
-      <div class="field auth__otp-field">
+      <div class="field otp-field">
         <label class="field__label" for="forgot-otp">{{ 'auth.fieldOtp' | translate }}</label>
         <p-inputotp
-          class="auth__otp"
+          styleClass="otp-field__input"
           inputId="forgot-otp"
           [length]="4"
           [integerOnly]="true"
@@ -150,34 +151,34 @@
         }
       </div>
 
-      <p class="forgot__aside">
-        <!-- <button class="auth__link" type="button" (click)="backToEmail()">
+      <p class="forgot-password__aside">
+        <!-- <button class="auth-card__link" type="button" (click)="backToEmail()">
           {{ 'auth.forgot.back' | translate }}
         </button> -->
         @if (forgotCooldown() > 0) {
           <span>{{ 'auth.forgot.resendIn' | translate: { seconds: forgotCooldown() } }}</span>
         } @else {
-          <button class="auth__link" type="button" (click)="resendCode()">
+          <button class="auth-card__link" type="button" (click)="resendCode()">
             {{ 'auth.forgot.resend' | translate }}
           </button>
         }
       </p>
     }
     @case ('done') {
-      <p class="forgot__done">
-        <i class="pi pi-check-circle"></i>
+      <p class="forgot-password__done">
+        <i class="forgot-password__done-icon pi pi-check-circle"></i>
         <span
           >{{ 'auth.forgot.sent' | translate }} <strong>{{ forgotResult()?.sentTo }}</strong
           >.</span
         >
       </p>
 
-      <p class="forgot__note">{{ 'auth.forgot.next' | translate }}</p>
+      <p class="forgot-password__note">{{ 'auth.forgot.next' | translate }}</p>
     }
   }
 
   <ng-template #footer>
-    <div class="dialog__footer">
+    <div class="dialog-footer">
       @switch (forgotStep()) {
         @case ('email') {
           <p-button

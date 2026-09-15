@@ -1,0 +1,122 @@
+@use 'base/tokens' as *;
+
+.auth-card {
+  background: $surface-card;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-card;
+  padding: $space-2xl;
+  width: 100%;
+}
+
+.auth-card--narrow {
+  max-width: 42rem;
+}
+
+.auth-card--wide {
+  max-width: 60rem;
+}
+
+.auth-card--code {
+  text-align: center;
+}
+
+.auth-card--code .auth-card__head {
+  margin-bottom: $space-lg;
+}
+
+.auth-card__head {
+  margin-bottom: $space-xl;
+}
+
+.auth-card__title {
+  font-size: $fs-xl;
+  font-weight: $fw-semibold;
+}
+
+.auth-card__subtitle {
+  color: $text-muted;
+  font-size: $fs-base;
+  margin-top: $space-xs;
+}
+
+.auth-card__grid {
+  display: grid;
+  gap: 0 $space-lg;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-card__span {
+  grid-column: 1 / -1;
+}
+
+.auth-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  margin-top: $space-md;
+}
+
+// PrimeNG renders the button inside its own template, so a class the partial
+// scopes would never reach it. Handed through `styleClass` instead.
+.auth-card__submit {
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-card__foot {
+  border-top: 1px solid $border-subtle;
+  color: $text-muted;
+  font-size: $fs-sm;
+  margin-top: $space-xl;
+  padding-top: $space-lg;
+  text-align: center;
+}
+
+.auth-card__link {
+  background: none;
+  border: none;
+  color: $text-accent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: $fw-semibold;
+  padding: 0;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.auth-card__aside {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $space-lg;
+}
+
+.auth-card__mark {
+  align-items: center;
+  background: $accent-soft;
+  border-radius: $radius-pill;
+  display: flex;
+  height: 5.6rem;
+  justify-content: center;
+  margin: 0 auto $space-lg;
+  width: 5.6rem;
+}
+
+.auth-card__mark-icon {
+  color: $text-accent;
+  font-size: $icon-xl;
+}
+
+.auth-card__mark--success .auth-card__mark-icon {
+  color: $success-text;
+}
+
+@media (max-width: 900px) {
+  .auth-card__grid {
+    grid-template-columns: 1fr;
+  }
+}

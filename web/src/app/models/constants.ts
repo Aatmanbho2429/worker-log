@@ -27,3 +27,12 @@ export const TOAST_LIFE = {
   warn: 4000,
   error: 6000,
 } as const;
+
+// Dialog widths, sized for the 15px base text. The plans dialog keeps its own
+// vw sizing.
+export const DIALOG_WIDTH = {
+  confirm: '40rem',
+  form: '40rem',
+  formWide: '52rem',
+  account: '44rem',
+} as const;

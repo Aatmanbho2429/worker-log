@@ -24,7 +24,7 @@
     </div>
   </header>
 
-  <div class="card card--pad">
+  <div class="card card--padded">
     <app-range-filter
       [value]="filter()"
       [series]="series()"
@@ -33,32 +33,34 @@
     />
   </div>
 
-  <div class="stats">
-    <article class="stat">
-      <span class="stat__label">{{ 'reports.totalPiecesLost' | translate }}</span>
-      <span class="stat__value tabular">{{ totalPieces() }}</span>
+  <div class="kpi-grid">
+    <article class="kpi">
+      <span class="kpi__label">{{ 'reports.totalPiecesLost' | translate }}</span>
+      <span class="kpi__value">{{ totalPieces() }}</span>
     </article>
     @for (grade of grades(); track grade.id; let i = $index) {
-      <article class="stat stat--grade" [class]="gradeToneClass(i)">
-        <span class="stat__label">{{ grade.name }}</span>
-        <span class="stat__value tabular">{{ gradeTotal(i) }}</span>
+      <article class="kpi" [class]="gradeToneClass(i)">
+        <span class="kpi__label">{{ grade.name }}</span>
+        <span class="kpi__value">{{ gradeTotal(i) }}</span>
       </article>
     }
-    <article class="stat stat--muted">
-      <span class="stat__label">{{ 'reports.workersWithWaste' | translate }}</span>
-      <span class="stat__value tabular">{{ workersWithWaste() }}</span>
+    <article class="kpi kpi--muted">
+      <span class="kpi__label">{{ 'reports.workersWithWaste' | translate }}</span>
+      <span class="kpi__value">{{ workersWithWaste() }}</span>
     </article>
   </div>
 
-  <div class="split">
+  <div class="report-split">
     <div class="card">
-      <div class="card__head"><h2 class="card__title">{{ 'reports.byReason' | translate }}</h2></div>
+      <div class="card__head">
+        <h2 class="card__title">{{ 'reports.byReason' | translate }}</h2>
+      </div>
 
       @if (!breakdown().length || totalPieces() === 0) {
-        <div class="empty">
-          <i class="pi pi-chart-bar"></i>
-          <span class="empty__title">{{ 'reports.noWasteLogged' | translate }}</span>
-          <p>{{ 'reports.nothingRecorded' | translate }}</p>
+        <div class="empty-state">
+          <i class="empty-state__icon pi pi-chart-bar"></i>
+          <span class="empty-state__title">{{ 'reports.noWasteLogged' | translate }}</span>
+          <p class="empty-state__text">{{ 'reports.nothingRecorded' | translate }}</p>
         </div>
       } @else {
         <ul class="breakdown">
@@ -66,7 +68,7 @@
             <li class="breakdown__row">
               <div class="breakdown__bar" [style.width.%]="item.share"></div>
               <span class="breakdown__name">{{ item.name }}</span>
-              <span class="breakdown__grades tabular">
+              <span class="breakdown__grades">
                 @for (count of item.counts; track $index; let i = $index; let first = $first) {
                   @if (!first) {
                     <span class="breakdown__sep">/</span>
@@ -74,8 +76,8 @@
                   <span class="breakdown__count" [class]="gradeToneClass(i)">{{ count }}</span>
                 }
               </span>
-              <span class="breakdown__total tabular">{{ item.total }}</span>
-              <span class="breakdown__share tabular">{{ item.share }}%</span>
+              <span class="breakdown__total">{{ item.total }}</span>
+              <span class="breakdown__share">{{ item.share }}%</span>
             </li>
           }
         </ul>
@@ -83,23 +85,25 @@
     </div>
 
     <div class="card">
-      <div class="card__head"><h2 class="card__title">{{ 'reports.highestWaste' | translate }}</h2></div>
+      <div class="card__head">
+        <h2 class="card__title">{{ 'reports.highestWaste' | translate }}</h2>
+      </div>
 
       @if (!topWorkers().length) {
-        <div class="empty">
-          <i class="pi pi-users"></i>
-          <span class="empty__title">{{ 'reports.noWasteLogged' | translate }}</span>
+        <div class="empty-state">
+          <i class="empty-state__icon pi pi-users"></i>
+          <span class="empty-state__title">{{ 'reports.noWasteLogged' | translate }}</span>
         </div>
       } @else {
-        <ul class="top">
-          @for (row of topWorkers(); track row.worker.id; let i = $index) {
-            <li class="top__row">
-              <span class="top__rank tabular">{{ i + 1 }}</span>
-              <div class="top__ident">
-                <span class="top__name">{{ workerFullName(row.worker) }}</span>
-                <span class="top__series">{{ row.worker.seriesName }}</span>
+        <ul class="top-workers">
+          @for (row of topWorkers(); track row.worker.id; let i = $index, last = $last) {
+            <li class="top-workers__row" [class.top-workers__row--last]="last">
+              <span class="top-workers__rank">{{ i + 1 }}</span>
+              <div class="top-workers__ident">
+                <span class="top-workers__name">{{ workerFullName(row.worker) }}</span>
+                <span class="top-workers__series">{{ row.worker.seriesName }}</span>
               </div>
-              <span class="top__grades tabular">
+              <span class="top-workers__grades">
                 @for (count of row.total; track $index; let i = $index; let first = $first) {
                   @if (!first) {
                     <span class="breakdown__sep">/</span>
@@ -107,7 +111,7 @@
                   <span class="breakdown__count" [class]="gradeToneClass(i)">{{ count }}</span>
                 }
               </span>
-              <span class="top__total tabular">{{ rowTotal(row) }}</span>
+              <span class="top-workers__total">{{ rowTotal(row) }}</span>
             </li>
           }
         </ul>
@@ -118,14 +122,16 @@
   <div class="card">
     <div class="card__head">
       <h2 class="card__title">{{ 'reports.entryHistory' | translate }}</h2>
-      <span class="card__hint">{{ 'reports.entryCount' | translate: { count: entries().length } }}</span>
+      <span class="card__hint">{{
+        'reports.entryCount' | translate: { count: entries().length }
+      }}</span>
     </div>
 
     @if (!entries().length) {
-      <div class="empty">
-        <i class="pi pi-history"></i>
-        <span class="empty__title">{{ 'reports.noEntries' | translate }}</span>
-        <p>{{ 'reports.noEntriesBody' | translate }}</p>
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-history"></i>
+        <span class="empty-state__title">{{ 'reports.noEntries' | translate }}</span>
+        <p class="empty-state__text">{{ 'reports.noEntriesBody' | translate }}</p>
       </div>
     } @else {
       <p-table
@@ -134,24 +140,24 @@
         [rows]="12"
         [scrollable]="true"
         scrollHeight="34rem"
-        styleClass="p-datatable-sm"
+        styleClass="data-table"
       >
         <ng-template #header>
           <tr>
             <th>{{ 'reports.loggedAt' | translate }}</th>
             <th>{{ 'sheet.worker' | translate }}</th>
             <th>{{ 'reports.reason' | translate }}</th>
-            <th class="numeric">{{ 'reports.grade' | translate }}</th>
+            <th class="data-table__cell--numeric">{{ 'reports.grade' | translate }}</th>
           </tr>
         </ng-template>
 
         <ng-template #body let-entry>
           <tr>
-            <td class="tabular">{{ entry.createdDate }}</td>
+            <td>{{ entry.createdDate }}</td>
             <td>{{ entry.workerName }}</td>
             <td>{{ entry.reasonName }}</td>
-            <td class="numeric">
-              <span class="entry-grade" [class]="gradeToneClass(gradeIndex(entry.gradeId))">
+            <td class="data-table__cell--numeric">
+              <span class="grade-badge" [class]="gradeToneClass(gradeIndex(entry.gradeId))">
                 {{ entry.gradeName }}
               </span>
             </td>

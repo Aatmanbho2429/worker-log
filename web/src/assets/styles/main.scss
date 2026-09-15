@@ -1,7 +1,36 @@
 @use 'base/theme';
 @use 'base/reset';
+
+@use 'components/app';
+@use 'components/page';
+@use 'components/card';
+@use 'components/empty-state';
+@use 'components/skeleton-list';
+@use 'components/field';
+@use 'components/dialog-footer';
+@use 'components/kpi';
+@use 'components/master-toolbar';
+@use 'components/data-table';
+@use 'components/grade-tone';
 @use 'components/shell';
-@use 'components/auth';
-@use 'components/surfaces';
-@use 'components/masters';
-@use 'components/grades';
+@use 'components/auth-layout';
+@use 'components/auth-brand';
+@use 'components/auth-card';
+@use 'components/device-notice';
+@use 'components/password-meter';
+@use 'components/otp-field';
+@use 'components/primeng';
+
+@use 'shared/scan-field';
+@use 'shared/range-filter';
+
+@use 'views/login';
+@use 'views/waste';
+@use 'views/barcodes';
+@use 'views/reports';
+@use 'views/profile';
+@use 'views/reasons';
+@use 'views/grades';
+@use 'views/workers';
+@use 'views/settings';
+@use 'views/month-sheet';

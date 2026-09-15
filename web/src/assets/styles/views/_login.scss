@@ -1,33 +1,32 @@
 @use 'base/tokens' as *;
 
 // The page chrome is shared with the register screen and lives in
-// `styles/components/_auth.scss`. What is here belongs to the forgotten
-// password dialog.
+// `styles/components/_auth-*.scss`. What is here belongs to the
+// forgotten-password dialog.
 
-.forgot__note {
+.forgot-password__note {
   color: $text-muted;
   font-size: $fs-sm;
   margin-bottom: $space-lg;
 }
 
-.forgot__done {
+.forgot-password__done {
   align-items: flex-start;
   display: flex;
   gap: $space-sm;
   margin-bottom: $space-lg;
+}
 
-  i {
-    color: $green-500;
-    font-size: 1.8rem;
-    margin-top: 0.1rem;
-  }
+.forgot-password__done-icon {
+  color: $success-text;
+  font-size: $icon-lg;
 }
 
 // The "use a different email" / resend row under the code step's OTP field —
-// the same two-things-apart layout as `.auth__aside` above the password
+// the same two-things-apart layout as `.auth-card__aside` above the password
 // field, but plain text rather than a label, so it gets its own class rather
 // than reusing that one.
-.forgot__aside {
+.forgot-password__aside {
   align-items: center;
   display: flex;
   font-size: $fs-sm;

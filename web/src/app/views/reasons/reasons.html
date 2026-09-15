@@ -12,24 +12,30 @@
   <div class="card">
     <div class="card__head">
       <h2 class="card__title">{{ 'common.columnOrder' | translate }}</h2>
-      <span class="master__count">{{ 'reasons.countLabel' | translate: { count: items().length } }}</span>
+      <span class="master-toolbar__count">{{
+        'reasons.countLabel' | translate: { count: items().length }
+      }}</span>
     </div>
 
     @if (loading()) {
-      <div class="skeletons">
+      <div class="skeleton-list">
         @for (row of [1, 2, 3, 4, 5]; track row) {
           <p-skeleton height="3.6rem" borderRadius="4px" />
         }
       </div>
     } @else if (!items().length) {
-      <div class="empty">
-        <i class="pi pi-tags"></i>
-        <span class="empty__title">{{ 'reasons.noReasonsTitle' | translate }}</span>
-        <p>{{ 'reasons.noReasonsBody' | translate }}</p>
-        <p-button icon="pi pi-plus" [label]="'reasons.addReason' | translate" (onClick)="openNew()" />
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-tags"></i>
+        <span class="empty-state__title">{{ 'reasons.noReasonsTitle' | translate }}</span>
+        <p class="empty-state__text">{{ 'reasons.noReasonsBody' | translate }}</p>
+        <p-button
+          icon="pi pi-plus"
+          [label]="'reasons.addReason' | translate"
+          (onClick)="openNew()"
+        />
       </div>
     } @else {
-      <ul class="reasons-list">
+      <ul class="reason-list">
         @for (
           reason of items();
           track reason.id;
@@ -37,11 +43,11 @@
           let first = $first;
           let last = $last
         ) {
-          <li class="reasons-list__row">
-            <span class="reasons-list__pos tabular">{{ i + 1 }}</span>
-            <span class="reasons-list__name">{{ reason.name }}</span>
+          <li class="reason-list__row" [class.reason-list__row--last]="last">
+            <span class="reason-list__pos">{{ i + 1 }}</span>
+            <span class="reason-list__name">{{ reason.name }}</span>
 
-            <div class="reasons-list__order">
+            <div class="reason-list__order">
               <p-button
                 icon="pi pi-chevron-up"
                 severity="secondary"
@@ -62,7 +68,7 @@
               />
             </div>
 
-            <div class="master__actions">
+            <div class="data-table__actions">
               <p-button
                 icon="pi pi-pencil"
                 severity="secondary"
@@ -92,7 +98,7 @@
   (visibleChange)="dialogOpen.set($event)"
   [modal]="true"
   [draggable]="false"
-  [style]="{ width: '32rem' }"
+  [style]="{ width: DIALOG_WIDTH.form }"
   [header]="(editing() ? 'reasons.renameHeader' : 'reasons.addReason') | translate"
 >
   <div class="field">
@@ -113,7 +119,7 @@
   </div>
 
   <ng-template #footer>
-    <div class="dialog__footer">
+    <div class="dialog-footer">
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"

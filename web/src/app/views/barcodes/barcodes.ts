@@ -76,7 +76,6 @@ interface Group {
   selector: 'app-barcodes',
   imports: [PrimengComponentsModule, FormsModule, ScanField],
   templateUrl: './barcodes.html',
-  styleUrl: './barcodes.scss',
 })
 export class Barcodes {
   private readonly barcode = inject(BarcodeService);

@@ -1,0 +1,37 @@
+@use 'base/tokens' as *;
+
+.card {
+  background: $surface-card;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.card--padded {
+  padding: $space-xl;
+}
+
+.card__head {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  justify-content: space-between;
+  min-height: 5.6rem;
+  padding: $space-lg $space-xl;
+}
+
+.card__title {
+  font-size: $fs-md;
+  font-weight: $fw-semibold;
+}
+
+.card__hint {
+  color: $text-muted;
+  font-size: $fs-sm;
+}

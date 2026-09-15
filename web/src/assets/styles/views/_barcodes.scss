@@ -4,7 +4,7 @@
 // exactly and never does. That keeps the scan feedback and the controls
 // permanently in view, and lets the grid's own header row and name columns
 // stay pinned while the operator moves around inside it.
-.scan {
+.scan-page {
   display: flex;
   flex-direction: column;
   gap: $space-md;
@@ -14,155 +14,139 @@
 
 // ------------------------------------------------------------- status bar --
 
-.scan__bar {
+.scan-page__bar {
   display: flex;
   flex-direction: column;
   gap: $space-sm;
 }
 
-.scan__status {
+.scan-status {
   align-items: center;
-  background: linear-gradient(150deg, $surface-raised, $surface-card);
-  border: 1px solid $border-default;
-  border-left: 0.4rem solid $green-500;
-  border-radius: $radius-md;
+  background: $surface-card;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
+  box-shadow: inset 0.4rem 0 0 $success;
   display: grid;
   gap: $space-lg;
   grid-template-columns: minmax(28rem, 1.6fr) minmax(24rem, 2fr) auto;
-  padding: $space-sm $space-lg;
+  padding: $space-md $space-lg;
 
   &--problem {
-    border-left-color: $amber-500;
+    box-shadow: inset 0.4rem 0 0 $warning;
   }
 }
 
-.scan__state {
+.scan-status__state {
   align-items: center;
   display: flex;
   gap: $space-md;
-
-  > i {
-    color: $text-faint;
-    font-size: 2.2rem;
-  }
-
-  > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  &--ok > i {
-    color: $green-400;
-  }
-
-  &--problem {
-    > i {
-      color: $amber-400;
-    }
-
-    strong {
-      color: $amber-400;
-      font-size: $fs-md;
-      line-height: 1.25;
-    }
-  }
 }
 
-.scan__state-label {
+.scan-status__state-icon {
+  color: $text-faint;
+  font-size: $icon-xl;
+}
+
+.scan-status__state--ok .scan-status__state-icon {
+  color: $success-text;
+}
+
+.scan-status__state--problem .scan-status__state-icon,
+.scan-status__state--problem .scan-status__state-value {
+  color: $warning-text;
+}
+
+.scan-status__state-body {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  min-width: 0;
+}
+
+.scan-status__state-label {
+  @include overline;
   color: $text-muted;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
-.scan__state strong {
-  color: $text-primary;
-  font-family: $font-display;
+.scan-status__state-value {
   font-size: $fs-lg;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.15;
+  font-weight: $fw-semibold;
 }
 
-.scan__state-grade {
-  color: var(--grade-bright, #{$navy-200});
-  font-family: $font-body;
+.scan-status__state-grade {
+  color: var(--grade-bright, #{$text-accent});
   font-size: $fs-sm;
-  font-weight: 500;
-  letter-spacing: 0;
+  font-weight: $fw-medium;
   margin-left: $space-sm;
 }
 
-.scan__recent {
+.scan-status__recent {
   border-left: 1px solid $border-subtle;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
   justify-content: center;
   max-height: 8rem;
   overflow-y: auto;
   padding-left: $space-lg;
 }
 
-.scan__recent-row {
+.scan-status__recent-row {
+  @include numeric;
   align-items: baseline;
   color: $text-secondary;
   display: grid;
   font-size: $fs-sm;
   gap: $space-md;
   grid-template-columns: 7.5rem 1fr 1fr minmax(5rem, auto);
-
-  // The newest entry is the one being confirmed, so it stays brightest.
-  &:first-child {
-    color: $green-400;
-  }
 }
 
-.scan__recent-time,
-.scan__recent-reason {
+.scan-status__recent-row--latest {
+  color: $success-text;
+}
+
+.scan-status__recent-time,
+.scan-status__recent-reason {
   color: $text-faint;
 }
 
-.scan__recent-grade {
-  color: var(--grade-bright, #{$navy-200});
-  font-weight: 700;
-  overflow: hidden;
+.scan-status__recent-grade {
+  @include truncate;
+  color: var(--grade-bright, #{$text-accent});
+  font-weight: $fw-semibold;
   text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.scan__recent-empty {
+.scan-status__recent-empty {
   color: $text-faint;
   font-size: $fs-sm;
-  margin: 0;
 }
 
-.scan__tools {
+.scan-page__tools {
   align-items: center;
   display: flex;
   gap: $space-sm;
 }
 
-.scan__select,
-.scan__search {
+.scan-page__select,
+.scan-page__search {
   background: $surface-card;
   border: 1px solid $border-default;
-  border-radius: $radius-sm;
+  border-radius: $radius-md;
   color: $text-primary;
-  font-family: $font-body;
   font-size: $fs-base;
-  padding: $space-xs $space-sm;
-  width: 14rem;
+  height: $control-h;
+  padding: 0 $space-md;
+  width: 16rem;
+
+  &:focus {
+    border-color: $accent;
+    @include focus-ring;
+  }
 }
 
-.scan__empty {
+.scan-page__empty {
   color: $text-faint;
   font-size: $fs-base;
-  margin: 0;
   padding: $space-lg;
 }
 
@@ -170,44 +154,41 @@
 // inside it: the panel is already three columns wide at its narrowest, and a
 // scan box squeezed into a fourth would be the smallest target on a screen
 // whose whole job is scanning.
-.scan__box {
+.scan-page__box {
   background: $surface-card;
-  border: 1px solid $border-default;
-  border-radius: $radius-md;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
   padding: $space-sm $space-lg;
 }
 
 // ------------------------------------------------------------- jump links --
 
-.jumps {
+.jump-links {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: $space-xs;
 }
 
-.jumps__label {
+.jump-links__label {
+  @include overline;
   color: $text-faint;
-  font-size: $fs-xs;
-  font-weight: 600;
-  letter-spacing: 0.14em;
   margin-right: $space-xs;
-  text-transform: uppercase;
 }
 
-.jumps__chip {
+.jump-links__chip {
   background: $surface-card;
   border: 1px solid $border-subtle;
   border-radius: $radius-pill;
   color: $text-secondary;
   cursor: pointer;
-  font-family: $font-display;
   font-size: $fs-sm;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  padding: 0.3rem 1.1rem;
-  text-transform: uppercase;
-  transition: all 0.15s ease;
+  font-weight: $fw-medium;
+  height: $control-h-sm;
+  padding: 0 $space-md;
+  transition:
+    background $duration-fast $ease-standard,
+    color $duration-fast $ease-standard;
   white-space: nowrap;
 
   &:hover {
@@ -233,16 +214,16 @@ $col-series: 11rem;
 $col-cell: 14.4rem;
 $head-group: 3rem;
 
-.matrix {
+.scan-matrix {
   background: $surface-card;
-  border: 1px solid $border-default;
+  border: 1px solid $border-subtle;
   border-radius: $radius-md;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
 }
 
-.grid {
+.scan-matrix__table {
   border-collapse: separate;
   border-spacing: 0;
   font-size: $fs-sm;
@@ -254,64 +235,73 @@ $head-group: 3rem;
   width: calc(
     #{$col-sr} + #{$col-worker} + #{$col-series} + (var(--grid-columns, 0) * #{$col-cell})
   );
-
-  th,
-  td {
-    border-bottom: 1px solid $border-subtle;
-    border-right: 1px solid $border-subtle;
-    padding: 0;
-  }
 }
 
-.col--sr {
+// Every cell in the grid shares the same rule lines; listed together rather
+// than reached through a `th, td` tag selector.
+.scan-matrix__sr,
+.scan-matrix__worker,
+.scan-matrix__series,
+.scan-matrix__group,
+.scan-matrix__grade-head,
+.scan-matrix__cell {
+  border-bottom: 1px solid $border-subtle;
+  border-right: 1px solid $border-subtle;
+  padding: 0;
+}
+
+.scan-matrix__col--sr {
   width: $col-sr;
 }
-.col--worker {
+.scan-matrix__col--worker {
   width: $col-worker;
 }
-.col--series {
+.scan-matrix__col--series {
   width: $col-series;
 }
-.col--cell {
+.scan-matrix__col--cell {
   width: $col-cell;
 }
 
 // -- header --
 
-.grid thead th {
+.scan-matrix__group,
+.scan-matrix__grade-head,
+.scan-matrix__sr--head,
+.scan-matrix__worker--head,
+.scan-matrix__series--head {
   background: $band-strong;
   color: $band-text;
-  font-family: $font-display;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: $fw-semibold;
   position: sticky;
-  text-transform: uppercase;
-  z-index: 2;
 }
 
-.grid__group {
+.scan-matrix__group {
   height: $head-group;
   padding: 0 $space-sm;
   top: 0;
   white-space: nowrap;
+  z-index: 2;
 
   // A jump link aligns the reason with the left edge of the scrollport, which
   // is behind the pinned identity columns. This gives that width back.
   scroll-margin-left: $col-sr + $col-worker + $col-series;
 }
 
-.grid__gradehead {
+.scan-matrix__grade-head {
   background: $band;
   // Sits directly under the reason names, which are pinned above it.
   top: $head-group;
+  z-index: 2;
 
   // The grade's own colour, so a column is identifiable without reading the
   // heading. It goes on the underline rather than the text: this band stays
-  // dark navy in both themes, and the tone's text colour is picked to sit on
-  // the *page*, which on the light theme would be unreadable here.
-  border-bottom: 0.2rem solid var(--grade-edge, #{$navy-400});
-  color: $band-text;
+  // medium slate in both themes, and the tone's text colour is picked to sit
+  // on the *page*, which here would be unreadable.
+  border-bottom: 0.2rem solid var(--grade-edge, #{$accent});
+  color: $band-text-muted;
   font-size: $fs-xs;
+  font-weight: $fw-medium;
   height: 2.4rem;
   padding: 0 $space-xs;
   white-space: nowrap;
@@ -319,112 +309,88 @@ $head-group: 3rem;
 
 // -- identity columns --
 
-.grid__sr,
-.grid__worker,
-.grid__series {
+.scan-matrix__sr,
+.scan-matrix__worker,
+.scan-matrix__series {
+  background: $surface-card;
   left: 0;
   position: sticky;
   text-align: left;
 }
 
-.grid__sr {
+.scan-matrix__sr {
   color: $text-faint;
+  padding: 0 $space-sm;
   text-align: center;
 }
 
-.grid__worker {
+.scan-matrix__worker {
+  color: $text-primary;
+  font-weight: $fw-medium;
   left: $col-sr;
+  padding: 0 $space-sm;
 }
 
-.grid__series {
+.scan-matrix__series {
+  color: $text-muted;
+  font-size: $fs-xs;
   left: $col-sr + $col-worker;
+  padding: 0 $space-sm;
   // The firm rule where the pinned columns end and the grid begins.
   border-right: 1px solid $border-strong;
-  color: $text-muted;
-}
-
-// Body cells in the pinned columns need their own background — they scroll
-// over the grid, and a transparent cell would let it show through.
-.grid tbody {
-  .grid__sr,
-  .grid__worker,
-  .grid__series {
-    background: $surface-card;
-    font-size: $fs-sm;
-    padding: 0 $space-sm;
-    z-index: 1;
-  }
-
-  .grid__worker {
-    color: $text-primary;
-    font-weight: 600;
-  }
-
-  .grid__series {
-    font-size: $fs-xs;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  tr:hover {
-    .grid__sr,
-    .grid__worker,
-    .grid__series {
-      background: $surface-hover;
-    }
-  }
 }
 
 // The corner: pinned both ways, so it needs `top` of its own — the identity
 // rule above only pins it sideways — and it has to sit above both bands.
-.grid thead {
-  .grid__sr,
-  .grid__worker,
-  .grid__series {
-    padding: 0 $space-sm;
-    top: 0;
-    z-index: 3;
-  }
+.scan-matrix__sr--head,
+.scan-matrix__worker--head,
+.scan-matrix__series--head {
+  padding: 0 $space-sm;
+  top: 0;
+  z-index: 3;
 }
 
 // -- barcode boxes --
 
-.grid__cell {
+.scan-matrix__cell {
   background: $surface-sunken;
   padding: 0.3rem;
+}
 
-  .grid tbody tr:hover & {
-    background: $surface-hover;
-  }
+.scan-matrix__row:hover .scan-matrix__sr,
+.scan-matrix__row:hover .scan-matrix__worker,
+.scan-matrix__row:hover .scan-matrix__series,
+.scan-matrix__row:hover .scan-matrix__cell {
+  background: $surface-hover;
 }
 
 // The one thing on the page that ignores the theme. Scanners expect dark bars
 // on a light field; inverted barcodes read poorly on cheap laser readers and
 // not at all on some, so the box keeps paper's contrast whichever theme is on.
-.tile {
+.barcode-tile {
   align-items: center;
-  background: #ffffff;
+  background: $white;
   border-radius: $radius-sm;
-  // The one thing on a white tile carrying the grade's colour, so a row of them
-  // is told apart at a glance.
-  border-bottom: 0.25rem solid var(--grade-accent, #{$navy-500});
+  // The one thing on a white tile carrying the grade's colour, so a row of
+  // them is told apart at a glance.
+  border-bottom: 0.25rem solid var(--grade-accent, #{$accent});
   display: flex;
   flex-direction: column;
   margin: 0;
   padding: 0.2rem 0.3rem 0.1rem;
 }
 
-.tile__bars {
+.barcode-tile__bars {
   display: block;
   height: auto;
 }
 
-.tile__quiet {
-  fill: #ffffff;
+.barcode-tile__quiet {
+  fill: $white;
 }
 
-.tile__bar {
-  fill: #000000;
+.barcode-tile__bar {
+  fill: $black;
   // Crisp edges matter more than smoothing: a half-shaded module is a module
   // the reader may size wrongly.
   shape-rendering: crispEdges;
@@ -432,7 +398,7 @@ $head-group: 3rem;
 
 // The printed digits and this session's count share the line under the bars —
 // the count sitting where the tally would be written on the paper sheet.
-.tile__caption {
+.barcode-tile__caption {
   align-items: baseline;
   display: flex;
   gap: 0.4rem;
@@ -440,21 +406,23 @@ $head-group: 3rem;
   width: 100%;
 }
 
-.tile__code {
-  color: #{$ink-400};
+.barcode-tile__code {
+  @include numeric;
+  color: $gray-500;
   font-family: $font-mono;
   font-size: 0.85rem;
   letter-spacing: 0.02em;
 }
 
-.tile__count {
-  color: #{$ink-300};
+.barcode-tile__count {
+  @include numeric;
+  color: $gray-400;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: $fw-semibold;
   min-width: 1.4rem;
   text-align: right;
 
   &--on {
-    color: var(--grade-accent, #{$navy-500});
+    color: var(--grade-accent, #{$accent});
   }
 }

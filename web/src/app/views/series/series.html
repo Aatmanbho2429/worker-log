@@ -11,7 +11,7 @@
 
   <div class="card">
     <div class="card__head">
-      <div class="master__toolbar">
+      <div class="master-toolbar">
         <p-iconfield>
           <p-inputicon class="pi pi-search" />
           <input
@@ -22,49 +22,55 @@
             (ngModelChange)="search.set($event)"
           />
         </p-iconfield>
-        <span class="master__count">{{
+        <span class="master-toolbar__count">{{
           'common.countOf' | translate: { count: filtered().length, total: items().length }
         }}</span>
       </div>
     </div>
 
     @if (loading()) {
-      <div class="skeletons">
+      <div class="skeleton-list">
         @for (row of [1, 2, 3, 4]; track row) {
           <p-skeleton height="3.6rem" borderRadius="4px" />
         }
       </div>
     } @else if (!filtered().length) {
-      <div class="empty">
-        <i class="pi pi-box"></i>
-        <span class="empty__title">{{
+      <div class="empty-state">
+        <i class="empty-state__icon pi pi-box"></i>
+        <span class="empty-state__title">{{
           (search() ? 'common.noMatch' : 'series.noSeriesTitle') | translate
         }}</span>
-        <p>{{ (search() ? 'series.noMatchBody' : 'series.noSeriesBody') | translate }}</p>
+        <p class="empty-state__text">
+          {{ (search() ? 'series.noMatchBody' : 'series.noSeriesBody') | translate }}
+        </p>
         @if (!search()) {
-          <p-button icon="pi pi-plus" [label]="'series.addSeries' | translate" (onClick)="openNew()" />
+          <p-button
+            icon="pi pi-plus"
+            [label]="'series.addSeries' | translate"
+            (onClick)="openNew()"
+          />
         }
       </div>
     } @else {
-      <p-table [value]="filtered()" styleClass="p-datatable-sm">
+      <p-table [value]="filtered()" styleClass="data-table">
         <ng-template #header>
           <tr>
-            <th class="master__sr">{{ 'common.sr' | translate }}</th>
+            <th class="data-table__cell--index">{{ 'common.sr' | translate }}</th>
             <th>{{ 'common.name' | translate }}</th>
-            <th class="numeric">{{ 'series.workersHeader' | translate }}</th>
+            <th class="data-table__cell--numeric">{{ 'series.workersHeader' | translate }}</th>
             <th>{{ 'common.added' | translate }}</th>
-            <th style="width: 10rem"></th>
+            <th class="data-table__cell data-table__cell--actions"></th>
           </tr>
         </ng-template>
 
         <ng-template #body let-item let-i="rowIndex">
           <tr>
-            <td class="master__sr tabular">{{ i + 1 }}</td>
-            <td class="master__name">{{ item.name }}</td>
-            <td class="numeric tabular">{{ item.workerCount }}</td>
-            <td class="master__meta tabular">{{ item.createdDate }}</td>
+            <td class="data-table__cell--index">{{ i + 1 }}</td>
+            <td class="data-table__name">{{ item.name }}</td>
+            <td class="data-table__cell--numeric">{{ item.workerCount }}</td>
+            <td class="data-table__cell--meta">{{ item.createdDate }}</td>
             <td>
-              <div class="master__actions">
+              <div class="data-table__actions">
                 <p-button
                   icon="pi pi-pencil"
                   severity="secondary"
@@ -95,7 +101,7 @@
   (visibleChange)="dialogOpen.set($event)"
   [modal]="true"
   [draggable]="false"
-  [style]="{ width: '32rem' }"
+  [style]="{ width: DIALOG_WIDTH.form }"
   [header]="(editing() ? 'series.editHeader' : 'series.addSeries') | translate"
 >
   <div class="field">
@@ -115,7 +121,7 @@
   </div>
 
   <ng-template #footer>
-    <div class="dialog__footer">
+    <div class="dialog-footer">
       <p-button
         [label]="'common.cancel' | translate"
         severity="secondary"

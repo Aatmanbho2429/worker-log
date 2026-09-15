@@ -73,7 +73,6 @@ const DEFAULT_COOLDOWN_SECONDS = 60;
   selector: 'app-register',
   imports: [PrimengComponentsModule, FormsModule, RouterLink],
   templateUrl: './register.html',
-  styleUrl: './register.scss',
 })
 export class Register implements OnDestroy {
   private readonly auth = inject(AuthService);

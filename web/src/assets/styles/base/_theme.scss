@@ -6,10 +6,11 @@
 // whole application means editing this one file**. Nothing else in the code
 // base names a surface, a text colour or a border directly.
 //
-// `:root` is the theme that ships — light. Adding `class="app-dark"` to
-// `<html>` swaps in the dark one below, and that same class drives PrimeNG's
-// own dark scheme (`darkModeSelector` in `app.config.ts`), so the components
-// and the page chrome always agree.
+// `:root` is the theme that ships — a soft grey page, white cards, a medium
+// slate sidebar. Adding `class="app-dark"` to `<html>` swaps in the dim one
+// below, and that same class drives PrimeNG's own dark scheme
+// (`darkModeSelector` in `app.config.ts`), so the components and the page
+// chrome always agree.
 //
 // To build a third theme, copy one of these blocks and change the values.
 //
@@ -19,79 +20,132 @@
 // theme.
 
 :root {
-  // Surfaces, from the page behind everything up to the raised cards.
-  --surface-page: #{$ink-100};
-  --surface-sunken: #{$ink-200};
-  --surface-card: #{$ink-0};
-  --surface-raised: #{$ink-0};
-  --surface-hover: #{$ink-100};
-  --surface-header: #{$ink-0};
+  // Soft grey page, white cards: medium overall, never stark.
+  --surface-page: #{$gray-100};
+  --surface-sunken: #{$gray-200};
+  --surface-card: #{$gray-0};
+  --surface-raised: #{$gray-0};
+  --surface-hover: #{$gray-100};
+  --surface-header: #{$gray-0};
 
-  --border-subtle: #{$ink-200};
-  --border-default: #{$ink-300};
-  --border-strong: #{$ink-400};
+  --border-subtle: #{$gray-200};
+  --border-default: #{$gray-300};
+  --border-strong: #{$gray-400};
 
-  --text-primary: #{$ink-900};
-  --text-secondary: #{$ink-700};
-  --text-muted: #{$ink-500};
-  --text-faint: #{$ink-450};
+  // Dark grey rather than black: full contrast without the harshness.
+  --text-primary: #{$gray-800};
+  --text-secondary: #{$gray-700};
+  --text-muted: #{$gray-600};
+  --text-faint: #{$gray-500};
+  --text-accent: #{$blue-700};
+  --text-on-accent: #{$white};
 
-  // Navy used *as text* — links, and the numbers worth picking out. It has to
-  // be read at both ends of the ramp, so the two schemes take it from opposite
-  // ends rather than sharing one value.
-  --text-accent: #{$navy-500};
+  // Same solid blue fill in both schemes, so the primary action looks like
+  // itself whichever theme is on.
+  --accent: #{$blue-600};
+  --accent-hover: #{$blue-700};
+  --accent-active: #{$blue-800};
+  --accent-soft: #{rgba($blue-600, 0.08)};
+  --accent-soft-strong: #{rgba($blue-600, 0.14)};
+  --focus-ring: #{rgba($blue-500, 0.4)};
 
-  --shadow-card: 0 0.1rem 0.3rem rgba(15, 23, 42, 0.08);
-  --shadow-raised: 0 0.8rem 2.4rem rgba(15, 23, 42, 0.14);
+  --danger: #{$red-600};
+  --danger-text: #{$red-700};
+  --danger-soft: #{rgba($red-600, 0.08)};
+  --warning: #{$amber-600};
+  --warning-text: #{$amber-700};
+  --warning-soft: #{rgba($amber-500, 0.12)};
+  --success: #{$green-600};
+  --success-text: #{$green-700};
+  --success-soft: #{rgba($green-600, 0.1)};
 
-  // The wash over a hovered row, and the well a count or badge sits in. Both
-  // are translucent so they read the same over a card or over the grid.
-  --wash-hover: rgba(15, 23, 42, 0.04);
-  --wash-inset: rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 0.1rem 0.2rem #{rgba($gray-800, 0.06)};
+  --shadow-raised: 0 1.2rem 3.2rem -0.4rem #{rgba($gray-800, 0.18)};
 
-  // A dark scrim for a count or badge sitting *on* a saturated accent fill
-  // (the active reason chip, say) rather than on the page surface — the fill
-  // stays the same navy in both themes, so this does too.
-  --wash-on-accent: rgba(0, 0, 0, 0.24);
+  --wash-hover: #{rgba($gray-800, 0.035)};
+  --wash-inset: #{rgba($gray-800, 0.05)};
+  --wash-on-accent: #{rgba($black, 0.2)};
 
-  // Header bands. These keep the brand navy in both themes: it is what makes
-  // the sheet read as the register it replaces rather than as a spreadsheet.
-  // Text on a band is therefore always the light one; `-muted` is the same at
-  // lower opacity, for a sub-label that should recede next to it.
-  --band: #{$navy-800};
-  --band-strong: #{$navy-900};
-  --band-text: #{$ink-0};
-  --band-text-muted: #{rgba($ink-0, 0.72)};
+  --table-head-bg: #{$gray-50};
+  --table-head-text: #{$gray-600};
+
+  // Register header bands: medium slate in both themes, always light text.
+  --band: #{$slate-550};
+  --band-strong: #{$slate-600};
+  --band-text: #{$white};
+  --band-text-muted: #{$slate-200};
+  --band-divider: #{rgba($white, 0.2)};
+
+  // Sidebar and auth panel: the same medium slate.
+  --sidebar-bg: #{$slate-600};
+  --sidebar-border: #{rgba($white, 0.12)};
+  --sidebar-text: #{$slate-200};
+  --sidebar-text-muted: #{$slate-300};
+  --sidebar-hover: #{rgba($white, 0.08)};
+  --sidebar-active-bg: #{rgba($white, 0.16)};
+  --sidebar-active-text: #{$white};
+  --sidebar-indicator: #{$blue-300};
 }
 
+// Dim rather than black: charcoal surfaces, never near-black.
 .app-dark {
-  --surface-page: #05090f;
-  --surface-sunken: #070d17;
-  --surface-card: #0b1524;
-  --surface-raised: #10203a;
-  --surface-hover: #16294a;
-  --surface-header: #0a1728;
+  --surface-page: #{$gray-850};
+  --surface-sunken: #{$gray-900};
+  --surface-card: #{$gray-800};
+  --surface-raised: #{$gray-750};
+  --surface-hover: #{$gray-750};
+  --surface-header: #{$gray-800};
 
-  --border-subtle: #14243c;
-  --border-default: #1b2e4a;
-  --border-strong: #26426b;
+  --border-subtle: #{$gray-750};
+  --border-default: #{$gray-700};
+  --border-strong: #{$gray-600};
 
-  --text-primary: #ffffff;
-  --text-secondary: #c3cede;
-  --text-muted: #8296ae;
-  --text-faint: #5b6d84;
+  --text-primary: #{$gray-50};
+  --text-secondary: #{$gray-300};
+  --text-muted: #{$gray-400};
+  --text-faint: #{$gray-500};
+  --text-accent: #{$blue-400};
+  --text-on-accent: #{$white};
 
-  --text-accent: #{$navy-300};
+  --accent: #{$blue-600};
+  --accent-hover: #{$blue-700};
+  --accent-active: #{$blue-800};
+  --accent-soft: #{rgba($blue-400, 0.12)};
+  --accent-soft-strong: #{rgba($blue-400, 0.2)};
+  --focus-ring: #{rgba($blue-400, 0.5)};
 
-  --shadow-card: 0 0.2rem 1.2rem rgba(0, 0, 0, 0.45);
-  --shadow-raised: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.55);
+  --danger: #{$red-600};
+  --danger-text: #{$red-400};
+  --danger-soft: #{rgba($red-400, 0.14)};
+  --warning: #{$amber-600};
+  --warning-text: #{$amber-400};
+  --warning-soft: #{rgba($amber-400, 0.14)};
+  --success: #{$green-600};
+  --success-text: #{$green-400};
+  --success-soft: #{rgba($green-400, 0.12)};
 
-  --wash-hover: rgba(255, 255, 255, 0.03);
-  --wash-inset: rgba(0, 0, 0, 0.32);
-  --wash-on-accent: rgba(0, 0, 0, 0.24);
+  --shadow-card: 0 0.1rem 0.2rem #{rgba($black, 0.3)};
+  --shadow-raised: 0 1.6rem 4rem #{rgba($black, 0.45)};
 
-  --band: #{$navy-800};
-  --band-strong: #{$navy-900};
-  --band-text: #{$ink-0};
-  --band-text-muted: #{rgba($ink-0, 0.72)};
+  --wash-hover: #{rgba($white, 0.04)};
+  --wash-inset: #{rgba($black, 0.2)};
+  --wash-on-accent: #{rgba($black, 0.2)};
+
+  --table-head-bg: #{$gray-750};
+  --table-head-text: #{$gray-400};
+
+  --band: #{$slate-600};
+  --band-strong: #{$slate-700};
+  --band-text: #{$white};
+  --band-text-muted: #{$slate-200};
+  --band-divider: #{rgba($white, 0.2)};
+
+  --sidebar-bg: #{$slate-700};
+  --sidebar-border: #{rgba($white, 0.1)};
+  --sidebar-text: #{$slate-200};
+  --sidebar-text-muted: #{$slate-300};
+  --sidebar-hover: #{rgba($white, 0.06)};
+  --sidebar-active-bg: #{rgba($white, 0.14)};
+  --sidebar-active-text: #{$white};
+  --sidebar-indicator: #{$blue-300};
 }

@@ -1,42 +1,41 @@
 @use 'base/tokens' as *;
 
-.scanbox {
+// The one control on the screen a scanner talks to, so it is sized to be
+// obviously the target and wide enough to show a whole code.
+
+.scan-field {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: $space-md;
 }
 
-.scanbox__label {
+.scan-field__label {
   align-items: center;
-  color: $text-muted;
+  color: $text-secondary;
   display: flex;
-  font-family: $font-display;
   font-size: $fs-sm;
-  font-weight: 600;
+  font-weight: $fw-medium;
   gap: $space-sm;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-
-  i {
-    color: var(--grade-accent, #{$navy-500});
-    font-size: 1.6rem;
-  }
 }
 
-// The one control on the screen a scanner talks to, so it is sized to be
-// obviously the target and wide enough to show a whole code.
-.scanbox__input {
-  background: $surface-sunken;
+.scan-field__label-icon {
+  color: var(--grade-accent, #{$accent});
+  font-size: $icon-md;
+}
+
+.scan-field__input {
+  background: $surface-card;
   border: 1px solid $border-strong;
   border-radius: $radius-md;
   color: $text-primary;
   flex: 1 1 26rem;
   font-family: $font-mono;
   font-size: $fs-md;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   min-width: 22rem;
-  padding: $space-sm $space-md;
+  padding: 0 $space-md;
+  height: $control-h-lg;
 
   &::placeholder {
     color: $text-faint;
@@ -46,9 +45,8 @@
   }
 
   &:focus {
-    border-color: $navy-300;
-    box-shadow: 0 0 0 0.3rem rgba($navy-400, 0.22);
-    outline: none;
+    border-color: $accent;
+    @include focus-ring;
   }
 
   &:disabled {
@@ -57,32 +55,32 @@
   }
 }
 
-.scanbox__result {
+.scan-field__result {
   align-items: center;
   display: flex;
   font-size: $fs-base;
   gap: $space-sm;
   min-width: 0;
-
-  strong {
-    font-weight: 600;
-  }
-
-  &--ok {
-    color: $green-400;
-  }
-
-  &--problem {
-    color: $amber-400;
-  }
 }
 
-.scanbox__dismiss {
+.scan-field__result-value {
+  font-weight: $fw-semibold;
+}
+
+.scan-field__result--ok {
+  color: $success-text;
+}
+
+.scan-field__result--problem {
+  color: $warning-text;
+}
+
+.scan-field__dismiss {
   background: none;
   border: none;
   color: $text-muted;
   cursor: pointer;
-  font-family: $font-body;
+  font: inherit;
   font-size: $fs-sm;
   text-decoration: underline;
 
@@ -91,7 +89,7 @@
   }
 }
 
-.scanbox__hint {
-  color: $text-faint;
+.scan-field__hint {
+  color: $text-muted;
   font-size: $fs-sm;
 }

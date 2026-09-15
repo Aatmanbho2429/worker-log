@@ -1,0 +1,27 @@
+@use 'base/tokens' as *;
+
+.empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  justify-content: center;
+  padding: $space-3xl $space-xl;
+  text-align: center;
+}
+
+.empty-state__icon {
+  color: $border-strong;
+  font-size: $icon-hero;
+}
+
+.empty-state__title {
+  color: $text-secondary;
+  font-size: $fs-md;
+  font-weight: $fw-semibold;
+}
+
+.empty-state__text {
+  color: $text-muted;
+  max-width: 60ch;
+}

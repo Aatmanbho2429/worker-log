@@ -1,0 +1,243 @@
+@use 'base/tokens' as *;
+
+// ------------------------------------------------------------ reason chips --
+
+.reason-chips {
+  display: flex;
+  gap: $space-sm;
+  overflow-x: auto;
+  padding-bottom: $space-xs;
+}
+
+.reason-chips__chip {
+  align-items: center;
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  cursor: pointer;
+  display: flex;
+  gap: $space-sm;
+  height: $control-h;
+  padding: 0 $space-lg;
+  transition:
+    background $duration-fast $ease-standard,
+    color $duration-fast $ease-standard,
+    border-color $duration-fast $ease-standard;
+  white-space: nowrap;
+
+  &--active {
+    background: $accent;
+    border-color: $accent;
+    color: $text-on-accent;
+  }
+}
+
+.reason-chips__name {
+  font-size: $fs-base;
+  font-weight: $fw-medium;
+}
+
+.reason-chips__count {
+  @include numeric;
+  background: $wash-inset;
+  border-radius: $radius-pill;
+  color: $text-secondary;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  padding: $space-2xs $space-sm;
+}
+
+.reason-chips__chip--active .reason-chips__count {
+  background: $wash-on-accent;
+  color: $text-on-accent;
+}
+
+// ------------------------------------------------------------- worker rows --
+
+.tapper {
+  list-style: none;
+  overflow-y: auto;
+}
+
+.tapper__row {
+  align-items: center;
+  border-bottom: 1px solid $border-subtle;
+  display: grid;
+  gap: $space-lg;
+  grid-template-columns: minmax(18rem, 1fr) auto 8rem;
+  padding: $space-md $space-xl;
+
+  &:hover {
+    background: $wash-hover;
+  }
+
+  &--last {
+    border-bottom: none;
+  }
+}
+
+.tapper__who {
+  align-items: center;
+  display: flex;
+  gap: $space-md;
+  min-width: 0;
+}
+
+// One block per grade. They wrap rather than squeezing, because a button too
+// narrow to hit with a glove is worse than a taller row.
+.tapper__grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  justify-content: flex-end;
+}
+
+.tapper__sr {
+  @include numeric;
+  color: $text-faint;
+  font-size: $fs-base;
+}
+
+.tapper__ident {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tapper__name {
+  @include truncate;
+  font-size: $fs-md;
+  font-weight: $fw-semibold;
+}
+
+.tapper__series {
+  color: $text-muted;
+  font-size: $fs-sm;
+}
+
+.tapper__total {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.tapper__total-label {
+  @include overline;
+  color: $text-faint;
+}
+
+.tapper__total-value {
+  @include numeric;
+  font-size: $fs-lg;
+  font-weight: $fw-semibold;
+}
+
+// ------------------------------------------------------------ grade blocks --
+
+.grade-counter {
+  align-items: stretch;
+  background: $surface-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  display: flex;
+  overflow: hidden;
+
+  &--empty .grade-counter__count {
+    color: $text-faint;
+  }
+}
+
+.grade-counter__undo {
+  background: transparent;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  transition: background $duration-fast $ease-standard;
+  width: 4rem;
+
+  &:hover:not(:disabled) {
+    background: var(--grade-soft, #{$danger-soft});
+    color: var(--grade-bright, #{$danger-text});
+  }
+
+  &:disabled {
+    color: $border-strong;
+    cursor: not-allowed;
+  }
+}
+
+.grade-counter__undo-icon {
+  font-size: $icon-sm;
+}
+
+.grade-counter__count {
+  @include numeric;
+  align-items: center;
+  display: flex;
+  font-size: $fs-lg;
+  font-weight: $fw-semibold;
+  justify-content: center;
+  min-width: 5.6rem;
+  padding: 0 $space-sm;
+}
+
+// The primary target: sized for a gloved tap, not a mouse.
+.grade-counter__add {
+  align-items: center;
+  background: var(--grade-accent, #{$accent});
+  border: none;
+  color: $text-on-accent;
+  cursor: pointer;
+  display: flex;
+  font-size: $fs-base;
+  font-weight: $fw-semibold;
+  gap: $space-sm;
+  min-height: $control-h-lg;
+  padding: 0 $space-lg;
+  transition: background $duration-fast $ease-standard;
+
+  &:hover:not(:disabled) {
+    background: var(--grade-accent-hover, #{$accent-hover});
+  }
+
+  &:active:not(:disabled) {
+    background: var(--grade-accent-active, #{$accent-active});
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.6;
+  }
+}
+
+.grade-counter__add-icon {
+  font-size: $icon-sm;
+}
+
+@media (max-width: 1100px) {
+  .tapper__row {
+    grid-template-columns: 1fr;
+    row-gap: $space-md;
+  }
+
+  .tapper__grades {
+    justify-content: flex-start;
+  }
+
+  .tapper__total {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: $space-sm;
+  }
+}
+
+// Past a handful of grades the names stop fitting across the row, so the
+// blocks keep their counts and hit targets and drop the wording — the KPI
+// strip above still names every grade in its own colour.
+@media (max-width: 1500px) {
+  .tapper__row--crowded .grade-counter__label {
+    display: none;
+  }
+}

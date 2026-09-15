@@ -10,7 +10,7 @@ import {
   RazorpayService,
 } from '../../core/razorpay.service';
 import { TranslateService } from '@ngx-translate/core';
-import { ROUTE_LOGIN } from '../../models/constants';
+import { DIALOG_WIDTH, ROUTE_LOGIN } from '../../models/constants';
 import {
   Payment,
   Plan,
@@ -34,10 +34,10 @@ import { PrimengComponentsModule } from '../../shared/primeng-components-module'
  * Razorpay's own widget colour, not one of `_tokens.scss`'s — the checkout
  * overlay is Razorpay's surface, not this app's, the same reason barcode
  * tiles and sheet header bands stay outside the theme (`.claude/rules/theming.md`).
- * Mirrors `$navy-500`, duplicated rather than shared because a Sass variable
+ * Mirrors `$blue-600`, duplicated rather than shared because a Sass variable
  * cannot cross into a `.ts` file.
  */
-const RAZORPAY_THEME_COLOR = '#1e4e86';
+const RAZORPAY_THEME_COLOR = '#2563eb';
 
 /** Which copy key explains a non-silent {@link RazorpayCancelled}. `dismissed` needs none — see `selectPlan`. */
 const RAZORPAY_FAILURE_KEYS: Record<Exclude<RazorpayCancelReason, 'dismissed'>, string> = {
@@ -67,7 +67,6 @@ const EMPTY_PASSWORD_FORM: PasswordForm = {
   selector: 'app-profile',
   imports: [PrimengComponentsModule, FormsModule],
   templateUrl: './profile.html',
-  styleUrl: './profile.scss',
 })
 export class Profile {
   private readonly auth = inject(AuthService);
@@ -75,6 +74,8 @@ export class Profile {
   private readonly razorpay = inject(RazorpayService);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
+
+  protected readonly DIALOG_WIDTH = DIALOG_WIDTH;
 
   protected readonly user = this.auth.user;
   protected readonly subscription = this.auth.subscription;
