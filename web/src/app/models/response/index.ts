@@ -22,6 +22,7 @@ export * from './seriesOfProduct';
 export * from './session';
 export * from './sessionResponse';
 export * from './subscription';
+export * from './updateInfo';
 export * from './userAccount';
 export * from './worker';
 export * from './workerDeleteImpact';

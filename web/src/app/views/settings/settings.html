@@ -18,5 +18,15 @@
     </dl>
 
     <p class="settings__note">{{ 'settings.note' | translate }}</p>
+
+    <div class="settings__actions">
+      <p-button
+        [label]="'update.checkNow' | translate"
+        icon="pi pi-refresh"
+        severity="secondary"
+        [loading]="updates.checking()"
+        (onClick)="checkForUpdates()"
+      />
+    </div>
   </div>
 </section>

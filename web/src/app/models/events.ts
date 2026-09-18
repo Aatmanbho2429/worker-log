@@ -14,3 +14,13 @@ export interface DataChanged {
 export function affects(change: DataChanged, ...interested: ChangeScope[]): boolean {
   return change.scope === 'everything' || interested.includes(change.scope);
 }
+
+/**
+ * Download progress for an in-progress update install. Mirrors
+ * `events::UpdateProgress` in Rust.
+ */
+export interface UpdateProgress {
+  downloaded: number;
+  /** `null` when the response carried no `Content-Length` — an indeterminate download. */
+  total: number | null;
+}

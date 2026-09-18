@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Ceramic Waste Log",
-  "version": "0.1.0",
   "identifier": "com.aatman.ceramicwastelog",
   "build": {
     "beforeDevCommand": "npm --prefix web run start",
@@ -30,10 +29,8 @@
   "bundle": {
     "active": true,
     "targets": [
-      "deb",
-      "appimage",
-      "msi",
       "nsis",
+      "app",
       "dmg"
     ],
     "icon": [
@@ -45,6 +42,15 @@
     ],
     "category": "Business",
     "shortDescription": "Ceramic sanitaryware waste log",
-    "longDescription": "Records grade 3 and grade 4 waste per worker and per reason, and prints the monthly sheet."
+    "longDescription": "Records grade 3 and grade 4 waste per worker and per reason, and prints the monthly sheet.",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE1NDMxRDZBNjZDMUNGRDYKUldUV3o4Rm1haDFERlkwY2ZocDVVM1dhZFl2R1MvOS9TeTBwQTVCblZKSFBxcHA3V1RlZUhMWngK",
+      "endpoints": [
+        "https://github.com/Aatmanbho2429/worker-log/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

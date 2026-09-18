@@ -1,0 +1,82 @@
+@if (updates.bannerVisible()) {
+  <div
+    class="update-banner"
+    [class.update-banner--failed]="updates.error()"
+    [class.update-banner--installing]="updates.installing()"
+  >
+    <i class="pi pi-arrow-circle-up update-banner__icon"></i>
+
+    <div class="update-banner__text">
+      @if (updates.installing()) {
+        <span class="update-banner__title">
+          {{ 'update.downloading' | translate: { version: updates.available()?.version } }}
+        </span>
+        <p-progressbar
+          class="update-banner__progress"
+          [value]="updates.percent() ?? 0"
+          [mode]="updates.percent() === null ? 'indeterminate' : 'determinate'"
+          [showValue]="false"
+        />
+      } @else if (updates.error(); as err) {
+        <span class="update-banner__title">{{ 'update.failedTitle' | translate }}</span>
+        <span class="update-banner__error">{{ err }}</span>
+      } @else {
+        <span class="update-banner__title">
+          {{ 'update.ready' | translate: { version: updates.available()?.version } }}
+        </span>
+      }
+    </div>
+
+    @if (!updates.installing()) {
+      <div class="update-banner__actions">
+        @if (!updates.error() && hasNotes()) {
+          <p-button
+            [label]="'update.whatsNew' | translate"
+            severity="secondary"
+            [text]="true"
+            size="small"
+            (onClick)="showNotes.set(true)"
+          />
+        }
+
+        <p-button
+          [label]="(updates.error() ? 'update.retry' : 'update.install') | translate"
+          [icon]="updates.error() ? 'pi pi-refresh' : 'pi pi-arrow-circle-up'"
+          size="small"
+          (onClick)="confirmInstall()"
+        />
+
+        @if (updates.error()) {
+          <p-button
+            [label]="'update.downloadManually' | translate"
+            severity="secondary"
+            size="small"
+            (onClick)="updates.openReleasesPage()"
+          />
+        }
+
+        <p-button
+          icon="pi pi-times"
+          severity="secondary"
+          [text]="true"
+          [rounded]="true"
+          size="small"
+          [pTooltip]="'update.dismiss' | translate"
+          tooltipPosition="bottom"
+          (onClick)="updates.dismiss()"
+        />
+      </div>
+    }
+  </div>
+}
+
+<p-dialog
+  [visible]="showNotes()"
+  (visibleChange)="showNotes.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: DIALOG_WIDTH.form }"
+  [header]="'update.notesTitle' | translate: { version: updates.available()?.version }"
+>
+  <p class="update-banner__notes">{{ updates.available()?.notes }}</p>
+</p-dialog>

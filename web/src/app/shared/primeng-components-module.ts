@@ -17,6 +17,7 @@ import { InputOtpModule } from 'primeng/inputotp';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { RippleModule } from 'primeng/ripple';
 import { SelectModule } from 'primeng/select';
@@ -53,6 +54,7 @@ const MODULES = [
   InputTextModule,
   MessageModule,
   PasswordModule,
+  ProgressBarModule,
   ProgressSpinnerModule,
   RippleModule,
   SelectModule,

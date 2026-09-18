@@ -19,6 +19,7 @@ import {
   ROUTE_WORKERS,
 } from '../../models/constants';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
+import { UpdateBanner } from '../../shared/update-banner/update-banner';
 
 interface NavItem {
   /** A translation key, resolved by the template. */
@@ -35,7 +36,7 @@ interface NavSection {
 
 @Component({
   selector: 'app-shell',
-  imports: [PrimengComponentsModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [PrimengComponentsModule, RouterOutlet, RouterLink, RouterLinkActive, UpdateBanner],
   templateUrl: './shell.html',
 })
 export class Shell implements OnDestroy {
@@ -61,7 +62,10 @@ export class Shell implements OnDestroy {
         { label: 'shell.navSeries', icon: 'pi pi-box', route: ROUTE_SERIES },
         { label: 'shell.navReasons', icon: 'pi pi-tags', route: ROUTE_REASONS },
         { label: 'shell.navGrades', icon: 'pi pi-sliders-h', route: ROUTE_GRADES },
-        // { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
+        // Unhidden for the update feature: Settings is where the manual
+        // "Check for updates" button lives (`.claude/plans/auto-update.md`,
+        // open question 1). It was previously unreachable except by URL.
+        { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
       ],
     },
     {

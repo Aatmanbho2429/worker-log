@@ -3,6 +3,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ConfirmationService } from 'primeng/api';
 
 import { NotifyService } from '../../core/notify.service';
+import { UpdatesService } from '../../core/updates.service';
 import { AppInfo } from '../../models';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { SettingsService } from '../../services/settings/settings.service';
@@ -23,6 +24,7 @@ export class Settings {
   private readonly notify = inject(NotifyService);
   private readonly confirm = inject(ConfirmationService);
   private readonly translate = inject(TranslateService);
+  protected readonly updates = inject(UpdatesService);
 
   protected readonly info = signal<AppInfo | null>(null);
   protected readonly seeding = signal(false);
@@ -63,6 +65,29 @@ export class Settings {
       this.notify.fromCommand(error, this.translate.instant('settings.seedFailed'));
     } finally {
       this.seeding.set(false);
+    }
+  }
+
+  /**
+   * The manual counterpart to `UpdatesService`'s silent background poll:
+   * this one always tells the operator something, success or failure. A
+   * newer version found here shows up in the shell's banner too — this
+   * button doesn't install anything itself.
+   */
+  protected async checkForUpdates(): Promise<void> {
+    try {
+      const result = await this.updates.checkNow();
+      if (result === 'available') {
+        this.notify.info(
+          this.translate.instant('update.availableToast', {
+            version: this.updates.available()?.version,
+          }),
+        );
+      } else {
+        this.notify.success(this.translate.instant('update.upToDate'));
+      }
+    } catch (error) {
+      this.notify.fromCommand(error, this.translate.instant('update.checkFailed'));
     }
   }
 
