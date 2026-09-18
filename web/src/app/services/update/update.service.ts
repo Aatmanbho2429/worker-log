@@ -8,9 +8,12 @@ import { UpdateInfo } from '../../models';
 import { UpdateProgress } from '../../models/events';
 
 /**
- * Talks to the three `update_*` Tauri commands. The app-wide state built on
- * top of these — the banner's signals, the 6-hour background poll — is
+ * Talks to the three `update_*` Tauri commands and the two update events. The
+ * app-wide state built on top of these — the banner's signals — is
  * `core/updates.service.ts`, not here; this service only crosses the bridge.
+ * The 2-hourly background poll lives entirely in Rust
+ * (`updater::start_background_checks`); `available` is how its result
+ * arrives here.
  */
 @Injectable({ providedIn: 'root' })
 export class UpdateService {
@@ -35,8 +38,13 @@ export class UpdateService {
     return this.zoneWrapper.invoke<void>(TAURI_COMMANDS.updateOpenReleasesPage);
   }
 
-  /** Fires repeatedly while `install()` is downloading. */
+  /** Fires repeatedly while `install()` is downloading or installing. */
   readonly progress: Observable<UpdateProgress> = this.zoneWrapper.listen<UpdateProgress>(
     TAURI_EVENTS.updateProgress,
+  );
+
+  /** Fires when the background poll (every 2 hours, Rust-side) finds a newer version. */
+  readonly available: Observable<UpdateInfo> = this.zoneWrapper.listen<UpdateInfo>(
+    TAURI_EVENTS.updateAvailable,
   );
 }

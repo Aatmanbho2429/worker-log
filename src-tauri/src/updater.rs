@@ -4,20 +4,25 @@
 //!
 //! This is a click-to-install banner, not a forced overlay: a shop-floor
 //! terminal must never be locked out of logging waste by an update. Three
-//! commands: [`update_check`] (also used for the Settings screen's manual
+//! commands: [`update_check`] (also used for the topbar version tag's manual
 //! "Check for updates"), [`update_install`], and
 //! [`update_open_releases_page`] — the escape hatch for when the in-app
 //! installer itself is broken (bad signature, missing platform artifact, a
-//! malformed `latest.json`). See `.claude/plans/auto-update.md`.
+//! malformed `latest.json`). [`start_background_checks`] is the fourth
+//! piece — not a command, called once from `lib.rs`'s `setup()` — that polls
+//! every 2 hours for as long as the app is running. See
+//! `.claude/plans/auto-update.md` and
+//! `.claude/plans/shell-polish-and-update-poll.md`.
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
 use crate::error::{AppError, AppResult};
-use crate::events::{self, UpdateProgress};
+use crate::events::{self, UpdatePhase, UpdateProgress};
 use crate::models::{ApiResponse, UpdateInfo};
 use crate::state::AppState;
 
@@ -57,6 +62,68 @@ async fn update_check_impl(app: AppHandle) -> AppResult<Option<UpdateInfo>> {
 #[tauri::command]
 pub async fn update_check(app: AppHandle) -> ApiResponse<Option<UpdateInfo>> {
     update_check_impl(app).await.into()
+}
+
+// ---------------------------------------------------------- background poll --
+
+/// How long a long-running session goes between unattended checks.
+const POLL_INTERVAL: Duration = Duration::from_secs(2 * 60 * 60);
+
+/// The first check waits this long after startup rather than firing at t=0,
+/// so it does not compete with window creation, the licence check and the
+/// first screen load on a slow shop-floor terminal.
+const FIRST_CHECK_DELAY: Duration = Duration::from_secs(60);
+
+/// Starts the "in the background" half of updates: a check every 2 hours for
+/// as long as the app is running. There is no tray and no autostart here
+/// (`.claude/plans/shell-polish-and-update-poll.md` §4.4 — by request), so
+/// this can only ever mean *while the process is alive* — a terminal shut
+/// down overnight checks when it is next opened, then every 2 hours after.
+///
+/// Lives in Rust rather than as a JS `setInterval` for two reasons: a
+/// webview timer is throttled while the window is hidden or minimised, which
+/// is exactly the state a shop-floor terminal sits in for hours, and a JS
+/// timer would restart from zero on every reload.
+pub fn start_background_checks(app: AppHandle) {
+    // Every `npm run dev` / `tauri dev` session must never nag about an
+    // older local version. The manual check (`update_check` from the topbar
+    // version tag) still works in a dev build — only this unattended poll is
+    // gated.
+    if cfg!(debug_assertions) {
+        log::info!("[updater] background polling skipped in a dev build");
+        return;
+    }
+
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(FIRST_CHECK_DELAY).await;
+        loop {
+            background_check_once(&app).await;
+            tokio::time::sleep(POLL_INTERVAL).await;
+        }
+    });
+}
+
+async fn background_check_once(app: &AppHandle) {
+    // A check that lands while a download/install is already running would
+    // race the UI's own state for no benefit — the operator is already
+    // looking at the banner.
+    if INSTALLING.load(Ordering::SeqCst) {
+        log::info!("[updater] background check skipped — an install is already running");
+        return;
+    }
+
+    match update_check_impl(app.clone()).await {
+        Ok(Some(info)) => {
+            log::info!("[updater] background check found v{}", info.version);
+            events::emit_update_available(app, info);
+        }
+        // Already current — nothing to announce.
+        Ok(None) => {}
+        // Offline, GitHub unreachable, a corporate proxy: stay silent. Same
+        // fail-open rule as the manual check's background sibling in
+        // `core/updates.service.ts`.
+        Err(err) => log::warn!("[updater] background check failed: {err}"),
+    }
 }
 
 // ---------------------------------------------------------------- install --
@@ -119,6 +186,8 @@ async fn install(app: &AppHandle) -> AppResult<()> {
     // states.
     let mut last_pct: Option<u64> = None;
 
+    let app_for_finish = app.clone();
+
     let outcome = update
         .download_and_install(
             move |chunk_len, total| {
@@ -130,12 +199,39 @@ async fn install(app: &AppHandle) -> AppResult<()> {
                 }
                 last_pct = pct;
 
+                // Split a "the bar isn't moving" report in half without
+                // guesswork: if these lines appear, the backend is streaming
+                // fine and the fault is in the webview; if they don't, the
+                // download itself never started reporting.
+                match (pct, last_pct) {
+                    (Some(p), _) if p % 10 == 0 => {
+                        log::info!("[updater] download {p}% ({downloaded} / {total:?} bytes)")
+                    }
+                    (None, None) => log::info!(
+                        "[updater] download progressing, no Content-Length \
+                         (UI shows an indeterminate bar)"
+                    ),
+                    _ => {}
+                }
+
                 events::emit_update_progress(
                     &app_for_progress,
-                    UpdateProgress { downloaded, total },
+                    UpdateProgress { downloaded, total, phase: UpdatePhase::Downloading },
                 );
             },
-            || {},
+            move || {
+                // The plugin gives no callback at all for what happens next —
+                // verifying the signature, extracting the archive, swapping
+                // the bundle in place. Announce that stretch as its own
+                // phase, or the bar sits parked at 100% looking hung for
+                // however long that takes (a real slice of the ~78s a run
+                // in the wild actually took).
+                log::info!("[updater] download finished, verifying and installing");
+                events::emit_update_progress(
+                    &app_for_finish,
+                    UpdateProgress { downloaded: 0, total: None, phase: UpdatePhase::Installing },
+                );
+            },
         )
         .await;
 

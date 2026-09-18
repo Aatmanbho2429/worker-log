@@ -89,7 +89,8 @@
     "signOut": "Sign out",
     "signOutConfirm": "Sign out of the register on this PC?",
     "signOutAccept": "Sign out",
-    "signOutReject": "Stay"
+    "signOutReject": "Stay",
+    "madeBy": "Made by the founder of Pictoria"
   },
   "update": {
     "ready": "Version {{ version }} is ready",
@@ -100,6 +101,7 @@
     "downloadManually": "Download manually",
     "dismiss": "Dismiss",
     "downloading": "Downloading version {{ version }}\u2026",
+    "installing": "Installing version {{ version }}\u2026",
     "confirmHeader": "Install update",
     "confirmMessage": "The register closes for about a minute while version {{ version }} installs, then reopens. Nothing you've logged is lost.",
     "confirmAccept": "Install now",

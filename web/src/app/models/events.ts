@@ -15,12 +15,16 @@ export function affects(change: DataChanged, ...interested: ChangeScope[]): bool
   return change.scope === 'everything' || interested.includes(change.scope);
 }
 
+/** Mirrors `events::UpdatePhase`. */
+export type UpdatePhase = 'downloading' | 'installing';
+
 /**
- * Download progress for an in-progress update install. Mirrors
+ * Download/install progress for an in-progress update install. Mirrors
  * `events::UpdateProgress` in Rust.
  */
 export interface UpdateProgress {
   downloaded: number;
   /** `null` when the response carried no `Content-Length` — an indeterminate download. */
   total: number | null;
+  phase: UpdatePhase;
 }

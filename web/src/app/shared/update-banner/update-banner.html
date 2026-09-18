@@ -9,7 +9,10 @@
     <div class="update-banner__text">
       @if (updates.installing()) {
         <span class="update-banner__title">
-          {{ 'update.downloading' | translate: { version: updates.available()?.version } }}
+          {{
+            (updates.phase() === 'installing' ? 'update.installing' : 'update.downloading')
+              | translate: { version: updates.available()?.version }
+          }}
         </span>
         <p-progressbar
           class="update-banner__progress"

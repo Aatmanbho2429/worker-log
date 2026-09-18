@@ -21,7 +21,7 @@
 
 .shell__mark {
   align-items: center;
-  background: $accent;
+  background: $surface-card;
   border-radius: $radius-md;
   display: flex;
   height: to-rem(32);
@@ -29,9 +29,9 @@
   width: to-rem(32);
 }
 
-.shell__mark-icon {
-  color: $text-on-accent;
-  font-size: $icon-md;
+.shell__mark-image {
+  height: to-rem(24);
+  width: to-rem(24);
 }
 
 .shell__wordmark {
@@ -77,6 +77,24 @@
 .shell__context-icon {
   color: $text-faint;
   font-size: $icon-md;
+}
+
+// A meta detail beside the company name — the button reset keeps it from
+// reading as anything louder than the `p-tag` it wraps. Wrapped in a real
+// `<button>`, not a `(click)` on the tag itself, so it is reachable and
+// operable by keyboard.
+.shell__version {
+  background: none;
+  border: 0;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  padding: 0;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
 }
 
 .shell__clock {
@@ -197,6 +215,30 @@
   color: $sidebar-indicator;
 }
 
+// Pinned to the bottom of the flex column by `margin-top: auto` — `.shell__nav`
+// is the scroll container, so this stays put even when the link list scrolls.
+.shell__credit {
+  background: none;
+  border: 0;
+  color: $sidebar-text-muted;
+  cursor: pointer;
+  font: inherit;
+  font-size: $fs-xs;
+  line-height: $lh-snug;
+  margin-top: auto;
+  padding: $space-lg $space-sm 0;
+  text-align: center;
+  transition: color $duration-fast $ease-standard;
+
+  &:hover {
+    color: $sidebar-active-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
 .shell__main {
   grid-area: main;
   min-height: 0;
@@ -224,6 +266,11 @@
   }
 
   .shell__section {
+    display: none;
+  }
+
+  // Would otherwise land mid-strip once `.shell__nav` goes horizontal.
+  .shell__credit {
     display: none;
   }
 

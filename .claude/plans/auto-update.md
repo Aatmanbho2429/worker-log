@@ -1,21 +1,43 @@
 # Versioned releases + in-app updates: implementation plan
 
-> **Status:** Phases 0–3 implemented 2026-09-18 by Sonnet 5, on branch
-> `auto-update`. Every fact in the tables below was checked against the code
-> on 2026-09-15 (Phase 0 facts re-verified 2026-09-18), so don't re-derive
-> them — but re-check anything Phase 4 touches, since the branch has moved on.
+> **Status:** Phases 0–4 done. Merged to `Development`, released, and proven
+> against a real install — `v0.4.0`'s update onto a running `0.1.0`/pre-update
+> copy completed successfully (download → restart, ~78s, confirmed in the
+> app's own log). Every fact in the tables below was checked against the code
+> on 2026-09-15 (Phase 0 facts re-verified 2026-09-18) — don't re-derive them,
+> but see **"Superseded by shell-polish-and-update-poll.md"** below before
+> touching the poll interval or the manual check's location.
 >
-> - [x] Phase 0: **Done 2026-09-18** — keypair generated, all 8 secrets set and verified
-> - [x] Phase 1: **Done 2026-09-18** — `.github/workflows/release.yml`, `tauri.conf.json`, `Cargo.toml`
-> - [x] Phase 2: **Done 2026-09-18** — `src-tauri/src/updater.rs` + supporting models/events
-> - [x] Phase 3: **Done 2026-09-18** — banner, `core/updates.service.ts`, Settings button
-> - [ ] Phase 4: Local checks done (§4.1); §4.2 (CI dry run) and §4.3 (real two-release walk) still
->       need a tag pushed to GitHub — that publishes a (pre)release on a public repo and spends
->       Actions minutes, so it needs the user's go-ahead first, not something to do on its own.
-> - [ ] Phase 5: Fold into a `release` skill, update rules, delete this plan — do this only once
->       Phase 4 has actually shipped a working update to a real install.
+> - [x] Phase 0 — keypair generated, all 8 secrets set and verified
+> - [x] Phase 1 — `.github/workflows/release.yml`, `tauri.conf.json`, `Cargo.toml`
+> - [x] Phase 2 — `src-tauri/src/updater.rs` + supporting models/events
+> - [x] Phase 3 — banner, `core/updates.service.ts` (superseded in part, see below)
+> - [x] Phase 4 — merged, tagged, published (`v0.4.0`), and confirmed working
+>       on a real install
+> - [ ] Phase 5 — fold into a `release` skill, update rules, delete this plan.
+>       **Still not done** — see the note below on why this file stays open.
 >
-> Phases 1–3 shipped together, on branch `auto-update`, not yet merged or pushed.
+> ## Superseded by `.claude/plans/shell-polish-and-update-poll.md`
+>
+> That follow-up plan (2026-09-18) changed three things this document still
+> describes as current:
+>
+> - **The poll is 2 hours, not 6, and runs in Rust, not a JS `setInterval`.**
+>   `core/updates.service.ts`'s `checkInBackground()`/`POLL_INTERVAL_MS` are
+>   gone; the background poll is `updater::start_background_checks` in Rust,
+>   pushing `worker-log://update-available`. See §3.3/§4 there for why (a
+>   webview timer throttles while the window is hidden or minimised, which is
+>   exactly a shop-floor terminal's normal state).
+> - **The manual check is no longer on the Settings screen.** It moved to a
+>   version tag in the topbar (`Shell.checkForUpdates()`) — Settings is no
+>   longer linked from the nav at all.
+> - **The progress bar had three real defects**, now fixed: dead CSS on
+>   `.update-banner__progress`, no "installing" phase after the download
+>   finishes, and a dead 0% before the first chunk. See that plan's §3.
+>
+> Phase 5 here is still not done *because of this* — fold both plans into the
+> `release` skill together, in one pass, once nothing else is about to change
+> under the update feature again.
 
 ---
 

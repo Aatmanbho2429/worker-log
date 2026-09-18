@@ -1,9 +1,10 @@
-import { Injectable, computed, inject, isDevMode, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { isCommandError } from './zone-wrapper/zone-wrapper.service';
 import { UpdateService } from '../services/update/update.service';
 import { UpdateInfo } from '../models';
+import { UpdatePhase } from '../models/events';
 
 /**
  * App-wide update state: a click-to-install banner, not a forced overlay —
@@ -13,8 +14,12 @@ import { UpdateInfo } from '../models';
  * `ZoneWrapperService`.
  *
  * `services/update/update.service.ts` is the thin Tauri-calling layer this
- * builds on; this service owns the state a banner (or the Settings screen's
- * manual "Check for updates" button) actually renders.
+ * builds on; this service owns the state a banner (or the topbar's version
+ * tag) actually renders. The 2-hourly background poll is not here — it runs
+ * entirely in Rust (`updater::start_background_checks`), because a webview
+ * timer is throttled while the window is hidden or minimised, which is
+ * exactly the state a shop-floor terminal sits in for hours. This service
+ * just listens for what that poll finds.
  */
 @Injectable({ providedIn: 'root' })
 export class UpdatesService {
@@ -22,10 +27,12 @@ export class UpdatesService {
 
   readonly available = signal<UpdateInfo | null>(null);
   readonly installing = signal(false);
-  /** 0-100, or `null` while the download has no `Content-Length` (indeterminate). */
-  readonly percent = signal<number | null>(0);
+  /** 0-100, or `null` while indeterminate — no `Content-Length` yet, or the installing phase. */
+  readonly percent = signal<number | null>(null);
+  /** Which stretch of the install `percent` describes; only meaningful while `installing()`. */
+  readonly phase = signal<UpdatePhase>('downloading');
   readonly error = signal<string | null>(null);
-  /** For the Settings screen's manual button, not the background poll. */
+  /** For the topbar version tag's manual check, not the background poll. */
   readonly checking = signal(false);
 
   // In memory only: a relaunch — or a version newer than the one dismissed —
@@ -41,12 +48,8 @@ export class UpdatesService {
 
   private started = false;
   private subs: Subscription[] = [];
-  private timer: ReturnType<typeof setInterval> | null = null;
 
-  // Re-check every 6 hours so a long-running session still gets told.
-  private static readonly POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
-
-  /** Idempotent — safe to call from more than one place. Call once, from `App`'s constructor, so the check is already running by the time the shell mounts. */
+  /** Idempotent — safe to call from more than one place. Call once, from `App`'s constructor, so listeners are wired before anything can fire. */
   start(): void {
     if (this.started) return;
     this.started = true;
@@ -56,40 +59,35 @@ export class UpdatesService {
     this.subs.push(
       this.updateApi.progress.subscribe((progress) => {
         this.installing.set(true);
-        this.percent.set(
-          progress.total
-            ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
-            : null,
-        );
+        this.phase.set(progress.phase);
+
+        if (progress.phase === 'installing') {
+          // The plugin gives no byte-level callback for this stretch —
+          // always indeterminate.
+          this.percent.set(null);
+          return;
+        }
+
+        const next = progress.total
+          ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
+          : null;
+        // Guard against a stray backward jump. A move to indeterminate, or
+        // a same-or-forward percentage, always applies.
+        const current = this.percent();
+        if (next === null || current === null || next >= current) {
+          this.percent.set(next);
+        }
       }),
     );
 
-    // Background checks only in a real build — every `npm run dev` session
-    // with an older local version must not raise the banner. The manual
-    // "Check for updates" button (`checkNow`) still works in dev; that is
-    // how the banner gets tested without a signed release build.
-    if (isDevMode()) return;
-
-    this.checkInBackground();
-    this.timer = setInterval(() => this.checkInBackground(), UpdatesService.POLL_INTERVAL_MS);
+    // The background poll itself runs in Rust, every 2 hours, skipped in dev
+    // builds — see `updater::start_background_checks`. This just listens for
+    // what it finds; per-version dismissal still applies (`bannerVisible()`
+    // above), so a poll re-offering an already-dismissed version stays quiet.
+    this.subs.push(this.updateApi.available.subscribe((info) => this.available.set(info)));
   }
 
-  /**
-   * A failed background check is not itself news — offline, GitHub
-   * unreachable, a corporate proxy — so it never surfaces to the operator.
-   * The banner simply stays hidden. Contrast `checkNow()`, which is the
-   * manual button and does propagate its error.
-   */
-  private checkInBackground(): void {
-    this.updateApi
-      .check()
-      .then((info) => {
-        if (info) this.available.set(info);
-      })
-      .catch((err) => console.warn('[updater] background check failed:', err));
-  }
-
-  /** The Settings screen's manual button. Errors propagate to the caller, who shows them — unlike the silent background poll. */
+  /** The topbar version tag's manual check. Errors propagate to the caller, who shows them — unlike the silent background poll. */
   async checkNow(): Promise<'available' | 'upToDate'> {
     this.checking.set(true);
     try {
@@ -111,7 +109,8 @@ export class UpdatesService {
    */
   async install(): Promise<void> {
     this.installing.set(true);
-    this.percent.set(0);
+    this.percent.set(null);
+    this.phase.set('downloading');
     this.error.set(null);
     try {
       await this.updateApi.install();
@@ -136,8 +135,6 @@ export class UpdatesService {
 
   /** Only meaningful in tests — the service otherwise lives for the app's lifetime. */
   stop(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
     this.subs.forEach((sub) => sub.unsubscribe());
     this.subs = [];
     this.started = false;

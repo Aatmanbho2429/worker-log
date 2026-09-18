@@ -6,6 +6,7 @@
 //! a single call with no await points to reason about.
 
 use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::error::{AppError, AppResult};
 use crate::events::{ChangeScope, emit_changed, emit_changed_with};
@@ -48,6 +49,23 @@ fn device_id_impl() -> AppResult<String> {
 #[tauri::command]
 pub fn device_id() -> ApiResponse<String> {
     device_id_impl().into()
+}
+
+/// Opens the Pictoria site in the system browser — the sidebar credit's
+/// link. The URL is a constant, never accepted from the webview: never give
+/// the front end an "open any URL" primitive. Same shape as
+/// `updater::update_open_releases_page`.
+fn open_pictoria_site_impl(app: AppHandle) -> AppResult<()> {
+    const PICTORIA_URL: &str = "https://pictoria.shop/";
+
+    app.opener()
+        .open_url(PICTORIA_URL, None::<&str>)
+        .map_err(|err| AppError::Internal(format!("could not open pictoria.shop: {err}")))
+}
+
+#[tauri::command]
+pub fn open_pictoria_site(app: AppHandle) -> ApiResponse<()> {
+    open_pictoria_site_impl(app).into()
 }
 
 // ---------------------------------------------------------------- series ---

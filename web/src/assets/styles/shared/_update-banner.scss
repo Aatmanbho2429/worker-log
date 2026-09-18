@@ -52,8 +52,12 @@
 }
 
 .update-banner__progress {
+  // `p-progressbar`'s host is a custom element — `display: inline` by
+  // default — so `margin-top`/`max-width` did nothing until this was added.
+  display: block;
   margin-top: $space-2xs;
   max-width: to-rem(320);
+  width: 100%;
 }
 
 .update-banner__actions {

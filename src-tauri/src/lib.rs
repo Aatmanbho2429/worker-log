@@ -81,11 +81,14 @@ pub fn run() {
             log::info!("opened local database at {}", path.display());
             app.manage(state::AppState::new(db, path));
 
+            updater::start_background_checks(app.handle().clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::device_id,
+            commands::open_pictoria_site,
             auth::auth_register,
             auth::auth_login,
             auth::auth_restore,

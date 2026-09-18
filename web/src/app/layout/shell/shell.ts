@@ -4,6 +4,9 @@ import { ConfirmationService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/auth.service';
+import { NotifyService } from '../../core/notify.service';
+import { PictoriaService } from '../../core/pictoria.service';
+import { UpdatesService } from '../../core/updates.service';
 import { accountFullName, accountInitials } from '../../models/auth';
 import {
   ROUTE_BARCODES,
@@ -18,6 +21,7 @@ import {
   ROUTE_WASTE,
   ROUTE_WORKERS,
 } from '../../models/constants';
+import { SettingsService } from '../../services/settings/settings.service';
 import { PrimengComponentsModule } from '../../shared/primeng-components-module';
 import { UpdateBanner } from '../../shared/update-banner/update-banner';
 
@@ -44,6 +48,10 @@ export class Shell implements OnDestroy {
   private readonly confirm = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly notify = inject(NotifyService);
+  private readonly pictoria = inject(PictoriaService);
+  private readonly settingsApi = inject(SettingsService);
+  private readonly updates = inject(UpdatesService);
 
   protected readonly sections: NavSection[] = [
     {
@@ -62,10 +70,11 @@ export class Shell implements OnDestroy {
         { label: 'shell.navSeries', icon: 'pi pi-box', route: ROUTE_SERIES },
         { label: 'shell.navReasons', icon: 'pi pi-tags', route: ROUTE_REASONS },
         { label: 'shell.navGrades', icon: 'pi pi-sliders-h', route: ROUTE_GRADES },
-        // Unhidden for the update feature: Settings is where the manual
-        // "Check for updates" button lives (`.claude/plans/auto-update.md`,
-        // open question 1). It was previously unreachable except by URL.
-        { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
+        // Not advertised in the nav — the manual "Check for updates" action
+        // now lives on the version tag in the topbar (see `checkForUpdates()`
+        // below). The screen itself, and `ROUTE_SETTINGS`, stay reachable by
+        // URL for support (it's the only place showing the database path).
+        // { label: 'shell.navSettings', icon: 'pi pi-cog', route: ROUTE_SETTINGS },
       ],
     },
     {
@@ -106,8 +115,60 @@ export class Shell implements OnDestroy {
 
   private readonly timer = setInterval(() => this.clock.set(this.stamp()), 30_000);
 
+  /** The version shown as a tag beside the company name. `null` until it loads. */
+  protected readonly version = signal<string | null>(null);
+
+  constructor() {
+    void this.loadVersion();
+  }
+
   ngOnDestroy(): void {
     clearInterval(this.timer);
+  }
+
+  /**
+   * The version tag's own click target. Not worth a toast on failure — it's
+   * a meta detail in the topbar, not a command the operator is waiting on.
+   */
+  private async loadVersion(): Promise<void> {
+    try {
+      const info = await this.settingsApi.appInfo();
+      this.version.set(info.version);
+    } catch {
+      // Leave it at '—' (the template's fallback) rather than surfacing an
+      // error for a detail this minor.
+    }
+  }
+
+  /**
+   * The manual counterpart to `UpdatesService`'s background poll: this one
+   * always tells the operator something, success or failure. A newer version
+   * found here shows up in the shell's own banner too — this doesn't install
+   * anything itself. Mirrors `views/settings/settings.ts`'s method of the
+   * same name, which is where this lived before Settings left the nav.
+   */
+  protected async checkForUpdates(): Promise<void> {
+    try {
+      const result = await this.updates.checkNow();
+      if (result === 'available') {
+        this.notify.info(
+          this.translate.instant('update.availableToast', {
+            version: this.updates.available()?.version,
+          }),
+        );
+      } else {
+        this.notify.success(this.translate.instant('update.upToDate'));
+      }
+    } catch (error) {
+      this.notify.fromCommand(error, this.translate.instant('update.checkFailed'));
+    }
+  }
+
+  /** The sidebar credit's link. A dead link is not worth a toast. */
+  protected openPictoria(): void {
+    this.pictoria
+      .openSite()
+      .catch((err) => console.warn('[shell] could not open pictoria.shop:', err));
   }
 
   /**

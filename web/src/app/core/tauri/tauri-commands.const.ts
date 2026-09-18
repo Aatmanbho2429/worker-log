@@ -9,6 +9,7 @@
 export const TAURI_COMMANDS = {
   appInfo: 'app_info',
   deviceId: 'device_id',
+  openPictoriaSite: 'open_pictoria_site',
 
   // ------------------------------------------------------------- series ---
   listSeries: 'list_series',
