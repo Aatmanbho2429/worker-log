@@ -12,6 +12,7 @@ mod repo;
 mod seed;
 mod state;
 mod supabase;
+mod updater;
 
 use chrono::Local;
 use tauri::Manager;
@@ -43,6 +44,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -125,6 +127,10 @@ pub fn run() {
             commands::record_scan,
             commands::export_barcodes_pdf,
             commands::seed_demo_data,
+            // ── Updates ──────────────────────────────────────────────
+            updater::update_check,
+            updater::update_install,
+            updater::update_open_releases_page,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the waste log application");

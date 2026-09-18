@@ -40,33 +40,17 @@ npm run web:start # Angular dev server alone (web/, no Tauri window)
 npm run web:build # Angular production build alone
 ```
 
-Angular tests (from `web/`):
+Tests:
 
 ```bash
-npm test                                                   # the whole vitest suite
-npm test -- --watch=false                                  # one-shot run from an interactive shell
-npm test -- --include src/app/core/scan.service.spec.ts    # one spec file (path is web/-relative)
-npm test -- --filter "keyboard wedge"                      # tests whose name matches a regex
+cd web && npm test -- --watch=false                        # Angular (vitest via ng test)
+cd web && npm test -- --include src/app/core/scan.service.spec.ts   # one spec
+cargo test --manifest-path src-tauri/Cargo.toml            # Rust, inline #[test]s
 ```
 
-Two traps. Tests run through Angular's `@angular/build:unit-test` builder
-(vitest under jsdom, no `vitest.config.ts`) — `npx vitest` directly fails,
-because the builder is what initialises the TestBed, so always go through
-`npm test`. And `--watch` defaults to **true in a TTY**, so a bare `npm test`
-at a prompt sits in watch mode rather than exiting.
-
-Coverage is four spec files — `core/scan.service.spec.ts`,
-`core/zone-wrapper/zone-wrapper.service.spec.ts`, `models/auth.spec.ts`,
-`shared/scan-field/scan-field.spec.ts`. Nothing under `views/` or `services/`
-is covered.
-
-Rust tests are plain `#[test]` functions inline in the modules under
-`src-tauri/src/` (`barcode.rs`, `barcode_sheet.rs`, `db.rs`, `report.rs`,
-`models/response/api_response.rs`):
-
-```bash
-cargo test --manifest-path src-tauri/Cargo.toml
-```
+Never `npx vitest` (the Angular builder sets up TestBed), and a bare `npm test`
+in a TTY stays in watch mode. Filters, coverage and Prettier:
+`.claude/rules/testing.md`.
 
 Seeding/resetting demo data without opening a window:
 
@@ -77,10 +61,6 @@ cargo run --manifest-path src-tauri/Cargo.toml -- seed --force  # clear and rese
 
 `WORKER_LOG_DB` overrides the SQLite file location for both the app and the
 seeder — set it during dev to avoid touching a real register.
-
-There is no linter. Formatting is Prettier 3 against `web/.prettierrc` (100
-columns, single quotes, `angular` parser for templates); there is no `format`
-script, so run `npx prettier --write <paths>` from `web/`.
 
 ## Architecture
 
@@ -116,7 +96,8 @@ in `.claude/rules/tauri-ipc.md`, `zone-wrapper.md`, `api-response-format.md`.
   `reasons.rs`, `grades.rs`, `logs.rs`, `barcodes.rs`).
 - `models/` — everything crossing the bridge, split `request/` ÷ `response/`,
   one struct per file. See `.claude/rules/models.md`.
-- `db.rs` — connection setup and migrations. `state.rs` — `AppState` (the
+- `db.rs` — connection setup; runs the `src-tauri/migrations/*.sql` files it
+  `include_str!`s. `state.rs` — `AppState` (the
   guarded single connection) and app-data-directory resolution. `error.rs` —
   `AppError` and its `status_code()`.
 - `barcode.rs` / `barcode_sheet.rs` — Code 128 encoding and the printed
@@ -166,6 +147,7 @@ from their description.
 | `rules/angular-ui.md` | PrimeNG module, i18n copy, shared range state, routing |
 | `rules/theming.md` | the medium blue/grey/slate palette, semantic colour tokens, the two palettes, and the three things that opt out |
 | `rules/ui-design-system.md` | where CSS lives (no component stylesheets), BEM rules, type scale, spacing, control sizes, screen anatomy, declutter and contrast rules |
+| `rules/testing.md` | vitest-through-`ng test` traps, spec filters, what is covered, Prettier |
 | `skills/supabase/` | the whole account layer — auth, licence binding, plans, Razorpay — its design decisions, and what is live |
 | `skills/scaffold-entity/` | adding an entity end-to-end |
 | `skills/extract-static-text/` | moving copy into `en.json` and literals into `constants.ts` |

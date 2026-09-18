@@ -91,6 +91,25 @@
     "signOutAccept": "Sign out",
     "signOutReject": "Stay"
   },
+  "update": {
+    "ready": "Version {{ version }} is ready",
+    "whatsNew": "What's new",
+    "notesTitle": "What's new in {{ version }}",
+    "install": "Install & restart",
+    "retry": "Retry",
+    "downloadManually": "Download manually",
+    "dismiss": "Dismiss",
+    "downloading": "Downloading version {{ version }}\u2026",
+    "confirmHeader": "Install update",
+    "confirmMessage": "The register closes for about a minute while version {{ version }} installs, then reopens. Nothing you've logged is lost.",
+    "confirmAccept": "Install now",
+    "confirmReject": "Not now",
+    "failedTitle": "Update failed",
+    "checkNow": "Check for updates",
+    "checkFailed": "Could not check for updates.",
+    "upToDate": "You're on the latest version.",
+    "availableToast": "Version {{ version }} is ready. Use the banner to install it."
+  },
   "auth": {
     "fieldFirstName": "First name",
     "fieldLastName": "Last name",

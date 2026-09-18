@@ -28,6 +28,22 @@ impl AppState {
         })
     }
 
+    /// Best-effort variant of [`Self::conn`] for contexts that must not
+    /// block — the updater's `on_before_exit` hook (`updater.rs`) runs from
+    /// wherever the plugin decides to, moments before the platform installer
+    /// takes over, and must never wait on a lock a command might be
+    /// mid-write against. `None` means the connection was busy right then;
+    /// the caller skips whatever it wanted to do rather than stall the exit.
+    pub fn try_conn(&self) -> Option<AppResult<MutexGuard<'_, Connection>>> {
+        match self.db.try_lock() {
+            Ok(guard) => Some(Ok(guard)),
+            Err(std::sync::TryLockError::WouldBlock) => None,
+            Err(std::sync::TryLockError::Poisoned(_)) => Some(Err(AppError::Internal(
+                "The database connection was poisoned by an earlier panic.".into(),
+            ))),
+        }
+    }
+
     pub fn database_path(&self) -> &Path {
         &self.database_path
     }

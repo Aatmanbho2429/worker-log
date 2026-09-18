@@ -1,0 +1,214 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+# Two pushes of the same tag must never build into one release concurrently.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Checks the tag against Cargo.toml, reads the release notes from the
+  # annotated tag, and creates a DRAFT release for the build legs to upload
+  # into. Draft, not published-up-front: while a release is a draft,
+  # `releases/latest` still points at the previous version, so an installed
+  # app never fetches a latest.json that is half-uploaded or missing a
+  # platform because one leg failed.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.result }}
+      notes: ${{ steps.notes.outputs.notes }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tag must match Cargo.toml version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          CARGO_VERSION="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/version *= *"([^"]+)"/\1/')"
+          if [ "v${CARGO_VERSION}" != "${TAG}" ]; then
+            echo "::error::tag ${TAG} does not match src-tauri/Cargo.toml version ${CARGO_VERSION}"
+            echo "::error::bump Cargo.toml, commit, then re-tag."
+            exit 1
+          fi
+          # A hyphen (v0.3.0-rc.1) marks a prerelease. `releases/latest` never
+          # points at a prerelease, so an rc tag exercises the whole pipeline
+          # without offering anything to installed apps.
+          if [[ "${TAG}" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+      # actions/checkout rewrites annotated tags as lightweight ones, so fetch
+      # the real tag object before reading its message.
+      - name: Release notes from the annotated tag
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          NOTES="$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" | sed '/-----BEGIN PGP SIGNATURE-----/,$d')"
+          if [ -z "${NOTES//[[:space:]]/}" ]; then
+            NOTES="Bug fixes and improvements."
+          fi
+          {
+            echo "notes<<__NOTES_EOF__"
+            echo "$NOTES"
+            echo "__NOTES_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release
+        id: create
+        uses: actions/github-script@v7
+        env:
+          NOTES: ${{ steps.notes.outputs.notes }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        with:
+          result-encoding: string
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `Ceramic Waste Log ${tag}`,
+              body: process.env.NOTES,
+              draft: true,
+              prerelease: process.env.PRERELEASE === 'true',
+            });
+            return String(data.id);
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    # Apple's notarization queue has no SLA.
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+
+      # Root installs the Tauri CLI; web/ holds Angular. tauri.conf.json's
+      # beforeBuildCommand runs `npm --prefix web run build`, which needs both.
+      - name: Install dependencies
+        shell: bash
+        run: |
+          npm ci
+          npm ci --prefix web
+
+      # Without this a missing secret surfaces deep inside the bundler as a
+      # vague "failed to sign" error, or (worse) as an update that verifies
+      # against nothing.
+      - name: Verify signing secrets are present
+        shell: bash
+        env:
+          TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_PASS: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+        run: |
+          missing=0
+          [ -n "$TAURI_KEY" ]  || { echo "::error::TAURI_SIGNING_PRIVATE_KEY not set"; missing=1; }
+          [ -n "$TAURI_PASS" ] || { echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD not set"; missing=1; }
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            [ -n "$APPLE_CERT" ] || { echo "::error::APPLE_CERTIFICATE not set"; missing=1; }
+            [ -n "$APPLE_ID" ]   || { echo "::error::APPLE_ID not set"; missing=1; }
+          fi
+          exit $missing
+
+      - name: Build, sign and upload
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          releaseBody: ${{ needs.prepare.outputs.notes }}
+          includeUpdaterJson: true
+          # latest.json's plain `windows-x86_64` entry points at the NSIS
+          # installer; there is no MSI to prefer anyway, but be explicit.
+          updaterJsonPreferNsis: true
+          args: --target ${{ matrix.target }}
+
+  # Only runs if every leg succeeded. Checks the draft's latest.json covers all
+  # three platforms before flipping the release public. The legs merge
+  # latest.json by download-modify-upload, so a race or a silent upload
+  # failure could drop a platform. Publishing that would give those users an
+  # updater error on every check.
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify latest.json in the draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release download "${GITHUB_REF_NAME}" -R "${GITHUB_REPOSITORY}" -p latest.json -D .
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq -e --arg v "$VERSION" '.version == $v' latest.json >/dev/null \
+            || { echo "::error::latest.json version is not $VERSION"; cat latest.json; exit 1; }
+          for p in windows-x86_64 darwin-aarch64; do
+            jq -e --arg p "$p" '.platforms[$p].url and .platforms[$p].signature' latest.json >/dev/null \
+              || { echo "::error::latest.json is missing platform $p"; cat latest.json; exit 1; }
+          done
+          echo "latest.json OK"
+
+      - name: Publish release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: Number(process.env.RELEASE_ID),
+              draft: false,
+              make_latest: process.env.PRERELEASE === 'true' ? 'false' : 'true',
+            });
