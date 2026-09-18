@@ -22,7 +22,8 @@
 ## What is being built
 
 1. **Pushing a tag `vX.Y.Z` ships a release.** GitHub Actions builds signed
-   installers for Windows (x64) and macOS (Apple Silicon + Intel). It uploads
+   installers for Windows (x64) and macOS (Apple Silicon only — Intel was
+   dropped 2026-09-18, see §1.4's note). It uploads
    them to a GitHub Release on `Aatmanbho2429/worker-log` together with a
    signed `latest.json` manifest.
 2. **The installed app finds out on its own.** At launch, and every 6 hours
@@ -55,7 +56,7 @@ production: v1.1.40's live `latest.json` carries `darwin-aarch64`,
 | Trigger | `on: push: tags: ['v*']` | **Take** |
 | Release creation | `create-release` job makes a **published** release first, then the matrix uploads into it | **Change → draft**, published only after every leg succeeds and `latest.json` is verified (see §1.4) |
 | Build | `tauri-apps/tauri-action@v0` with `releaseId`, `includeUpdaterJson: true`, `updaterJsonPreferNsis: true` | **Take** |
-| Matrix | windows-latest x64; macos-latest arm64; macos-latest cross-compiled x86_64 (non-blocking because of its Python sidecar) | **Take**, but Intel is **blocking**: worker-log is pure Rust and cross-compiles trivially |
+| Matrix | windows-latest x64; macos-latest arm64; macos-latest cross-compiled x86_64 (non-blocking because of its Python sidecar) | **Take windows+arm64 only** — Intel macOS was in the original implementation (blocking, since worker-log is pure Rust and cross-compiles trivially) but was dropped 2026-09-18 at the user's request; see §1.4's note if it needs to come back |
 | Sidecar / LFS / model / PyInstaller steps | ~250 lines | **Drop all of it**; worker-log has no sidecar |
 | `entitlements.plist` | Exists only for the PyInstaller sidecar | **Drop**; the Rust app needs no entitlements |
 | Update signing | `TAURI_SIGNING_PRIVATE_KEY` + `_PASSWORD` secrets, `pubkey` in `tauri.conf.json` | **Take**, with a **new** keypair (§0.1) |
@@ -307,11 +308,13 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: macos-latest
             target: aarch64-apple-darwin
-          # Intel is cross-compiled on the Apple Silicon runner. Unlike
-          # Pictoria there is no Python sidecar, so this is a plain
-          # `--target` and it stays blocking.
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          # Intel macOS was dropped 2026-09-18 (user request) — it was a
+          # third leg here, cross-compiled on this same arm64 runner:
+          #   - os: macos-latest
+          #     target: x86_64-apple-darwin
+          # Re-add it (and darwin-x86_64 in the publish job's verify step
+          # below) if Intel Mac support is needed again — it needs no sidecar
+          # handling, unlike Pictoria's, so it is a plain `--target` leg.
     runs-on: ${{ matrix.os }}
     # Apple's notarization queue has no SLA.
     timeout-minutes: 180
@@ -408,7 +411,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           jq -e --arg v "$VERSION" '.version == $v' latest.json >/dev/null \
             || { echo "::error::latest.json version is not $VERSION"; cat latest.json; exit 1; }
-          for p in windows-x86_64 darwin-aarch64 darwin-x86_64; do
+          for p in windows-x86_64 darwin-aarch64; do
             jq -e --arg p "$p" '.platforms[$p].url and .platforms[$p].signature' latest.json >/dev/null \
               || { echo "::error::latest.json is missing platform $p"; cat latest.json; exit 1; }
           done

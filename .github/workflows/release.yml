@@ -96,11 +96,6 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: macos-latest
             target: aarch64-apple-darwin
-          # Intel is cross-compiled on the Apple Silicon runner. There is no
-          # Python sidecar here (unlike Pictoria), so this is a plain
-          # `--target` build and it stays blocking.
-          - os: macos-latest
-            target: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     # Apple's notarization queue has no SLA.
     timeout-minutes: 180
@@ -197,7 +192,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           jq -e --arg v "$VERSION" '.version == $v' latest.json >/dev/null \
             || { echo "::error::latest.json version is not $VERSION"; cat latest.json; exit 1; }
-          for p in windows-x86_64 darwin-aarch64 darwin-x86_64; do
+          for p in windows-x86_64 darwin-aarch64; do
             jq -e --arg p "$p" '.platforms[$p].url and .platforms[$p].signature' latest.json >/dev/null \
               || { echo "::error::latest.json is missing platform $p"; cat latest.json; exit 1; }
           done
