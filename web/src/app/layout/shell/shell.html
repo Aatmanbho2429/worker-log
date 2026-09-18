@@ -14,7 +14,9 @@
       <button
         type="button"
         class="shell__version"
+        [pTooltip]="'update.checkNow' | translate"
         tooltipPosition="bottom"
+        (click)="checkForUpdates()"
       >
         <p-tag severity="secondary" [value]="'v' + (version() ?? '—')" />
       </button>
