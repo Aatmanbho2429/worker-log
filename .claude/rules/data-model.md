@@ -2,6 +2,7 @@
 paths:
   - "src-tauri/src/repo/**/*.rs"
   - "src-tauri/migrations/**/*.sql"
+  - "src-tauri/src/db.rs"
 ---
 
 # Waste-log data rules
